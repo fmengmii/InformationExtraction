@@ -144,6 +144,7 @@ public class GenAnnotationGrid
 			
 			//System.out.println("annotType: " + annotType);
 			
+			
 			List<Annotation> annotList = annotMap.get(annotType);
 			if (annotList == null) {
 				continue;
@@ -228,7 +229,7 @@ public class GenAnnotationGrid
 					
 				if (annotType.equals(":target")) {
 					
-					System.out.println("docid: " + annot.getDocID() + ", annot start: " + annot.getStart() + ", annot end: " + annot.getEnd() + ", annot label: " + annot.getLabel());
+					//System.out.println("docid: " + annot.getDocID() + ", annot start: " + annot.getStart() + ", annot end: " + annot.getEnd() + ", annot label: " + annot.getLabel());
 					
 					/*
 					if (targetIndex == -1)
@@ -237,7 +238,7 @@ public class GenAnnotationGrid
 					
 					targetIndexList.add(indexes);
 					targetAnnotList.add(annot);
-					System.out.println("adding target: " + annot.getAnnotationType() + ", " + annot.getValue() + ", " + startIndex + ", " + endIndex);
+					//System.out.println("adding target: " + annot.getAnnotationType() + ", " + annot.getValue() + ", " + startIndex + ", " + endIndex);
 					//col.add(null);
 					
 					int[] targetCoords = new int[2];

@@ -31,8 +31,10 @@ public class ProfileStats
 	private Connection conn;
 	private Connection msaConn;
 	
-	private double filterThreshold = 0.2;
-	private int filterMinCount = 20;
+	private double negFilterThreshold = 0.9;
+	private int negFilterMinCount = 20;
+	private double posFilterThreshold = 0.95;
+	private int posFilterMinCount = 40;
 	private int blockSize = 10;
 	private int internalBlockSize = 10;
 
@@ -52,7 +54,8 @@ public class ProfileStats
 	
 	private boolean write = false;
 	
-	private String host;
+	private String annotType;
+	private MatchWriter matchWriter;
 	
 	public ProfileStats()
 	{
@@ -66,7 +69,6 @@ public class ProfileStats
 	public ProfileStats(String host)
 	{
 		this();
-		this.host = host;
 	}
 	
 	public void setMaxGaps(int maxGaps)
@@ -84,14 +86,24 @@ public class ProfileStats
 		this.phrase = phrase;
 	}
 	
-	public void setFilterThreshold(double filterThreshold)
+	public void setNegFilterThreshold(double filterThreshold)
 	{
-		this.filterThreshold = filterThreshold;
+		this.negFilterThreshold = filterThreshold;
 	}
 	
-	public void setFilterMinCount(int filterMinCount)
+	public void setNegFilterMinCount(int filterMinCount)
 	{
-		this.filterMinCount = filterMinCount;
+		this.negFilterMinCount = filterMinCount;
+	}
+	
+	public void setPosFilterThreshold(double filterThreshold)
+	{
+		this.posFilterThreshold = filterThreshold;
+	}
+	
+	public void setPosFilterMinCount(int filterMinCount)
+	{
+		this.posFilterMinCount = filterMinCount;
 	}
 	
 	public void setAnnotTypeNameList(List<String> annotTypeNameList)
@@ -119,53 +131,62 @@ public class ProfileStats
 		this.write = write;
 	}
 	
-	public void setHost(String host)
-	{
-		this.host = host;
-	}
-	
 	public void setDocIDList(List<Long> docIDList)
 	{
 		this.docIDList = docIDList;
 	}
 	
-	public void getProfileStats(List<AnnotationSequenceGrid> gridList, List<ProfileGrid> profileGridList, String annotType, int profileType, String keyspace, 
-		String msaKeyspace, String provenance, Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap, Map<AnnotationSequenceGrid, MSAProfile> msaTargetProfileMap, String indexTableName)
+	public void init(String annotUser, String annotPassword, String msaUser, String msaPassword, String host, String keyspace, String msaKeyspace, String dbType,
+		String indexTable, String annotType, String provenance)
 	{
-		System.out.println("filtering...");
-		
-		posMap = new HashMap<String, Integer>();
-		negMap = new HashMap<String, Integer>();
-		
-		
-		/*
-		if (msaProfileMap == null)
-			msaProfileMap = new HashMap<String, MSAProfile>();
-			*/
-		
-		
-		//sw.setScoreMap(annotTypeNameList);
-		//sw.setVerbose(true);
-		profileMatcher.setAligner(sw);
-		profileMatcher.setProfileMatch(true);
-		
-		//Map<String, List<MSAProfile>> finalPatternMap = new HashMap<String, List<MSAProfile>>();
-
 		try {
-			conn = DBConnection.dbConnection("fmeng", "fmeng", host, keyspace, "mysql");
+			this.annotType = annotType;
+			
+			conn = DBConnection.dbConnection(annotUser, annotPassword, host, keyspace, dbType);
 			//conn = DBConnection.dbConnection("fmeng", "fmeng", "localhost", keyspace, "mysql");
-			msaConn = DBConnection.dbConnection("fmeng", "fmeng", host, msaKeyspace, "mysql");
+			msaConn = DBConnection.dbConnection(msaUser, msaPassword, host, msaKeyspace, dbType);
 			
 			pstmt = msaConn.prepareStatement("select document_id, start, end from msa_profile_match_index where profile_id = ? and target_id = ?");
 			pstmt2 = msaConn.prepareStatement("select count(*) from msa_profile_match_index where profile_id = ?");
 			
-			MatchWriter matchWriter = new MatchWriter();
-			matchWriter.init("fmeng", "fmeng", host, msaKeyspace, "mysql", indexTableName);
+			matchWriter = new MatchWriter();
+			matchWriter.init(msaUser, msaPassword, host, msaKeyspace, dbType, indexTable);
 			
 			System.out.println("reading answers...");
 			ansMap = readAnswers(annotType, provenance);
+			
+			profileMatcher.setAligner(sw);
+			profileMatcher.setProfileMatch(true);
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	public void close()
+	{
+		try {
+			pstmt.close();
+			conn.close();
+			msaConn.close();
 
+			matchWriter.close();
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	public void getProfileStats(List<AnnotationSequenceGrid> gridList, List<ProfileGrid> profileGridList, int profileType, 
+		Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap, Map<AnnotationSequenceGrid, MSAProfile> msaTargetProfileMap)
+	{		
 
+		try {
+			posMap = new HashMap<String, Integer>();
+			negMap = new HashMap<String, Integer>();
+			
 			int maxGridSize = 0;
 			for (AnnotationSequenceGrid grid  : gridList) {
 				if (grid.size() > maxGridSize)
@@ -215,7 +236,7 @@ public class ProfileStats
 				*/				
 				
 				//filter low precision patterns
-				removeLowPrecision(matchList, profileGridList, msaProfileMap, msaTargetProfileMap);
+				//removePatterns(matchList, profileGridList, msaProfileMap, msaTargetProfileMap);
 				
 				
 				//List<String> profileMapStrList = new ArrayList<String>();
@@ -269,12 +290,6 @@ public class ProfileStats
 			
 			System.out.println("filtered: " + filtered + ", added: " + added);
 			System.out.println("profile size: " + profileList.size());
-			
-			pstmt.close();
-			conn.close();
-			msaConn.close();
-
-			matchWriter.close();
 		}
 		catch(Exception e)
 		{
@@ -282,7 +297,7 @@ public class ProfileStats
 		}
 	}
 	
-	private void removeLowPrecision(List<ProfileMatch> matchList, List<ProfileGrid> profileGridList, Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap, 
+	private void removePatterns(List<ProfileMatch> matchList, List<ProfileGrid> profileGridList, Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap, 
 		Map<AnnotationSequenceGrid, MSAProfile> msaTargetProfileMap) throws SQLException
 	{
 		Map<String, Boolean> matchMap = new HashMap<String, Boolean>();
@@ -348,7 +363,8 @@ public class ProfileStats
 				fp = 0;
 			
 			double prec = ((double) tp) / ((double) (tp + fp));
-			if ((tp + fp) >= filterMinCount && prec < filterThreshold) {
+			if (((tp + fp) >= negFilterMinCount && prec < negFilterThreshold) || 
+				((tp + fp)  >= posFilterMinCount && prec >= posFilterThreshold)) {
 				//remove profile
 				System.out.println("Removing: " + profile.getProfileStr());
 				System.out.println(tp + ", " + fp + ", " + prec);
@@ -389,7 +405,7 @@ public class ProfileStats
 		int tp = profile.getTruePos();
 		int fp = profile.getFalsePos();
 		double score = ((double) tp) / ((double) (tp + fp));
-		if (score > filterThreshold) {
+		if (score > negFilterThreshold) {
 			return true;
 		}
 		
@@ -401,6 +417,7 @@ public class ProfileStats
 	{
 		Map<String, Boolean> ansMap = new HashMap<String, Boolean>();
 		
+		/*
 		PreparedStatement pstmt = conn.prepareStatement("select a.start, a.end from annotation a, annotation b where a.document_id = ? and a.annotation_type = 'Token' and "
 			+ "a.start >= b.start and a.end <= b.end and b.annotation_type = '" + annotType + "' and a.document_id = b.document_id order by start");
 
@@ -428,8 +445,23 @@ public class ProfileStats
 			}
 			
 		}
+		*/
 		
-		pstmt.close();
+		Statement stmt = conn.createStatement();
+		ResultSet rs = stmt.executeQuery("select a.document_id, a.start, a.end from annotation a, annotation b where a.annotation_type = 'Token' and "
+			+ "a.start >= b.start and a.end <= b.end and b.annotation_type = '" + annotType + "' "
+			+ "and b.provenance = '" + provenance + "' and a.document_id = b.document_id and a.document_id < 1163 order by start");
+		
+		while (rs.next()) {
+			long docID = rs.getLong(1);
+			int start = rs.getInt(2);
+			int end = rs.getInt(3);
+			ansMap.put(docID + "|" + start + "|" + end, true);
+		}
+		
+		
+		//pstmt.close();
+		stmt.close();
 		
 		return ansMap;
 	}

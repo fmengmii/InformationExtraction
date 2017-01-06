@@ -2,6 +2,8 @@ package msa;
 
 import java.util.*;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.google.gson.Gson;
 
 import align.AnnotationGridElement;
@@ -89,7 +91,8 @@ public class AutoAnnotate
 	private String targetType;
 	private String targetProvenance;
 	private String autoProvenance;
-	//private Map<String, Boolean> extractMap;
+	private String negTargetType;
+	private String negTargetProvenance;
 	
 	private GenContext genContext;
 	private boolean contextFlag = false;
@@ -109,8 +112,8 @@ public class AutoAnnotate
 	private double minMatchTotal;
 	private Boolean filterAllCaps;
 	
-	private String finalTable = "msa_profile_target_final";
-	private String profileTable = "msa_profile";
+	private String finalTable;
+	private String profileTable;
 	
 	private String autoMatchTable;
 	private String runName;
@@ -122,6 +125,7 @@ public class AutoAnnotate
 	
 	private boolean evalFlag;
 	
+	private int totalTP;
 	
 	
 	public AutoAnnotate()
@@ -223,6 +227,23 @@ public class AutoAnnotate
 			targetType = props.getProperty("targetType");
 			targetProvenance = props.getProperty("targetProvenance");
 			autoProvenance = props.getProperty("autoProvenance");
+			negTargetType = props.getProperty("negTargetType");
+			negTargetProvenance = props.getProperty("negTargetProvenance");
+			
+			finalTable = props.getProperty("finalTable");
+			profileTable = props.getProperty("profileTable");
+
+			
+			if (targetType != null) {
+				annotTypeList = new ArrayList<String>();
+				annotTypeList.add(targetType);
+				
+				profileTableList = new ArrayList<String>();
+				profileTableList.add(profileTable);
+				
+				finalTableList = new ArrayList<String>();
+				finalTableList.add(finalTable);
+			}
 			
 			profileMinTotal = Integer.parseInt(props.getProperty("profileMinTotal"));
 			profileMinPrec = Double.parseDouble(props.getProperty("profileMinPrec"));
@@ -232,8 +253,6 @@ public class AutoAnnotate
 			
 			filterAllCaps = Boolean.parseBoolean(props.getProperty("filterAllCaps"));
 			
-			finalTable = props.getProperty("finalProfileTable");
-			profileTable = props.getProperty("profileTable");
 			autoMatchTable = props.getProperty("autoMatchTable");
 			runName = props.getProperty("runName");
 			
@@ -299,6 +318,8 @@ public class AutoAnnotate
 		finalAnnotList = new ArrayList<Annotation>();
 		finalMatchList = new ArrayList<ProfileMatch>();
 		//extractMap = new HashMap<String, Boolean>();
+		
+		totalTP = 0;
 		
 		try {
 			//init DB connections
@@ -413,7 +434,7 @@ public class AutoAnnotate
 				
 				System.out.println("reading answers...");
 				for (long docID : docIDList)
-					readAnswers(targetType, docID, negSeqList);
+					readAnswers(targetType, negTargetType, docID, negSeqList);
 	
 	
 				
@@ -485,19 +506,19 @@ public class AutoAnnotate
 				for (ProfileGrid profileGrid : profileGridList) {
 					String profileStr = gson.toJson(profileGrid.getGrid().getSequence().getToks());
 	
-					//System.out.println(profileStr);
+					System.out.println(profileStr);
 					pw.println(profileStr);
 					
-					//System.out.println("Targets: ");
+					System.out.println("Targets: ");
 					pw.println("Targets:");
 					List<AnnotationSequenceGrid> targetSeqGridList = profileGrid.getTargetGridList();
 					for (AnnotationSequenceGrid targetSeqGrid : targetSeqGridList) {
 						profileStr = gson.toJson(targetSeqGrid.getSequence().getToks());
-						//System.out.println(profileStr);
+						System.out.println(profileStr);
 						pw.println(profileStr);
 					}
 					
-					//System.out.println("\n\n");
+					System.out.println("\n\n");
 					pw.println("\n\n");
 				}
 				
@@ -528,6 +549,9 @@ public class AutoAnnotate
 					
 					if (value.length() > 1 && !Character.isLetter(value.charAt(value.length()-1)))
 						value = value.substring(0, value.length()-1);
+					
+					if (StringUtils.isAllUpperCase(value))
+						continue;
 					
 					if (value.length() == 0)
 						continue;
@@ -590,94 +614,7 @@ public class AutoAnnotate
 		Map<String, double[]> precMap = new HashMap<String, double[]>();
 		
 		
-		//for (ProfileMatch match : matchList) {
-		
-		/*
-		for (int i=0; i<matchList.size(); i++) {
-			ProfileMatch match = matchList.get(i);
-			
-			//target can only be 1 token (only for CoNLL2003)
-			String value = match.getTargetStr();
-			if (value.indexOf(" ") >= 0 && value.length() > 3) {
-				continue;
-			}
-			
-			if (value.length() > 1 && !Character.isLetter(value.charAt(value.length()-1)))
-				value = value.substring(0, value.length()-1);
-			
-			if (value.length() == 0)
-				continue;
-			
-			
-			
-			
-			
-//			double[] ret = precMap.get(value);
-//			if (ret == null) {
-//				ret = getPrec(value, "I-LOC", "I-MISC");
-//				precMap.put(value, ret);
-//			}
-//			
-//			double prec = ret[0] / (ret[0] + ret[1] + 0.00001);
-//
-//			
-//			if ((ret[0] + ret[1] < minMatchTotal) && prec == 0.0) {
-//				value = value.toLowerCase();
-//				ret = getPrec(value, "I-LOC", "I-MISC");
-//				prec = ret[0] / (ret[0] + ret[1] + 0.00001);
-//			}
-//			
-//			
-//			if (prec < minMatchPrec && (ret[0] + ret[1]) > minMatchTotal) {
-//				matchList.remove(i);
-//				i--;
-//				
-//				System.out.println("removing: " + value + ", " + prec + " | " + match.getGridStr());
-//				pw.println("removing: " + value + ", " + prec + " | " + match.getGridStr());
-//				continue;
-//			}
-			
-			
-			
-			
-			
-			
-			long matchDocID = match.getSequence().getDocID();
-			Map<String, List<String>> valueMap = docAnsMap.get(matchDocID);
-			if (valueMap == null) {
-				valueMap = new HashMap<String, List<String>>();
-				docAnsMap.put(matchDocID, valueMap);
-			}				
-			
-			List<String> docAnsList = valueMap.get(value);
-			if (docAnsList == null) {
-				docAnsList = new ArrayList<String>();
-				valueMap.put(value, docAnsList);
-			}
-			
-			
-			int[] indexes = match.getTargetIndexes();
-			docAnsList.add(indexes[0] + "|" + indexes[1]);
-			
-			
-			AnnotationSequenceGrid grid = negGridList.get(match.getGridIndex());
-			int[] targetCoords = match.getTargetIndexes();
-			
-			//extractMap.put(value, true);
-			
-			long docID = grid.getSequence().getDocID();
-			
-			
-			//long start = targetAnnot.getStart();
-			//long end = targetAnnot.getEnd();
-			
-			long start = targetCoords[0];
-			long end = targetCoords[1];
-			
-			Annotation annot = new Annotation(docID, docNamespace, docTable, -1, targetType, 
-				start, end, match.getTargetStr(), null);
-			annot.setProvenance(autoProvenance);
-			*/
+
 			
 			
 		for (Annotation annot : finalAnnotList) {
@@ -686,24 +623,24 @@ public class AutoAnnotate
 			long start = annot.getStart();
 			long end = annot.getEnd();
 			
-			System.out.println(docID + "|" + start + "|" + end);
 			
 			
-			String ansType = ansMap.get(docID + "|" + start + "|" + end);
+			String ansJSON = ansMap.get(docID + "|" + start + "|" + end);
 			
 			
-			if (ansType == null) {
-				ansType = ansMap.get(docID + "|" + start+1 + "|" + end+1);
-				if (ansType != null) {
+			
+			if (ansJSON == null) {
+				ansJSON = ansMap.get(docID + "|" + start+1 + "|" + end+1);
+				if (ansJSON != null) {
 					start++;
 					end++;
 				}
 			}
 				
-			if (ansType == null) {
-				ansType = ansMap.get(docID + "|" + (start-1) + "|" + (end-1));
+			if (ansJSON == null) {
+				ansJSON = ansMap.get(docID + "|" + (start-1) + "|" + (end-1));
 				
-				if (ansType != null) {
+				if (ansJSON != null) {
 					start--;
 					end--;
 				}
@@ -711,37 +648,37 @@ public class AutoAnnotate
 				
 			
 			
-			if (ansType == null) {
-				ansType = ansMap.get(docID + "|" + (start-1) + "|" + (end));
-				if (ansType != null) {
+			if (ansJSON == null) {
+				ansJSON = ansMap.get(docID + "|" + (start-1) + "|" + (end));
+				if (ansJSON != null) {
 					start--;
 				}
 			}
 			
-			if (ansType == null) {
-				ansType = ansMap.get(docID + "|" + (start+1) + "|" + (end));
-				if (ansType != null) {
+			if (ansJSON == null) {
+				ansJSON = ansMap.get(docID + "|" + (start+1) + "|" + (end));
+				if (ansJSON != null) {
 					start++;
 				}
 			}
 			
-			if (ansType == null) {
-				ansType = ansMap.get(docID + "|" + start + "|" + (end+1));
-				if (ansType != null) {
+			if (ansJSON == null) {
+				ansJSON = ansMap.get(docID + "|" + start + "|" + (end+1));
+				if (ansJSON != null) {
 					end++;
 				}
 			}
 			
-			if (ansType == null) {
-				ansType = ansMap.get(docID + "|" + start + "|" + (end-1));
-				if (ansType != null) {
+			if (ansJSON == null) {
+				ansJSON = ansMap.get(docID + "|" + start + "|" + (end-1));
+				if (ansJSON != null) {
 					end--;
 				}
 			}
 			
-			if (ansType == null) {
-				ansType = ansMap.get(docID + "|" + (start-1) + "|" + (end+1));
-				if (ansType != null) {
+			if (ansJSON == null) {
+				ansJSON = ansMap.get(docID + "|" + (start-1) + "|" + (end+1));
+				if (ansJSON != null) {
 					start--;
 					end++;
 				}
@@ -750,8 +687,8 @@ public class AutoAnnotate
 			Map<String, String> ansTypeMap = new HashMap<String, String>();
 			String annotType = null;
 			
-			if (ansType != null) {
-				ansTypeMap = (Map<String, String>) gson.fromJson(ansType, ansTypeMap.getClass());
+			if (ansJSON != null) {
+				ansTypeMap = (Map<String, String>) gson.fromJson(ansJSON, ansTypeMap.getClass());
 				annotType = ansTypeMap.get("annotType");
 			}
 			
@@ -761,12 +698,22 @@ public class AutoAnnotate
 				System.out.print("Correct!: ");
 				pw.print("Correct!: ");
 			}
-			else {
+			else if ((negTargetType != null && annotType != null && annotType.equals(negTargetType)) || (negTargetType == null && annotType == null)) {
 				annot.setScore(0.0);
 				matchMap.put(docID + "|" + start + "|" + end, false);
 				System.out.print("Wrong!: ");
 				pw.print("Wrong!: ");
 			}
+			else if (negTargetType != null && annotType == null) {
+				annot.setScore(0.5);
+				//matchMap.put(docID + "|" + start + "|" + end, false);
+				System.out.print("Neutral!: ");
+				pw.print("Neutral!: ");
+			}
+			
+			System.out.println(docID + "|" + start + "|" + end);
+			pw.println(docID + "|" + start + "|" + end);
+
 			
 			//AnnotationSequence seq = grid.getSequence();
 			//seq.addAnnotation(annot, features, false, "");
@@ -777,329 +724,70 @@ public class AutoAnnotate
 		
 		
 		
-		/*
-		//fill in values that were matched per document
-		int index = 0;
-		for (AnnotationSequence seq : negSeqList) {
-			List<Annotation> annotList = seq.getAnnotList(":token|string");
-			long docID = seq.getDocID();
+		
+		
+		
+		if (evalFlag) {
+			int tp = 0;
+			int fp = 0;
+			int fn = 0;
 			
-			Map<String, List<String>> valueMap = docAnsMap.get(docID);
-			if (valueMap == null)
-				continue;
-			
-			for (Annotation annot : annotList) {
-				long start = annot.getStart();
-				long end = annot.getEnd();
-				String value = annot.getValue().toLowerCase();
+			for (int i=0; i<finalAnnotList.size(); i++) {
+				Annotation annot = finalAnnotList.get(i);
+				ProfileMatch match = finalMatchList.get(i);
 				
-				Boolean flag = matchMap.get(docID + "|" + start + "|" + end);
-				if (flag != null)
-					continue;
+				double score = annot.getScore();			
 				
-				List<String> docAnsList = valueMap.get(value);
-				if (docAnsList == null)
-					continue;
-				
-				Double prec = precMap.get(value);
-				if (prec == null) {
-					prec = getPrec(value, 1);
-					precMap.put(value, prec);
+				if (score == 1.0) {
+					tp++;
+					
+					System.out.println("correct: " + match.getSequence().getDocID() + "|" + annot.getStart() + "|" + annot.getEnd() + ": " + annot.getValue() + ", " + annot.getAnnotationType());
+					pw.println("correct: " + match.getSequence().getDocID() + "|" + annot.getStart() + "|" + annot.getEnd() + ": " + annot.getValue() + ", " + annot.getAnnotationType());
 				}
-				
-				System.out.println("Value: " + value + ", " + prec);
-				
-				if (prec < 0.90)
-					continue;
-					
-				//if (!docAnsList.contains(start + "|" + end)) {
-					System.out.println("adding: " + value + "|" + start + "|" + end);
-					pw.println("adding: " + value + "|" + start + "|" + end);
-				
-					int[] ansIndexes = MSAUtils.matchAnswer(ansMap, docID, (int) start, (int) end);
-					if (ansIndexes[0] >= 0) {
-						start = ansIndexes[0];
-						end = ansIndexes[1];
-					}
-					
-					Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, profileAnnotType, 
-						start, end, value, null);
-					
-					if (ansIndexes[0] >= 0) {
-						annot2.setScore(1.0);
-						matchMap.put(docID + "|" + start + "|" + end, true);
-					}
-					else {
-						matchMap.put(docID + "|" + start + "|" + end, false);
-						annot2.setScore(0.0);
-					}
-					
-					seq.addAnnotation(annot2, features, false, "");
-					
-					ProfileMatch match = new ProfileMatch();
-					match.setSequence(seq);
-					
-					finalAnnotList.add(annot2);
-					finalMatchList.add(match);
-				}					
-			
-		}
-		*/
-		
-		
-		/*
-		Map<Long, List<AnnotationEntity>> combineMap = combineEntities(matchList);			
-		
-		
-		//fill in values that were matched per document
-		System.out.println("filling in values within same document...");
-		PreparedStatement pstmtFill = conn.prepareStatement("select distinct a.start, a.end, b.value from ner.annotation a, ner.annotation b "
-			+ "where a.document_id = ? and b.value = ? and a.annotation_type = 'Token' and "
-			+ "a.start >= b.start and a.end <= b.end and a.document_id = b.document_id");
-		
-		Map<Long, List<String>> combineStrMap = new HashMap<Long, List<String>>();
-		for (long docID : combineMap.keySet()) {
-			List<String> docStrList = new ArrayList<String>();
-			combineStrMap.put(docID, docStrList);
-			List<AnnotationEntity> docEntityList = combineMap.get(docID);
-			for (AnnotationEntity entity : docEntityList) {
-				String value = entity.getValue();
-				docStrList.add(entity.getValue());
-				Boolean flag = allValueMap.get(value);
-				if (flag == null)
-					allValueMap.put(value, true);
-			}
-		}
-		
-		
-		precMap = new HashMap<String, double[]>();
-		
-		for (long docID : combineStrMap.keySet()) {
-			pstmtFill.setLong(1, docID);
-			
-			List<String> docStrList = combineStrMap.get(docID);
-			if (docStrList == null)
-				continue;
-			
-			//List<AnnotationEntity> docEntityList = combineMap.get(docID);
-			
-			double[] ret = {0.0, 0.0};
-			for (String value : docStrList) {
-				System.out.println("adding value: " + value);
-				pw.println("adding value: " + value);
-				
-				ret = precMap.get(value);
-				if (ret == null) {
-					ret = getPrec(value, "", "");
-					ret[0]++;
-					precMap.put(value, ret);
-				}
-				
-				double prec = ret[0] / (ret[0] + ret[1] + 0.00001);
-				
-				if (prec < 0.9)
-					continue;
-				
-				pstmtFill.setString(2, value);
-				
-				ResultSet rs = pstmtFill.executeQuery();
-				
-				while (rs.next()) {				
-					long start = rs.getLong(1);
-					long end = rs.getLong(2);
-					String value2 = rs.getString(3);
-					
-					if (Character.isUpperCase(value.charAt(0)))
-						value = value.toUpperCase();
-					
-					if (Character.isUpperCase(value2.charAt(0)))
-						value2 = value2.toUpperCase();
-					
-					if (!value.equals(value2))
-						continue;
-					
-					
-					Boolean flag = matchMap.get(docID + "|" + start + "|" + end);
-					if (flag != null)
-						continue;
-						
-					System.out.println("adding: " + value + "|" + docID + "|" + start + "|" + end + "|" + ret[0] + "|" + ret[1]);
-					pw.println("adding: " + value + "|" + docID + "|" + start + "|" + end + "|" + ret[0] + "|" + ret[1]);
-				
-					int[] ansIndexes = MSAUtils.matchAnswer(ansMap, docID, (int) start, (int) end);
-					if (ansIndexes[0] >= 0) {
-						start = ansIndexes[0];
-						end = ansIndexes[1];
-					}
-					
-					Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, profileAnnotType, 
-						start, end, value, null);
-					
-					if (ansIndexes[0] >= 0) {
-						annot2.setScore(1.0);
-						matchMap.put(docID + "|" + start + "|" + end, true);
-					}
-					else {
-						matchMap.put(docID + "|" + start + "|" + end, false);
-						annot2.setScore(0.0);
-					}
-					
-					AnnotationSequence seq = new AnnotationSequence();
-					seq.setDocID(docID);
-					seq.addAnnotation(annot2, features, false, "");
-					
-					ProfileMatch match = new ProfileMatch();
-					match.setSequence(seq);
-					
-					finalAnnotList.add(annot2);
-					finalMatchList.add(match);
+				else if (score == 0.0) {
+					fp++;
+					System.out.println("wrong: " + match.getSequence().getDocID() + "|" + annot.getStart() + "|" + annot.getEnd() + ": " + annot.getValue() + ", " + annot.getAnnotationType());
+					pw.println("wrong: " + match.getSequence().getDocID() + "|" + annot.getStart() + "|" + annot.getEnd() + ": " + annot.getValue() + ", " + annot.getAnnotationType());
 				}
 			}
 			
-		}
-		
-		pstmtFill.close();
-		
-		
-		
-		//all values
-		System.out.println("adding all values...");
-		PreparedStatement pstmtValue = conn.prepareStatement("select distinct a.document_id, a.start, a.end, b.value from ner.annotation a, ner.annotation b "
-			+ "where a.annotation_type = 'Token' and a.document_id = b.document_id and a.start >= b.start and "
-			+ "a.end <= b.end and b.value = ? and a.document_id in "
-			+ "(select distinct c.document_id from conll2003_document c where c.`group` = 'testb')");
-		
-		precMap = new HashMap<String, double[]>();
-		
-		double[] ret = {0.0, 0.0};
-		for (String allValue : allValueMap.keySet()) {
-			ret = precMap.get(allValue);
-			if (ret == null) {
-				ret = getPrec(allValue, "", "");
-				//ret[0]++;
-				precMap.put(allValue, ret);
-			}
 			
-			double prec = ret[0] / (ret[0] + ret[1] + 0.0001);
 			
-			if (prec < 0.9)
-				continue;
-				
-			pstmtValue.setString(1, allValue);
-			ResultSet rs = pstmtValue.executeQuery();
-				
-			while (rs.next()) {
-				long docID = rs.getLong(1);
-				long start = rs.getLong(2);
-				long end = rs.getLong(3);
-				String value2 = rs.getString(4);
-				
-				
-				if (Character.isUpperCase(allValue.charAt(0)))
-					allValue = allValue.toUpperCase();
-				
-				if (Character.isUpperCase(value2.charAt(0)))
-					value2 = value2.toUpperCase();
-				
-				if (!allValue.equals(value2))
-					continue;
-				
-				Boolean flag = matchMap.get(docID + "|" + start + "|" + end);
-				if (flag == null) {
-					int[] ansIndexes = MSAUtils.matchAnswer(ansMap, docID, (int) start, (int) end);
+			fn = totalTP - tp;
+			for (String key : ansMap.keySet()) {
+				if (matchMap.get(key) == null) {
+					String ansStr = ansMap.get(key);
+					Map<String, String> map = new HashMap<String, String>();
+					map = gson.fromJson(ansStr, map.getClass());
+					String annotType = map.get("annotType");
 					
-					if (ansIndexes[0] >= 0) {
-						start = ansIndexes[0];
-						end = ansIndexes[1];
+					if (annotType.equals(targetType)) {
+						String value = map.get("value");
+						AnnotationSequence seq = ansSeqMap.get(key);
+						String seqStr = "";
+						if (seq != null)
+							seqStr = gson.toJson(seq.getToks());
+						System.out.println("not found: " + key + ", " + value + " | " + seqStr);
+						pw.println("not found: " + key + ", " + value + " | " + seqStr);
 					}
-					
-					Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, profileAnnotType, 
-						start, end, allValue, null);
-					System.out.println("adding all value: " + docID + "|" + start + "|" + end + "|" + allValue + "|" + ret[0] + "|" + ret[1]);
-					pw.println("adding all value: " + docID + "|" + start + "|" + end + "|" + allValue + "|" + ret[0] + "|" + ret[1]);
-
-					
-					if (ansIndexes[0] >= 0) {
-						annot2.setScore(1.0);
-						matchMap.put(docID + "|" + start + "|" + end, true);
-					}
-					else {
-						annot2.setScore(0.0);
-						matchMap.put(docID + "|" + start + "|" + end, false);
-					}
-					
-					AnnotationSequence seq = new AnnotationSequence();
-					seq.setDocID(docID);
-					seq.addAnnotation(annot2, features, false, "");
-					
-					ProfileMatch match = new ProfileMatch();
-					match.setSequence(seq);
-					
-					finalAnnotList.add(annot2);
-					finalMatchList.add(match);
 				}
 			}
+			
+			
+			int total = finalAnnotList.size();
+			double prec = ((double) tp) / (((double) tp) + ((double) fp));
+			double recall = ((double) tp) / (((double) tp) + ((double) fn));
+			
+			System.out.println("tp: " + tp + ", fp: " + fp + ", fn: " + fn + ", ansMap: " + ansMap.size());
+			pw.println("tp: " + tp + ", fp: " + fp + ", fn: " + fn+ ", ansMap: " + ansMap.size());
+			System.out.println("prec: " + prec + ", recall: " + recall + ", total: " + total);
+			pw.println("prec: " + prec + ", recall: " + recall + ", total: " + total);
 		}
 		
-		pstmtValue.close();
-		
-		
-		
-		System.out.println("adding known values...");
-		PreparedStatement pstmtKnown = conn.prepareStatement("select distinct a.start, a.end, a.value, b.value, c.value from ner.annotation a, ner.annotation b, msa.known_values c "
-			+ "where b.value = c.value and a.annotation_type = 'Token' and c.annotation_type = '" + profileAnnotType + "' and a.document_id = b.document_id and "
-			+ "a.start >= b.start and a.end <= b.end and a.document_id = ?");
-		
-		for (long docID : docIDList) {
-			pstmtKnown.setLong(1, docID);
-			ResultSet rs = pstmtKnown.executeQuery();
-			while (rs.next()) {
-				long start = rs.getLong(1);
-				long end = rs.getLong(2);
-				String value = rs.getString(4);
-				String value2 = rs.getString(5);
-				
-				if (!value.equals(value2))
-					continue;
-				
-				Boolean flag = matchMap.get(docID + "|" + start + "|" + end);
-				if (flag == null) {
-
-					int[] ansIndexes = MSAUtils.matchAnswer(ansMap, docID, (int) start, (int) end);
-					
-					if (ansIndexes[0] >= 0) {
-						start = ansIndexes[0];
-						end = ansIndexes[1];
-					}
-					
-					Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, profileAnnotType, 
-						start, end, value, null);
-					System.out.println("adding known: " + docID + "|" + start + "|" + end + "|" + value);
-					pw.println("adding known: " + docID + "|" + start + "|" + end + "|" + value);
-
-					
-					if (ansIndexes[0] >= 0) {
-						matchMap.put(docID + "|" + start + "|" + end, true);
-						annot2.setScore(1.0);
-					}
-					else {
-						matchMap.put(docID + "|" + start + "|" + end, false);
-						annot2.setScore(0.0);
-					}
-					
-					AnnotationSequence seq = new AnnotationSequence();
-					seq.setDocID(docID);
-					seq.addAnnotation(annot2, features, false, "");
-					
-					ProfileMatch match = new ProfileMatch();
-					match.setSequence(seq);
-					
-					finalAnnotList.add(annot2);
-					finalMatchList.add(match);
-				}
-			}
+		if (writeAnnots) {
+			writeAnnotations();
 		}
-		*/
+		
 	}
 	
 	public void writeAnnotations()
@@ -1121,7 +809,7 @@ public class AutoAnnotate
 				pstmt2.setDouble(9, 1);
 				pstmt2.execute();
 				
-				System.out.println(annot.toString());
+				//System.out.println(annot.toString());
 					
 			}
 			
@@ -1131,62 +819,6 @@ public class AutoAnnotate
 			e.printStackTrace();
 		}
 	}
-	
-	public void evalProfiles()
-	{
-		int tp = 0;
-		int fp = 0;
-		int fn = 0;
-		
-		for (int i=0; i<finalAnnotList.size(); i++) {
-			Annotation annot = finalAnnotList.get(i);
-			ProfileMatch match = finalMatchList.get(i);
-			
-			double score = annot.getScore();			
-			
-			if (score == 1.0) {
-				tp++;
-				
-				System.out.println("correct: " + match.getSequence().getDocID() + "|" + annot.getStart() + "|" + annot.getEnd() + ": " + annot.getValue() + ", " + annot.getAnnotationType());
-				pw.println("correct: " + match.getSequence().getDocID() + "|" + annot.getStart() + "|" + annot.getEnd() + ": " + annot.getValue() + ", " + annot.getAnnotationType());
-			}
-			else {
-				fp++;
-				System.out.println("wrong: " + match.getSequence().getDocID() + "|" + annot.getStart() + "|" + annot.getEnd() + ": " + annot.getValue() + ", " + annot.getAnnotationType());
-				pw.println("wrong: " + match.getSequence().getDocID() + "|" + annot.getStart() + "|" + annot.getEnd() + ": " + annot.getValue() + ", " + annot.getAnnotationType());
-			}
-		}
-		
-		
-		
-		fn = ansMap.size() - tp;
-		for (String key : ansMap.keySet()) {
-			if (matchMap.get(key) == null) {
-				String ansStr = ansMap.get(key);
-				Map<String, String> map = new HashMap<String, String>();
-				map = gson.fromJson(ansStr, map.getClass());
-				String value = map.get("value");
-				AnnotationSequence seq = ansSeqMap.get(key);
-				String seqStr = "";
-				if (seq != null)
-					seqStr = gson.toJson(seq.getToks());
-				System.out.println("not found: " + key + ", " + value + " | " + seqStr);
-				pw.println("not found: " + key + ", " + value + " | " + seqStr);
-			}
-		}
-		
-		
-		int total = finalAnnotList.size();
-		double prec = ((double) tp) / (((double) tp) + ((double) fp));
-		double recall = ((double) tp) / (((double) tp) + ((double) fn));
-		
-		System.out.println("tp: " + tp + ", fp: " + fp + ", fn: " + fn + ", ansMap: " + ansMap.size());
-		pw.println("tp: " + tp + ", fp: " + fp + ", fn: " + fn);
-		System.out.println("prec: " + prec + ", recall: " + recall + ", total: " + total);
-		pw.println("prec: " + prec + ", recall: " + recall + ", total: " + total);
-	}
-	
-	
 	
 	private Map<Long, List<AnnotationEntity>> combineEntities(List<ProfileMatch> matchList)
 	{
@@ -1327,16 +959,20 @@ public class AutoAnnotate
 		return id;
 	}
 	
-	private void readAnswers(String annotType, long docID, List<AnnotationSequence> seqList) throws SQLException
+	private void readAnswers(String annotType, String negAnnotType, long docID, List<AnnotationSequence> seqList) throws SQLException
 	{
 		Statement stmt = conn.createStatement();
 		PreparedStatement pstmt = conn.prepareStatement("select start, end from annotation where document_id = ? and annotation_type = 'Token' and start >= ? and end <= ? order by start");
 		
 		String annotType2 = "B" + annotType.substring(1);
-		String queryStr = "select start, end, value from annotation "
-			+ "where document_id = " + docID + " and provenance = '" + targetProvenance + "' and ";
+		String queryStr = "select start, end, value, annotation_type from annotation "
+			+ "where document_id = " + docID + " and ";
 		
-		String annotClause = "(annotation_type = '" + annotType + "' or annotation_type = '" + annotType2 + "')";
+		String annotClause = "(provenance = '" + targetProvenance + "' and (annotation_type = '" + annotType + "' or annotation_type = '" + annotType2 + "')";
+		if (negAnnotType != null)
+			annotClause = annotClause + " or (provenance = '" + negTargetProvenance + "' and annotation_type = '" + negAnnotType + "')";
+		
+		annotClause = annotClause + ")";
 		
 		ResultSet rs = stmt.executeQuery(queryStr + annotClause + " order by start");
 		while (rs.next()) {
@@ -1344,22 +980,32 @@ public class AutoAnnotate
 			int start = rs.getInt(1);
 			int end = rs.getInt(2);
 			String value = rs.getString(3);
+			String aType = rs.getString(4);
 			
 			Map<String, String> map = new HashMap<String, String>();
-			map.put("annotType", annotType);
+			map.put("annotType", aType);
 			map.put("value", value);
+			
+			String mapStr = gson.toJson(map);
+			
 			
 			pstmt.setLong(1, docID);
 			pstmt.setInt(2, start);
 			pstmt.setInt(3, end);
 			ResultSet rs2 = pstmt.executeQuery();
 			while (rs2.next()) {
+				
+				if (aType.equals(targetType) || aType.equals(annotType2))
+					totalTP++;
+
+				
 				int start2 = rs2.getInt(1);
 				int end2 = rs2.getInt(2);
 			
-				ansMap.put(docID + "|" + start2 + "|" + end2, gson.toJson(map));
+				ansMap.put(docID + "|" + start2 + "|" + end2, mapStr);
 				//System.out.println(docID + "|" + start2 + "|" + end2 + ", " + value);
 			
+				/*
 				for (AnnotationSequence seq : seqList) {
 					long docID2 = seq.getDocID();
 					long start3 = seq.getStart();
@@ -1370,6 +1016,7 @@ public class AutoAnnotate
 						break;
 					}
 				}
+				*/
 			}
 		}
 		
@@ -1453,7 +1100,7 @@ public class AutoAnnotate
 			AutoAnnotate auto = new AutoAnnotate();
 			auto.init(args[4]);
 			auto.annotate(args[0], args[1], args[2], args[3]);
-			auto.evalProfiles();
+			//auto.eval();
 			
 			//if (auto.write)
 				// auto.writeAnnotations();

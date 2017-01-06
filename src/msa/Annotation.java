@@ -93,7 +93,7 @@ public class Annotation
 	
 	public String toString()
 	{
-		return "id: " + id + "\ntype: " + annotType + "\nstart: " + start + "\nend: " + end + "\nprovenance: " + provenance + "\nfeatures: " + features + "\nvalue: " + value;
+		return "id: " + id + "\ndocNamespace: " + docNamespace + "\ndocTable: " + docTable + "\ndocID: " + docID + "\ntype: " + annotType + "\nstart: " + start + "\nend: " + end + "\nprovenance: " + provenance + "\nfeatures: " + features + "\nvalue: " + value;
 	}
 
 	public Map<String, Object> getFeatureMap() {

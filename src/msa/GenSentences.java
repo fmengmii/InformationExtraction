@@ -222,6 +222,8 @@ public class GenSentences
 						
 						String annotType = annot.getAnnotationType();
 						
+
+						
 						Map<String, Object> annotFilter = annotFilterMap.get(annotType);
 						if (annotFilter == null)
 							continue;
@@ -235,16 +237,21 @@ public class GenSentences
 						
 						String targetStr = ":target";
 						Boolean target = (Boolean) annotFilter.get("target");
-						if (target == null)
+						if (featureList != null && (!requireTarget || target == null))
 							target = false;
 						else
 							targetStr = (String) annotFilter.get("targetStr");
 						
+						if (featureList == null)
+							target = true;
+						
+						/*
 						if (featureList == null && !target)
 							continue;
+							*/
 						
-						if (!maskTarget || !target)
-							seq.addAnnotation(annot, featureList, target, targetStr);
+						//if (!maskTarget)
+						seq.addAnnotation(annot, featureList, target, targetStr);
 						
 						if (target)
 							hasTarget = true;

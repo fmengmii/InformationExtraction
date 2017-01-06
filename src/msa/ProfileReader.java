@@ -3,12 +3,6 @@ package msa;
 import java.sql.*;
 import java.util.*;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
-import com.datastax.driver.core.policies.DefaultRetryPolicy;
-import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.google.gson.Gson;
 
 import utils.db.DBConnection;
@@ -16,17 +10,16 @@ import utils.db.DBConnection;
 public class ProfileReader
 {
 	private Gson gson;
-	private Cluster cluster;
-	private Session session;
 	private Connection conn;
 	private String rq;
 	private String dbType;
 	private String docNamespace;
 	private String docTable;
-	private com.datastax.driver.core.PreparedStatement pstmtCass;
-	private java.sql.PreparedStatement pstmtSQL;
+	//private com.datastax.driver.core.PreparedStatement pstmtCass;
+	private PreparedStatement pstmtSQL;
 	private Order order = Order.NONE;
 	private double minScore = 0.0;
+	private double maxScore = 1.0;
 	
 	private Map<Long, MSAProfile> profileIDMap;
 	
@@ -49,6 +42,11 @@ public class ProfileReader
 		this.minScore = minScore;
 	}
 	
+	public void setMaxScore(double maxScore)
+	{
+		this.maxScore = maxScore;
+	}
+	
 	public Map<Long, MSAProfile> getProfileIDMap()
 	{
 		return profileIDMap;
@@ -62,16 +60,7 @@ public class ProfileReader
 		
 		String queryStr = "select profile_id, profile, profile_type, score, true_pos, false_pos from msa_profile where annotation_type = ? and `group` = ? and profile_type = ?";
 		
-		if (dbType.equals("cassandra")) {
-			cluster = Cluster.builder().addContactPoint(host).withCredentials(user, password)
-					.withRetryPolicy(DefaultRetryPolicy.INSTANCE)
-					.withLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy()))
-					.build();
-			session = cluster.connect(keyspace);
-			rq = "";
-			pstmtCass = session.prepare(queryStr + " allow filtering");
-		}
-		else if (dbType.equals("mysql")) {
+		if (dbType.equals("mysql")) {
 			conn = DBConnection.dbConnection(user, password, host, keyspace, dbType);
 			rq = DBConnection.reservedQuote;
 			pstmtSQL = conn.prepareStatement(queryStr);
@@ -81,11 +70,7 @@ public class ProfileReader
 	public void close()
 	{
 		try {
-			if (cluster != null) {
-				session.close();
-				cluster.close();
-			}
-			else if (conn != null)
+			if (conn != null)
 				conn.close();
 		}
 		catch(Exception e)
@@ -98,18 +83,18 @@ public class ProfileReader
 	{
 		List<String> groupList = new ArrayList<String>();
 		
-		return read(annotType, groupList, profileType, msaTable);
+		return read(annotType, groupList, 0, Integer.MAX_VALUE, profileType, msaTable);
 	}
 	
-	public List<MSAProfile> read(String annotType, String group, int profileType, String msaTable) throws SQLException, ClassNotFoundException
+	public List<MSAProfile> read(String annotType, String group, int start, int clusterSize, int profileType, String msaTable) throws SQLException, ClassNotFoundException
 	{
 		List<String> groupList = new ArrayList<String>();
 		groupList.add(group);
 		
-		return read(annotType, groupList, profileType, msaTable);
+		return read(annotType, groupList, start, clusterSize, profileType, msaTable);
 	}
 	
-	public List<MSAProfile> read(String annotType, List<String> groupList, int profileType, String msaTable) throws SQLException, ClassNotFoundException
+	public List<MSAProfile> read(String annotType, List<String> groupList, int start, int clusterSize, int profileType, String msaTable) throws SQLException, ClassNotFoundException
 	{
 		List<MSAProfile> profileList= new ArrayList<MSAProfile>();
 		profileIDMap = new HashMap<Long, MSAProfile>();
@@ -163,7 +148,8 @@ public class ProfileReader
 			}
 
 			ResultSet rs = stmt.executeQuery("select profile_id, profile, profile_type, score, true_pos, false_pos, `group` from " + msaTable
-				+ " where annotation_type = '" + annotType + "' and profile_type = " + profileType + strBlder.toString());
+				+ " where annotation_type = '" + annotType + "' and profile_type = " + profileType + strBlder.toString() + " order by profile_id "
+				+ "limit " + start + ", " + clusterSize);
 
 			while (rs.next()) {
 				long profileID = rs.getLong(1);
@@ -183,7 +169,10 @@ public class ProfileReader
 				double score = rs.getDouble(4);
 				int truePos = rs.getInt(5);
 				int falsePos = rs.getInt(6);
-				String group = rs.getString(7);	
+				String group = rs.getString(7);
+				
+
+				//System.out.println(profileStr);
 				
 				
 				//remove targets with multiple elements
@@ -192,7 +181,7 @@ public class ProfileReader
 					continue;
 				
 				
-				if (score >= minScore) {
+				if (score >= minScore && score <= maxScore) {
 					List<String> toks = new ArrayList<String>();
 					toks = gson.fromJson(profileStr, toks.getClass());
 					
@@ -344,7 +333,7 @@ public class ProfileReader
 		try {
 			ProfileReader reader = new ProfileReader();
 			reader.init("cassandra", "cassandra", "192.99.100.31", "cassandra", "msa");
-			List<MSAProfile> profileList = reader.read("lungrads-patient-age", "msa-lungrads", 0, "msa_profile");
+			List<MSAProfile> profileList = reader.read("lungrads-patient-age", "msa-lungrads", 0, 100, 0, "msa_profile");
 			for (MSAProfile profile : profileList) {
 				System.out.println(profile.getProfileStr());
 			}

@@ -61,13 +61,16 @@ public class FilterPatterns
 	private int profileType = 0;
 
 	private String indexTable;
-	private double filterThreshold;
-	private int filterMinCount;
+	private double negFilterThreshold;
+	private int negFilterMinCount;
+	private double posFilterThreshold;
+	private int posFilterMinCount;
 	private double targetMinScore;
 	
 	private String group;
 	private String targetGroup;
 	private String profileTable;
+	private int clusterSize;
 	
 	private List<Long> docIDList;
 	
@@ -124,6 +127,18 @@ public class FilterPatterns
 		}
 	}
 	
+	public void close()
+	{
+		try {
+			stats.close();
+			
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
 	public List<Long> getDocIDList()
 	{
 		return docIDList;
@@ -153,6 +168,7 @@ public class FilterPatterns
 			tokType = props.getProperty("tokType");
 			group = props.getProperty("group");
 			targetGroup = props.getProperty("targetGroup");
+			clusterSize = Integer.parseInt(props.getProperty("clusterSize"));
 			
 			profileTable = props.getProperty("profileTable");
 			indexTable = props.getProperty("indexTable");
@@ -194,15 +210,17 @@ public class FilterPatterns
 			//targetScoreList = new ArrayList<Double>();
 			//targetScoreList = gson.fromJson(props.getProperty("targetScoreList"), targetScoreList.getClass());
 			
-			filterThreshold = Double.parseDouble(props.getProperty("filterThreshold"));
-			filterMinCount = Integer.parseInt(props.getProperty("filterMinCount"));
+			negFilterThreshold = Double.parseDouble(props.getProperty("negFilterThreshold"));
+			negFilterMinCount = Integer.parseInt(props.getProperty("negFilterMinCount"));
+			posFilterThreshold = Double.parseDouble(props.getProperty("posFilterThreshold"));
+			posFilterMinCount = Integer.parseInt(props.getProperty("posFilterMinCount"));
 			
 			
 			Map<String, Object> targetMap = new HashMap<String, Object>();
 			targetMap.put("annotType", targetType);
 			targetMap.put("target", true);
 			targetMap.put("provenance", targetProvenance);
-			targetMap.put("targetStr", ":target");
+			targetMap.put("targetStr", ":" + targetType.toLowerCase());
 			msaAnnotFilterList.add(targetMap);
 			
 			if (targetType2 != null) {
@@ -305,6 +323,35 @@ public class FilterPatterns
 				}
 				
 				
+				//init stats
+				stats.setMaxGaps(maxGaps);
+				stats.setSyntax(syntax);
+				stats.setPhrase(phrase);
+				stats.setAnnotTypeNameList(annotTypeNameList);
+				stats.setScoreList(scoreList);
+				stats.setBlockSize(blockSize);
+				stats.setWrite(write);
+				stats.setDocIDList(docIDList);
+				stats.setNegFilterThreshold(negFilterThreshold);
+				stats.setNegFilterMinCount(negFilterMinCount);
+				stats.setPosFilterThreshold(posFilterThreshold);
+				stats.setPosFilterMinCount(posFilterMinCount);
+				stats.init(annotUser, annotPassword, msaUser, msaPassword, host, keyspace, msaKeyspace, dbType, indexTable,
+					targetType, targetProvenance);
+				
+				
+				//gen new gridlist without targets
+				genSent.setRequireTarget(false);
+				genSent.genExtractionSequences();
+				negSeqList = genSent.getNegSeqList();
+				
+				List<AnnotationSequenceGrid> gridList = new ArrayList<AnnotationSequenceGrid>();
+				for (AnnotationSequence negSeq : negSeqList) {
+					List<AnnotationSequenceGrid> negGridList2 = genGrid.toAnnotSeqGrid(negSeq, false, false, true, true);
+					gridList.addAll(negGridList2);
+				}
+				
+
 
 			
 				//read profiles
@@ -314,8 +361,12 @@ public class FilterPatterns
 				reader.init(msaUser, msaPassword, host, dbType, msaKeyspace);
 				
 				msaTargetProfileMap = new HashMap<AnnotationSequenceGrid, MSAProfile>();
+				
+				
+				
 				reader.setMinScore(targetMinScore);
-				targetProfileList = reader.read(targetType, targetGroup, 1, profileTable);
+				reader.setMaxScore(1.0);
+				targetProfileList = reader.read(targetType, targetGroup, 0, Integer.MAX_VALUE, 1, profileTable);
 				for (MSAProfile targetProfile : targetProfileList) {
 					double score = getProfileScore(targetProfile, annotTypeScoreMap);
 					//System.out.println(targetProfile.getProfileStr() + ", " + score);
@@ -339,26 +390,44 @@ public class FilterPatterns
 						targetProfileGridList.add(profileGrid);
 						targetProfileScoreList.add(score);
 					}
-	
+				}
+				
+				System.out.println("\n\nTarget Profiles: " + targetProfileGridList.size());
+				//pw.println("\n\nTarget Profiles: " + targetProfileGridList.size());
+				for (AnnotationSequenceGrid profileGrid2 : targetProfileGridList) {
+					String profileStr = gson.toJson(profileGrid2.getSequence().getToks());
+					System.out.println(profileStr);
+					//pw.println(profileStr);
+				}
+				
+				
+				//for (AnnotationSequenceGrid grid : targetProfileGridList)
+				//	System.out.println("target profile: " + gson.toJson(grid.getSequence().getToks()));
+
+				
+				
+				int readStart = 0;
+				while (true) {
 					profileGridList = new ArrayList<ProfileGrid>();
 					//targetProfileGridList = new ArrayList<AnnotationSequenceGrid>();
 					//for (String ansAnnotType : ansAnnotTypeList) {
 					
 					reader.setMinScore(0.0);
-					profileList = reader.read(targetType, group, 0, profileTable);
+					reader.setMaxScore(0.99);
+					profileList = reader.read(targetType, group, readStart, clusterSize, 0, profileTable);
 					
 					
 					
 					//check if there are profiles
 					if (profileList.size() == 0)
-						continue;
+						break;
 					
 					
 					
 					msaProfileMap = new HashMap<AnnotationSequenceGrid, MSAProfile>();
 					for (MSAProfile annotTypeProfile : profileList) {
 						//AnnotationSequenceGrid profileGrid = genGrid.toAnnotSeqGrid(annotTypeProfile.getToks(), false);
-						profileGrid = genGrid.toAnnotSeqGrid(annotTypeProfile.getToks(), false);
+						AnnotationSequenceGrid profileGrid = genGrid.toAnnotSeqGrid(annotTypeProfile.getToks(), false);
 						msaProfileMap.put(profileGrid, annotTypeProfile);
 						
 						List<AnnotationSequenceGrid> targetProfileGridList2 = new ArrayList<AnnotationSequenceGrid>();
@@ -368,7 +437,7 @@ public class FilterPatterns
 						
 						ProfileGrid profileGridObj = new ProfileGrid(profileGrid, targetProfileGridList2);
 						
-						inserted = false;
+						boolean inserted = false;
 						for (int i=0; i<profileGridList.size(); i++) {
 							ProfileGrid profileGridObj2 = profileGridList.get(i);
 							if (profileGridObj2.getGrid().size() < profileGrid.size()) {
@@ -391,54 +460,21 @@ public class FilterPatterns
 						//pw.println(profileStr);
 					}
 					
-					System.out.println("\n\nTarget Profiles: " + targetProfileGridList.size());
-					//pw.println("\n\nTarget Profiles: " + targetProfileGridList.size());
-					for (AnnotationSequenceGrid profileGrid2 : targetProfileGridList) {
-						String profileStr = gson.toJson(profileGrid2.getSequence().getToks());
-						System.out.println(profileStr);
-						//pw.println(profileStr);
-					}
-					
-					
-					for (AnnotationSequenceGrid grid : targetProfileGridList)
-						System.out.println("target profile: " + gson.toJson(grid.getSequence().getToks()));
-	
-					
-					//filter patterns
-					//gen new gridlist without targets
-					genSent.setRequireTarget(false);
-					genSent.genExtractionSequences();
-					negSeqList = genSent.getNegSeqList();
-					
-					List<AnnotationSequenceGrid> gridList = new ArrayList<AnnotationSequenceGrid>();
-					for (AnnotationSequence negSeq : negSeqList) {
-						List<AnnotationSequenceGrid> negGridList2 = genGrid.toAnnotSeqGrid(negSeq, false, false, true, true);
-						gridList.addAll(negGridList2);
-					}
-					
 					int prevProfileSize = profileGridList.size();
 					
-					stats.setMaxGaps(maxGaps);
-					stats.setSyntax(syntax);
-					stats.setPhrase(phrase);
-					stats.setAnnotTypeNameList(annotTypeNameList);
-					stats.setScoreList(scoreList);
-					stats.setBlockSize(blockSize);
-					stats.setWrite(write);
-					stats.setHost(host);
-					stats.setDocIDList(docIDList);
-					stats.setFilterThreshold(filterThreshold);
-					stats.setFilterMinCount(filterMinCount);
 					//stats.setMinFilterNegCount(minFilterNegCount);
+	
 					
-					stats.getProfileStats(gridList, profileGridList, targetType, profileType, keyspace, msaKeyspace, targetProvenance,
-							msaProfileMap, msaTargetProfileMap, indexTable);
+					stats.getProfileStats(gridList, profileGridList, profileType, msaProfileMap, msaTargetProfileMap);
 					
 					int filterProfileSize = profileGridList.size();
 					
-					System.out.println("prev size: " + prevProfileSize + ", filter size: " + filterProfileSize + ", size: " + profileList.size());				
+					System.out.println("prev size: " + prevProfileSize + ", filter size: " + filterProfileSize + ", size: " + profileList.size());
+					
+					readStart += clusterSize;					
 				}
-	
+				
+
 				reader.close();
 				db.close();
 			}

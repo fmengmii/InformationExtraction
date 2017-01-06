@@ -2,6 +2,7 @@ package msa;
 
 import java.sql.*;
 import java.util.*;
+import java.io.*;
 
 import utils.db.DBConnection;
 
@@ -19,14 +20,32 @@ public class BestPatterns
 	{
 	}
 	
-	public void getBestPatterns(String msaUser, String msaPassword, String annotUser, String annotPassword, String host, String annotKeyspace, String msaKeyspace, String dbType, String annotType, String outTable, String indexTable, 
-		String profileTable, String provenance, double threshold, int minCount)
+	public void getBestPatterns(String msaUser, String msaPassword, String annotUser, String annotPassword, String config)
 	{
 		try {
+			Properties props = new Properties();
+			props.load(new FileReader(config));
+			
+			String host = props.getProperty("host");
+			String msaKeyspace = props.getProperty("msaKeyspace");
+			String dbType = props.getProperty("dbType");
+			String annotType = props.getProperty("annotType");
+			String annotKeyspace = props.getProperty("annotKeyspace");
+			String finalTable = props.getProperty("finalTable");
+			String indexTable = props.getProperty("indexTable");
+			String profileTable = props.getProperty("profileTable");
+			String provenance = props.getProperty("provenance");
+			double negThreshold = Double.parseDouble(props.getProperty("negThreshold"));
+			int negMinCount = Integer.parseInt(props.getProperty("negMinCount"));
+			double posThreshold = Double.parseDouble(props.getProperty("posThreshold"));
+			int posMinCount = Integer.parseInt(props.getProperty("posMinCount"));
+			
+			
 			conn = DBConnection.dbConnection(msaUser, msaPassword, host, msaKeyspace, dbType);
 			annotConn = DBConnection.dbConnection(annotUser, annotPassword, host, annotKeyspace, dbType);
 			
-			PreparedStatement pstmt = conn.prepareStatement("insert into " + outTable + " (profile_id, target_id, total, prec, valence) values (?,?,?,?,?)");
+			PreparedStatement pstmt = conn.prepareStatement("insert into " + finalTable + " (profile_id, target_id, total, prec, valence) values (?,?,?,?,?)");
+			PreparedStatement pstmtUpdateProfile = conn.prepareStatement("update " + profileTable + " set score = ? where profile_id = ?");
 			
 			System.out.println("getting doc IDs...");
 			docIDList = new ArrayList<Long>();
@@ -42,7 +61,7 @@ public class BestPatterns
 			
 			
 			System.out.println("deleting...");
-			stmt.execute("delete from " + outTable);
+			stmt.execute("delete from " + finalTable);
 				//+ " where profile_id in "
 				//+ "(select distinct profile_id from msa_profile where annotation_type = '" + annotType + "')");
 			//stmt.execute("delete from msa_profile_final where annotation_type = '" + annotType + "' and `group` = '" + group + "'");
@@ -180,23 +199,28 @@ public class BestPatterns
 				boolean write = false;
 				int valence = 0;
 				
-				if (prec >= threshold && (posCount + negCount) >= minCount) {
+				double score = 0.0;
+				
+				if (prec >= posThreshold && (posCount + negCount) >= posMinCount) {
 					write = true;
-				}
-				else if (prec == 0.0 && negCount >= 5) {
-					write = true;
-					valence = -1;
+					score = 1.0;
 				}
 				
-				System.out.println(key + " : " + posCount + ", " + negCount + ", " + prec + ", " + valence);
+				if (prec < negThreshold && (posCount + negCount) >= negMinCount) {
+					score = 1.0;
+				}
+				
+				System.out.println(key + " : " + posCount + ", " + negCount + ", " + prec + ", " + score);
+				
+				String[] parts = key.split("\\|");
+				long profileID = Long.parseLong(parts[0]);
+				long targetID = Long.parseLong(parts[1]);
+				
+				pstmtUpdateProfile.setDouble(1, score);					
+				pstmtUpdateProfile.setLong(2, profileID);
+				pstmtUpdateProfile.execute();
 				
 				if (write) {
-					
-					String[] parts = key.split("\\|");
-					long profileID = Long.parseLong(parts[0]);
-					long targetID = Long.parseLong(parts[1]);
-					
-					
 					pstmt.setLong(1, profileID);
 					pstmt.setLong(2, targetID);
 					pstmt.setInt(3, posCount+negCount);
@@ -385,6 +409,9 @@ public class BestPatterns
 	{
 		Map<String, Boolean> ansMap = new HashMap<String, Boolean>();
 		
+		
+		
+		/*
 		PreparedStatement pstmt = annotConn.prepareStatement("select a.start, a.end from annotation a, annotation b where a.document_id = ? and a.annotation_type = 'Token' and "
 			+ "a.start >= b.start and a.end <= b.end and b.annotation_type = '" + annotType + "' and a.document_id = b.document_id order by start");
 
@@ -412,8 +439,23 @@ public class BestPatterns
 			}
 			
 		}
+		*/
 		
-		pstmt.close();
+		
+		
+		Statement stmt = annotConn.createStatement();
+		ResultSet rs = stmt.executeQuery("select distinct a.document_id, a.start, a.end from annotation a, annotation b where a.annotation_type = 'Token' and "
+			+ "a.start >= b.start and a.end <= b.end and b.annotation_type = '" + annotType + "' and "
+			+ "b.provenance = '" + provenance + "' and a.document_id = b.document_id and a.document_id < 1163 order by start");
+		
+		while (rs.next()) {
+			long docID = rs.getLong(1);
+			int start = rs.getInt(2);
+			int end = rs.getInt(3);
+			ansMap.put(docID + "|" + start + "|" + end, true);
+		}
+		
+		stmt.close();
 		
 		return ansMap;
 	}
@@ -454,18 +496,20 @@ public class BestPatterns
 	
 	public static void main(String[] args)
 	{
-		/*
-		if (args.length != 6) {
-			System.out.println("usage: user password host dbName dbType annotType");
+		
+		if (args.length != 5) {
+			System.out.println("usage: msaUser msaPassword annotUser annotPassword config");
 			System.exit(0);
 		}
-		*/
+		
 		
 		BestPatterns filter = new BestPatterns();
 		//filter.filter(args[0], args[1], args[2], args[3], args[4], args[5]);
-		filter.getBestPatterns("fmeng", "fmeng", "fmeng", "fmeng", "10.9.94.203", "validator", "msa", "mysql", "I-NOT-PER", "msa_profile_target_final_not_per", 
-			"msa_profile_match_index_not_per", "msa_profile_not_per", "conll2003-not-per-token", 0.9, 20);
+		//filter.getBestPatterns("fmeng", "fmeng", "fmeng", "fmeng", "10.9.94.203", "ner", "msa", "mysql", "I-NOT-PER", "final_not_per", 
+		//	"index_not_per", "profile_not_per", "conll2003-not-per-token", 0.9, 20);
 		//filter.filter("fmeng", "fmeng", "10.9.94.203", "msa", "mysql", "I-PER", "msa_profile_target_final_per", "msa_profile_match_index_per", "msa_profile_per", "conll2003-token");
 		//filter.removeDupes();
+		
+		filter.getBestPatterns(args[0], args[1], args[2], args[3], args[4]);
 	}
 }

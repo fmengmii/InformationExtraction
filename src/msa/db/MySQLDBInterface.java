@@ -313,7 +313,8 @@ public class MySQLDBInterface implements MSADBInterface
 	{
 		try {
 			conn.close();
-			msaConn.close();
+			if (msaConn != null)
+				msaConn.close();
 		}
 		catch(SQLException e)
 		{

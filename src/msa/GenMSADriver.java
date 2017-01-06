@@ -131,6 +131,11 @@ public class GenMSADriver
 			phrase = Integer.parseInt(props.getProperty("phrase"));
 			requireTarget = Boolean.parseBoolean(props.getProperty("requireTarget"));
 			targetType = props.getProperty("targetType");
+			
+			if (targetType != null)
+				profileTable = props.getProperty("profileTable");
+
+			
 			targetProvenance = props.getProperty("targetProvenance");
 			tokType = props.getProperty("tokType");
 			
@@ -156,7 +161,6 @@ public class GenMSADriver
 			scoreList = new ArrayList<Double>();
 			scoreList = gson.fromJson(props.getProperty("scoreList"), scoreList.getClass());
 			
-			//profileTable = props.getProperty("profileTable");
 				
 			msaBlockSize = Integer.parseInt(props.getProperty("msaBlockSize"));
 			
@@ -226,24 +230,36 @@ public class GenMSADriver
 			
 			List<AnnotationSequence> posSeqList = genSent.getPosSeqList();
 			List<AnnotationSequence> negSeqList = genSent.getNegSeqList();
+			List<AnnotationSequence> seqList = posSeqList;
+			
+			if (!requireTarget)
+				seqList = negSeqList;
+			
 			
 			
 			//loop generating blocks of grids no more than size msaBlockSize
 			
-			int numBlocks = (posSeqList.size() / msaBlockSize) + 1;
+			int numBlocks = (seqList.size() / msaBlockSize) + 1;
 			int currStartIndex = 0;
 			
+			System.out.println("msaBlockSize: " + msaBlockSize + " numBlocks: " + numBlocks + " seqList size: " + seqList.size());
+			
 			for (int blockNum=0; blockNum<numBlocks; blockNum++) {
+				System.out.println("blockNum: " + blockNum);
+				System.out.println("currStartIndex: " + currStartIndex);
 				
-				List<AnnotationSequence> posSeqList2 = new ArrayList<AnnotationSequence>();
-				for (int i=currStartIndex; i<posSeqList.size(); i++) {
-					posSeqList2.add(posSeqList.get(i));
+				List<AnnotationSequence> seqList2 = new ArrayList<AnnotationSequence>();
+				for (int i=currStartIndex; i<seqList.size(); i++) {
+					seqList2.add(seqList.get(i));
 					
-					if (posSeqList2.size() >= msaBlockSize)
+					if (seqList2.size() >= msaBlockSize)
 						break;
 				}
 				
-				currStartIndex += posSeqList2.size();
+				System.out.println("pos seq list2 size: " + seqList2.size());
+				
+				currStartIndex += seqList2.size();
+				
 				
 				GenAnnotationGrid genGrid = new GenAnnotationGrid(annotTypeNameList, tokType);
 				
@@ -263,14 +279,14 @@ public class GenMSADriver
 				genMSA.setAnnotTypeNameList(annotTypeNameList);
 				genMSA.setVerbose(false);
 				genMSA.setTokType(tokType);
-				genMSA.setRequireTarget(true);
+				genMSA.setRequireTarget(requireTarget);
 				genMSA.setMatchSize(false);
 				genMSA.setGenGrid(genGrid);
-				genMSA.setSeqList(posSeqList2);
+				genMSA.setSeqList(seqList2);
 				genMSA.setScoreList(scoreList);
 				genMSA.setSyntax(syntax);
 				genMSA.setPhrase(phrase);
-				genMSA.setGridList(null);
+				//genMSA.setGridList(null);
 				
 							
 				List<MultipleSequenceAlignment> msaList = genMSA.genMSA();
@@ -283,25 +299,27 @@ public class GenMSADriver
 				
 				
 				//gen MSAs with answers
-				gridList = new ArrayList<AnnotationSequenceGrid>();
-				for (AnnotationSequence seq : posSeqList2) {
-					List<AnnotationSequenceGrid> gridList2 = genGrid.toAnnotSeqGrid(seq, true, true, true, false);
-					gridList.addAll(gridList2);
+				
+				if (requireTarget) {
+					gridList = new ArrayList<AnnotationSequenceGrid>();
+					for (AnnotationSequence seq : seqList2) {
+						List<AnnotationSequenceGrid> gridList2 = genGrid.toAnnotSeqGrid(seq, true, true, true, false);
+						gridList.addAll(gridList2);
+					}
+					
+					
+					genMSA.setGridList(gridList);
+					List<MultipleSequenceAlignment> ansMSAList = genMSA.genMSA();
+					
+					for (MultipleSequenceAlignment msa : ansMSAList) {
+						if (msaMap.get(msa.toProfileString(false)) == null)
+							msaList.add(msa);
+					}
+					
+					msaMap = null;
+					ansMSAList = null;
 				}
-				
-				
-				genMSA.setGridList(gridList);
-				List<MultipleSequenceAlignment> ansMSAList = genMSA.genMSA();
-				
-				for (MultipleSequenceAlignment msa : ansMSAList) {
-					if (msaMap.get(msa.toProfileString(false)) == null)
-						msaList.add(msa);
-				}
-				
-				msaMap = null;
-				ansMSAList = null;
-				
-				
+					
 				//get grids from profile MSAs
 				System.out.println("\n\nProfiles");
 	
@@ -321,11 +339,14 @@ public class GenMSADriver
 					}
 					
 					AnnotationSequenceGrid profileGrid = genGrid.toAnnotSeqGrid(profileToks, false);
-					int targetTokIndex = profileToks.indexOf(":target");
-					int[] targetCoords = new int[2];
-					targetCoords[0] = targetTokIndex;
-					targetCoords[1] = profileGrid.get(targetTokIndex).size()-1;
-					profileGrid.setTargetCoords(targetCoords);
+					
+					if (requireTarget) {
+						int targetTokIndex = profileToks.indexOf(":target");
+						int[] targetCoords = new int[2];
+						targetCoords[0] = targetTokIndex;
+						targetCoords[1] = profileGrid.get(targetTokIndex).size()-1;
+						profileGrid.setTargetCoords(targetCoords);
+					}
 					
 					
 					profileSeqGridList.add(profileGrid);
@@ -335,35 +356,39 @@ public class GenMSADriver
 				}
 				
 				System.out.println("profile total = " + profileSeqGridList.size());
-				
-				
+					
+					
 				//target MSAs
-				System.out.println("\n\nTarget Profiles");
-				List<AnnotationSequenceGrid> targetGridList = MSAUtils.getTargetGridList(gridList);
-				
-				
-				//print target grids 
-				for (AnnotationSequenceGrid targetGrid : targetGridList) {
-					//targetGrid.removeRow(targetGrid.get);
-					System.out.println(targetGrid.toString());
-				}
-							
-
-				genMSA.setMinSize(1);
-				genMSA.setRequireTarget(false);
-				genMSA.setMatchSize(true);
-				genMSA.setGridList(targetGridList);
-				List<MultipleSequenceAlignment> targetMSAList = genMSA.genMSA();
-				
-				//get grids from target MSAs
-				targetProfileGridList = new ArrayList<AnnotationSequenceGrid>();
-				for (MultipleSequenceAlignment msa : targetMSAList) {
-					List<String> profileToks = SequenceUtilities.getToksFromStr(msa.toProfileString(false));				
-					AnnotationSequenceGrid profileGrid = genGrid.toAnnotSeqGrid(profileToks, false);
 					
-					targetProfileGridList.add(profileGrid);
+				if (requireTarget) {
+					System.out.println("\n\nTarget Profiles");
+					List<AnnotationSequenceGrid> targetGridList = MSAUtils.getTargetGridList(gridList);
 					
-					//System.out.println("target profile: " + SequenceUtilities.getStrFromToks(profileToks));
+					
+					//print target grids 
+					for (AnnotationSequenceGrid targetGrid : targetGridList) {
+						//targetGrid.removeRow(targetGrid.get);
+						System.out.println(targetGrid.toString());
+					}
+								
+	
+					genMSA.setMinSize(1);
+					genMSA.setRequireTarget(false);
+					genMSA.setMatchSize(true);
+					genMSA.setGridList(targetGridList);
+					List<MultipleSequenceAlignment> targetMSAList = genMSA.genMSA();
+					
+					//get grids from target MSAs
+					targetProfileGridList = new ArrayList<AnnotationSequenceGrid>();
+					for (MultipleSequenceAlignment msa : targetMSAList) {
+						List<String> profileToks = SequenceUtilities.getToksFromStr(msa.toProfileString(false));				
+						AnnotationSequenceGrid profileGrid = genGrid.toAnnotSeqGrid(profileToks, false);
+						
+						targetProfileGridList.add(profileGrid);
+						
+						//System.out.println("target profile: " + SequenceUtilities.getStrFromToks(profileToks));
+					}
+				
 				}
 				
 				
@@ -380,11 +405,13 @@ public class GenMSADriver
 					profileList.add(profile);
 				}
 				
-				for (AnnotationSequenceGrid grid : targetProfileGridList) {
-					List<String> toks = grid.getSequence().getToks();
-					String profileGridStr = gson.toJson(toks);
-					MSAProfile profile = new MSAProfile(profileGridStr, targetType, targetGroup, 1, toks, 1.0, 0);
-					targetProfileList.add(profile);
+				if (requireTarget) {
+					for (AnnotationSequenceGrid grid : targetProfileGridList) {
+						List<String> toks = grid.getSequence().getToks();
+						String profileGridStr = gson.toJson(toks);
+						MSAProfile profile = new MSAProfile(profileGridStr, targetType, targetGroup, 1, toks, 1.0, 0);
+						targetProfileList.add(profile);
+					}
 				}
 				
 				
