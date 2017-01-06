@@ -133,9 +133,6 @@ public class GenSentences
 			if (limit >= 0)
 				docQueryStrBlder.append(" limit " + limit);
 			
-			if (db instanceof msa.db.CassandraDBInterface)
-				docQueryStrBlder.append(" allow filtering");
-			
 			docIDList = db.getDocIDList(docQueryStrBlder.toString());
 			genSentenceAnnots(docNamespace, docTable);
 		}

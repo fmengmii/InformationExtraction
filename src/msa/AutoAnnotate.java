@@ -375,7 +375,7 @@ public class AutoAnnotate
 				genSent.setPunct(punct);
 				genSent.setVerbose(verbose);
 				genSent.setTokenType(tokType);
-				genSent.setMaskTarget(true);
+				//genSent.setMaskTarget(true);
 				genSent.init(db, msaAnnotFilterList, targetType, targetProvenance);
 				
 				System.out.println("gen sents...");
