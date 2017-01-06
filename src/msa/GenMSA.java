@@ -12,13 +12,12 @@ import java.util.Properties;
 import com.google.gson.Gson;
 
 import align.*;
-import msa.db.CassandraDBInterface;
 import msa.db.MSADBException;
 import msa.db.MSADBInterface;
 import msa.db.MySQLDBInterface;
-import ngram.GenNGrams;
-import ngram.NGram;
-import ngram.NGramList;
+//import ngram.GenNGrams;
+//import ngram.NGram;
+//import ngram.NGramList;
 import nlputils.sequence.SequenceUtilities;
 import utils.db.DBConnection;
 
@@ -27,13 +26,12 @@ public class GenMSA
 
 	private Gson gson;
 	private Map<String, MultipleSequenceAlignment> msaMap;
-	private List<MultipleSequenceAlignment> msaList;
+	//private List<MultipleSequenceAlignment> msaList;
 	private List<List<String>> profileList;
 	private List<String> profileStrList;
-	private Map<String, List<NGram>> globalContextVecMap;
+	//private Map<String, List<NGram>> globalContextVecMap;
 	private SmithWatermanDim sw;
 	private GenAnnotationGrid genGrid;
-	private SmithWatermanMulti swMulti;
 	private Boolean punct;
 	private List<AnnotationSequence> seqList;
 	//private List<List<String>> toksList;
@@ -49,7 +47,7 @@ public class GenMSA
 	private String msaKeyspace;
 	private String group;
 	private boolean write;
-	private String provenanceEval;
+	//private String provenanceEval;
 	
 	private boolean verbose;
 	private List<Map<String, Object>> annotFilterList;
@@ -65,16 +63,16 @@ public class GenMSA
 	private int maxGaps = 2;
 	private int syntax = 2;
 	private int phrase = 0;
-	private int maxGapsGlobal = 10;
-	private double profileThreshold = 0.8;
+	//private int maxGapsGlobal = 10;
+	//private double profileThreshold = 0.8;
 	
 	private List<Long> docIDList = null;
 	private List<String> profileGroupList;
 	
 	private Map<String, Double> ngramMap;
-	private Map<Long, List<NGramList>> ngramListMap;
+	//private Map<Long, List<NGramList>> ngramListMap;
 	
-	private GenNGrams genNGrams;
+	//private GenNGrams genNGrams;
 	
 	private int minSize = 1;
 	private int msaMinRows;
@@ -88,8 +86,8 @@ public class GenMSA
 		sw.setMultiMatch(true);
 		
 		//sw.setVerbose(true);
-		swMulti = new SmithWatermanMulti();
-		genNGrams = new GenNGrams();
+		//swMulti = new SmithWatermanMulti();
+		//genNGrams = new GenNGrams();
 		//genGrid = new GenAnnotationGrid();
 	}
 	
@@ -233,7 +231,7 @@ public class GenMSA
 			docTable = props.getProperty("docTable");
 			group = props.getProperty("group");
 			String provenance = props.getProperty("provenance");
-			provenanceEval = props.getProperty("provenanceEval");
+			//provenanceEval = props.getProperty("provenanceEval");
 			
 			punct = Boolean.parseBoolean(props.getProperty("punct"));
 			write = Boolean.parseBoolean(props.getProperty("write"));
@@ -248,9 +246,7 @@ public class GenMSA
 			if (limitStr != null)
 				limit = Integer.parseInt(limitStr);
 			
-			if (dbType.equals("cassandra"))
-				db = new CassandraDBInterface();
-			else if (dbType.equals("mysql"))
+			if (dbType.equals("mysql"))
 				db = new MySQLDBInterface();
 				
 			db.init(user, password, host, keyspace, msaKeyspace);

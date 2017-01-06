@@ -12,10 +12,8 @@ import align.GenAnnotationGrid;
 import java.sql.*;
 
 import msa.ProfileReader.Order;
-import msa.db.CassandraDBInterface;
 import msa.db.MSADBInterface;
 import msa.db.MySQLDBInterface;
-import nlputils.sequence.SequenceUtilities;
 import utils.db.DBConnection;
 
 public class FilterPatterns
@@ -192,9 +190,7 @@ public class FilterPatterns
 			if (limitStr != null)
 				limit = Integer.parseInt(limitStr);
 			
-			if (dbType.equals("cassandra"))
-				db = new CassandraDBInterface();
-			else if (dbType.equals("mysql"))
+			if (dbType.equals("mysql"))
 				db = new MySQLDBInterface();
 				
 			

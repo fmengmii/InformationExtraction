@@ -10,10 +10,10 @@ import java.util.Properties;
 
 import com.google.gson.Gson;
 
-import align.AnnotationGridElement;
+//import align.AnnotationGridElement;
 import align.AnnotationSequenceGrid;
 import align.GenAnnotationGrid;
-import msa.db.CassandraDBInterface;
+//import msa.db.CassandraDBInterface;
 import msa.db.MSADBInterface;
 import msa.db.MySQLDBInterface;
 import nlputils.sequence.SequenceUtilities;
@@ -148,9 +148,7 @@ public class GenMSADriver
 			if (limitStr != null)
 				limit = Integer.parseInt(limitStr);
 			
-			if (dbType.equals("cassandra"))
-				db = new CassandraDBInterface();
-			else if (dbType.equals("mysql"))
+			if (dbType.equals("mysql"))
 				db = new MySQLDBInterface();
 				
 			

@@ -84,7 +84,6 @@ public class AutoAnnotate
 	private String negTargetType;
 	private String negTargetProvenance;
 	
-	private GenContext genContext;
 	private boolean contextFlag = false;
 	private PrintWriter pw;
 	
@@ -121,7 +120,6 @@ public class AutoAnnotate
 	public AutoAnnotate()
 	{
 		gson = new Gson();
-		genContext = new GenContext();
 		sw = new SmithWatermanDim();
 		profileMatcher = new ProfileMatcher();
 		//profileMatcher.setProfileMatch(true);
