@@ -11,7 +11,6 @@ import com.google.gson.Gson;
 
 import msa.Annotation;
 import msa.AnnotationSequence;
-import msa.AnnotationSequence2;
 import msa.MSAProfile;
 import msa.MSARow;
 import msa.MSAToken;
@@ -123,11 +122,6 @@ public class MySQLDBInterface implements MSADBInterface
 		}
 		
 		return docIDList;
-	}
-	
-	public List<AnnotationSequence2> getSentsInDoc2(String docNamespace, String docTable, long docID) throws MSADBException
-	{
-		return null;
 	}
 	
 	public List<AnnotationSequence> getSentsInDoc(String docNamespace, String docTable, long docID) throws MSADBException

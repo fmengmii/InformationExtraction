@@ -6,16 +6,12 @@ import org.apache.commons.lang.StringUtils;
 
 import com.google.gson.Gson;
 
-import align.AnnotationGridElement;
 import align.AnnotationSequenceGrid;
 import align.GenAnnotationGrid;
 import align.SmithWatermanDim;
 import msa.ProfileReader.Order;
-import msa.db.CassandraDBInterface;
-import msa.db.MSADBException;
 import msa.db.MSADBInterface;
 import msa.db.MySQLDBInterface;
-import nlputils.sequence.SequenceUtilities;
 import utils.db.DBConnection;
 
 import java.io.*;
@@ -24,10 +20,6 @@ import java.sql.*;
 public class AutoAnnotate
 {
 	private Gson gson;
-	private Map<String, MultipleSequenceAlignment> msaMap;
-	private List<MultipleSequenceAlignment> msaList;
-	private List<List<String>> profileList;
-	private List<String> profileStrList;
 	private Boolean punct;
 	private List<AnnotationSequence> posSeqList;
 	private List<AnnotationSequence> negSeqList;
@@ -40,7 +32,6 @@ public class AutoAnnotate
 	private String msaKeyspace;
 	
 	private String docDBHost;
-	private String docDBName;
 	private String docDBQuery;
 	private String docDBType;
 	
@@ -49,7 +40,6 @@ public class AutoAnnotate
 	//private String negProfileAnnotType;
 
 	//private String group;
-	private boolean write;
 	private boolean writeAnnots;
 	//private String provenance;
 	
@@ -200,7 +190,7 @@ public class AutoAnnotate
 			//provenance = props.getProperty("provenance");
 			
 			punct = Boolean.parseBoolean(props.getProperty("punctuation"));
-			write = Boolean.parseBoolean(props.getProperty("write"));
+			//write = Boolean.parseBoolean(props.getProperty("write"));
 			writeAnnots = Boolean.parseBoolean(props.getProperty("writeAnnots"));
 			verbose = Boolean.parseBoolean(props.getProperty("verbose"));
 			maxGaps = Integer.parseInt(props.getProperty("maxGaps"));
