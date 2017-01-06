@@ -2,10 +2,6 @@ package msa;
 
 import java.util.*;
 
-import align.AnnotationSequenceGrid;
-import align.SmithWatermanDim_old;
-import nlputils.sequence.SequenceUtilities;
-
 public class MSAProfile
 {
 	private long profileID;

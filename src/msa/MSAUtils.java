@@ -10,7 +10,7 @@ import align.AnnotationSequenceGrid;
 import align.SmithWatermanDim;
 import msa.db.MSADBException;
 import msa.db.MSADBInterface;
-import nlputils.sequence.SequenceUtilities;
+
 
 public class MSAUtils
 {
@@ -98,26 +98,6 @@ public class MSAUtils
 			else {
 				goldAnnotTypeList.add(null);
 				System.out.println("not found: " + grid.getSequence().getDocID() + ", " + grid.getSequence().getStart());
-			}
-			
-		}
-		
-		return goldAnnotTypeList;
-	}
-	
-	public static List<String> getGoldAnnotationTypes2(MSADBInterface db, List<AnnotationSentence2> sentList, String docNamespace, String docTable, String provenance) throws MSADBException
-	{
-		List<String> goldAnnotTypeList = new ArrayList<String>();
-		for (AnnotationSentence2 sent : sentList) {
-			int targetIndex = sent.getSequence().getTargetIndexList().get(sent.getSentIndex());
-			Annotation targetAnnot = sent.getSequence().getAnnotList().get(targetIndex);
-			List<Annotation> annotList = db.getAnnotations(docNamespace, docTable, sent.getSequence().getDocID(), targetAnnot.getStart(), targetAnnot.getEnd(), null, provenance);
-			if (annotList.size() > 0) {
-				goldAnnotTypeList.add(annotList.get(0).getAnnotationType());
-			}
-			else {
-				goldAnnotTypeList.add(null);
-				System.out.println("not found: " + sent.getSequence().getDocID() + ", " + sent.getSequence().getStart());
 			}
 			
 		}

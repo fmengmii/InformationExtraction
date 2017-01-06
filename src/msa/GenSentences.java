@@ -2,18 +2,9 @@ package msa;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
-import com.datastax.driver.core.policies.DefaultRetryPolicy;
-import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.google.gson.Gson;
 
 import msa.db.MSADBException;
@@ -28,16 +19,13 @@ public class GenSentences
 	private boolean punct = false;
 	private boolean verbose = false;
 	private boolean requireTarget = false;
-	private boolean maskTarget = false;
 	private String tokenType = "Token";
 	
 	private Gson gson;
 	private MSADBInterface db;
 	
-	private List<Map<String, Object>> annotNGramsFilterList;
 	private Map<String, List<String>> annotFeatureMap;
 	private Map<String, Map<String, Object>> annotFilterMap;
-	private List<String> annotTypeNameList;
 	
 	private List<AnnotationSentence> sentList;
 	private List<AnnotationSequence> seqList;
@@ -48,8 +36,6 @@ public class GenSentences
 	
 	private List<Long> docIDList;
 	
-	private int minTargetSize;
-	private int maxTargetSize;
 	
 	public int contextSize = 10;
 	
@@ -115,16 +101,10 @@ public class GenSentences
 		this.profileType = profileType;
 	}
 	
-	public void setMaskTarget(boolean maskTarget)
-	{
-		this.maskTarget = maskTarget;
-	}
-	
 	public void init(MSADBInterface db, List<Map<String, Object>> annotFilterList, String targetType, String targetProvenance)
 	{
 		this.db = db;
 		
-		annotTypeNameList = new ArrayList<String>();
 		annotFilterMap = new HashMap<String, Map<String, Object>>();
 		annotFeatureMap = new HashMap<String, List<String>>();
 		

@@ -7,22 +7,12 @@ import nlputils.sequence.SequenceUtilities;
 import utils.db.DBConnection;
 
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
-import com.datastax.driver.core.policies.DefaultRetryPolicy;
-import com.datastax.driver.core.policies.TokenAwarePolicy;
-
 
 import com.google.gson.Gson;
 
 public class MSAReader
 {
 	private Gson gson;
-	private Cluster cluster;
-	private Session session;
 	private Connection conn;
 	private String rq;
 	private String dbType;
@@ -32,23 +22,13 @@ public class MSAReader
 		gson = new Gson();
 	}
 	
-	public MSAReader(Session session)
-	{
-		this.session = session;
-	}
-	
 	public List<MultipleSequenceAlignment> read(String msaTable) throws SQLException
 	{
 		return read(msaTable, null, null, null, -1);
 	}
 	
 	public void close() throws SQLException
-	{
-		if (cluster != null) {
-			session.close();
-			cluster.close();
-		}
-		
+	{		
 		if (conn != null)
 			conn.close();
 	}
@@ -58,15 +38,7 @@ public class MSAReader
 	{
 		this.dbType = dbType;
 		
-		if (dbType.equals("cassandra")) {
-			cluster = Cluster.builder().addContactPoint(host).withCredentials(user, password)
-					.withRetryPolicy(DefaultRetryPolicy.INSTANCE)
-					.withLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy()))
-					.build();
-			session = cluster.connect(keyspace);
-			rq = "";
-		}
-		else if (dbType.equals("mysql")) {
+		if (dbType.equals("mysql")) {
 			conn = DBConnection.dbConnection(user, password, host, keyspace, dbType);
 			rq = DBConnection.reservedQuote;
 		}
@@ -79,43 +51,7 @@ public class MSAReader
 		List<MultipleSequenceAlignment> msaList = new ArrayList<MultipleSequenceAlignment>();
 		
 		List<List<Object>> rowList = new ArrayList<List<Object>>();
-		if (dbType.equals("cassandra")) {
-			com.datastax.driver.core.PreparedStatement pstmt = session.prepare("select msa_id, " + rq + "group" + rq + ", base_tokens, filler_tokens, multiplicity from " + msaTable 
-				+ " where msa_id = ? and document_namespace = '" + docNamespace + "' and "
-				+ "document_table = '" + docTable + "' and group = '" + group + "'");
-			
-			List<Integer> msaIDList = new ArrayList<Integer>();
-			String msaQueryStr = "select msa_id from msa where document_namespace = '" + docNamespace + "' and document_table = '" + docTable + "' allow filtering";
-			com.datastax.driver.core.ResultSet rs = session.execute(msaQueryStr);
-			Iterator<Row> iter = rs.iterator();
-			for (;iter.hasNext();) {
-				Row row = iter.next();
-				int msaID = row.getInt(0);
-			
-				com.datastax.driver.core.ResultSet rs2 = session.execute(pstmt.bind(msaID));
-				Iterator<Row> iter2 = rs2.iterator();
-				for (;iter2.hasNext();) {
-					Row row2 = iter2.next();
-					int msaID2 = row2.getInt(0);
-					String group2 = row2.getString(1);
-					String baseToksStr = row2.getString(2);
-					String fillerToksStr = row2.getString(3);
-					int mult = row2.getInt(4);
-					
-					List<Object> row3 = new ArrayList<Object>();
-					row3.add(msaID2);
-					row3.add(group2);
-					row3.add(baseToksStr);
-					row3.add(fillerToksStr);
-					row3.add(mult);
-					rowList.add(row3);
-				}
-			}
-			
-			session.close();
-			cluster.close();
-		}
-		else if (dbType.equals("mysql")) {
+		if (dbType.equals("mysql")) {
 			String queryStr = "select msa_id, " + rq + "group" + rq + ", base_tokens, filler_tokens, multiplicity from " + msaTable + " where document_namespace = '" + docNamespace + "' and "
 					+ "document_table = '" + docTable + "'";
 				if (group != null) {
