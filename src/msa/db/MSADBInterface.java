@@ -4,9 +4,7 @@ import java.util.*;
 
 import msa.Annotation;
 import msa.AnnotationSequence;
-import msa.AnnotationSequence2;
 import msa.MultipleSequenceAlignment;
-import ngram.NGram;
 
 public interface MSADBInterface
 {
