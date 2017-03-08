@@ -11,8 +11,26 @@ public class BestPatterns
 	private Connection conn;
 	private Connection annotConn;
 	private PreparedStatement pstmt;
-	private String indexTable;
 	private List<Long> docIDList;
+	
+	private String host;
+	private String msaKeyspace;
+	private String dbType;
+	private String annotType;
+	private String annotKeyspace;
+	private String finalTable;
+	private String indexTable;
+	private String profileTable;
+	private String provenance;
+	private double negThreshold;
+	private int negMinCount;
+	private double posThreshold;
+	private int posMinCount;
+	
+	private List<String> annotTypeList;
+	private List<String> profileTableList;
+	private List<String> indexTableList;
+	private List<String> finalTableList;
 
 	
 	
@@ -20,228 +38,296 @@ public class BestPatterns
 	{
 	}
 	
-	public void getBestPatterns(String msaUser, String msaPassword, String annotUser, String annotPassword, String config)
+	public void init(Properties props)
 	{
-		try {
-			Properties props = new Properties();
-			props.load(new FileReader(config));
-			
-			String host = props.getProperty("host");
-			String msaKeyspace = props.getProperty("msaKeyspace");
-			String dbType = props.getProperty("dbType");
-			String annotType = props.getProperty("annotType");
-			String annotKeyspace = props.getProperty("annotKeyspace");
-			String finalTable = props.getProperty("finalTable");
-			String indexTable = props.getProperty("indexTable");
-			String profileTable = props.getProperty("profileTable");
-			String provenance = props.getProperty("provenance");
-			double negThreshold = Double.parseDouble(props.getProperty("negThreshold"));
-			int negMinCount = Integer.parseInt(props.getProperty("negMinCount"));
-			double posThreshold = Double.parseDouble(props.getProperty("posThreshold"));
-			int posMinCount = Integer.parseInt(props.getProperty("posMinCount"));
-			
-			
+		host = props.getProperty("host");
+		msaKeyspace = props.getProperty("msaKeyspace");
+		dbType = props.getProperty("dbType");
+		annotType = props.getProperty("annotType");
+		annotKeyspace = props.getProperty("annotKeyspace");
+		finalTable = props.getProperty("finalTable");
+		indexTable = props.getProperty("indexTable");
+		profileTable = props.getProperty("profileTable");
+		provenance = props.getProperty("provenance");
+		negThreshold = Double.parseDouble(props.getProperty("negThreshold"));
+		negMinCount = Integer.parseInt(props.getProperty("negMinCount"));
+		posThreshold = Double.parseDouble(props.getProperty("posThreshold"));
+		posMinCount = Integer.parseInt(props.getProperty("posMinCount"));
+	}
+	
+	public void close()
+	{
+	}
+	
+	public List<String> getAnnotTypeList() {
+		return annotTypeList;
+	}
+
+	public void setAnnotTypeList(List<String> annotTypeList) {
+		this.annotTypeList = annotTypeList;
+	}
+
+	public List<String> getProfileTableList() {
+		return profileTableList;
+	}
+
+	public void setProfileTableList(List<String> profileTableList) {
+		this.profileTableList = profileTableList;
+	}
+
+	public List<String> getIndexTableList() {
+		return indexTableList;
+	}
+
+	public void setIndexTableList(List<String> indexTableList) {
+		this.indexTableList = indexTableList;
+	}
+
+	public List<String> getFinalTableList() {
+		return finalTableList;
+	}
+
+	public void setFinalTableList(List<String> finalTableList) {
+		this.finalTableList = finalTableList;
+	}
+	
+	public void getBestPatterns(String msaUser, String msaPassword, String annotUser, String annotPassword)
+	{
+		try {			
 			conn = DBConnection.dbConnection(msaUser, msaPassword, host, msaKeyspace, dbType);
 			annotConn = DBConnection.dbConnection(annotUser, annotPassword, host, annotKeyspace, dbType);
 			
-			PreparedStatement pstmt = conn.prepareStatement("insert into " + finalTable + " (profile_id, target_id, total, prec, valence) values (?,?,?,?,?)");
-			PreparedStatement pstmtUpdateProfile = conn.prepareStatement("update " + profileTable + " set score = ? where profile_id = ?");
 			
-			System.out.println("getting doc IDs...");
-			docIDList = new ArrayList<Long>();
-			Statement stmt = conn.createStatement();
-			ResultSet rs = stmt.executeQuery("select distinct document_id from " + indexTable + " order by document_id");
-			while (rs.next()) {
-				docIDList.add(rs.getLong(1));
+			if (annotType != null) {
+				annotTypeList = new ArrayList<String>();
+				annotTypeList.add(annotType);
+				
+				profileTableList = new ArrayList<String>();
+				profileTableList.add(profileTable);
+				
+				indexTableList = new ArrayList<String>();
+				indexTableList.add(indexTable);
+				
+				finalTableList = new ArrayList<String>();
+				finalTableList.add(finalTable);
 			}
 			
 			
-			System.out.println("reading answers...");
-			Map<String, Boolean> ansMap = readAnswers(annotType, provenance);
-			
-			
-			System.out.println("deleting...");
-			stmt.execute("delete from " + finalTable);
-				//+ " where profile_id in "
-				//+ "(select distinct profile_id from msa_profile where annotation_type = '" + annotType + "')");
-			//stmt.execute("delete from msa_profile_final where annotation_type = '" + annotType + "' and `group` = '" + group + "'");
-			
-			//map targetIDs
-			/*
-			ResultSet rs = stmt.executeQuery("select distinct profile_id, profile from msa_profile where profile_type = 1 order by profile_id");
-			while (rs.next()) {
-				long targetID = rs.getLong(1);
-				String profileStr = rs.getString(2);
+			Map<String, Boolean> finalTableMap = new HashMap<String, Boolean>();
+			for (int index=0; index<annotTypeList.size(); index++) {
+				String annotType = annotTypeList.get(index);
+				profileTable = profileTableList.get(index);
+				indexTable = indexTableList.get(index);
+				finalTable = finalTableList.get(index);
+				
+				
+				PreparedStatement pstmt = conn.prepareStatement("insert into " + finalTable + " (profile_id, target_id, total, prec, valence) values (?,?,?,?,?)");
+				PreparedStatement pstmtUpdateProfile = conn.prepareStatement("update " + profileTable + " set score = ? where profile_id = ?");
+				
+				Statement stmt = conn.createStatement();
+				
+				Boolean flag = finalTableMap.get(finalTable);
+				if (flag == null) {
+					System.out.println("deleting...");
+					stmt.execute("delete from " + finalTable);
+					finalTableMap.put(finalTable, true);
+				}
 
-				Long targetID2 = targetStrMap.get(profileStr);
-				if (targetID2 == null) {
-					targetStrMap.put(profileStr, targetID);
-					targetIDMap.put(targetID, targetID);
+			
+				System.out.println("getting doc IDs...");
+				docIDList = new ArrayList<Long>();
+				ResultSet rs = stmt.executeQuery("select distinct document_id from " + indexTable + " order by document_id");
+				while (rs.next()) {
+					docIDList.add(rs.getLong(1));
 				}
-				else
-					targetIDMap.put(targetID, targetID2);
-			}
-			*/
-			
-			System.out.println("retrieving profile matches...");
-			//ResultSet rs = stmt.executeQuery("select distinct a.profile_id, a.target_id, a.document_id, a.start, a.end, b.profile, c.profile from msa_profile_match_index a, msa_profile b, msa_profile c "
-			//	+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.target_id = c.profile_id "
-			//	+ "order by a.profile_id");
-			
-			rs = stmt.executeQuery("select distinct a.profile_id, a.target_id, a.document_id, a.start, a.end from " + indexTable + " a, " + profileTable + " b "
-				+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id");
-			
-			Map<String, Integer> posMap = new HashMap<String, Integer>();
-			Map<String, Integer> negMap = new HashMap<String, Integer>();
-			String targetStr = "";
-			
-			long currProfileID = -1;
-			
-			Map<Long, List<Long>> docMap = new HashMap<Long, List<Long>>();
-			Map<Long, List<Long>> invDocMap = new HashMap<Long, List<Long>>();
-			Map<Long, Integer> profileTotals = new HashMap<Long, Integer>();
-			while (rs.next()) {
+				
+				
+				System.out.println("reading answers...");
+				Map<String, Boolean> ansMap = readAnswers(annotType, provenance);
+				
+					//+ " where profile_id in "
+					//+ "(select distinct profile_id from msa_profile where annotation_type = '" + annotType + "')");
+				//stmt.execute("delete from msa_profile_final where annotation_type = '" + annotType + "' and `group` = '" + group + "'");
+				
+				//map targetIDs
 				/*
-				long profileID = rs.getLong(1);
-				Long targetID = rs.getLong(2);
-				long docID = rs.getLong(3);
-				long start = rs.getLong(4);
-				long end = rs.getLong(5);
-				String profileStr = rs.getString(6);
-				String targetProfileStr = rs.getString(7);
-				*/
-				
-				long profileID = rs.getLong(1);
-				long targetID = rs.getLong(2);
-				long docID = rs.getLong(3);
-				long start = rs.getLong(4);
-				long end = rs.getLong(5);
-				
-				
-				
-				/*
-				int index = profileStr.indexOf(":target");
-				if (index < 0) {
-					System.out.println("ERROR: " + profileID + ", " + profileStr);
-				}
-				*/
-				
-				
-				
+				ResultSet rs = stmt.executeQuery("select distinct profile_id, profile from msa_profile where profile_type = 1 order by profile_id");
+				while (rs.next()) {
+					long targetID = rs.getLong(1);
+					String profileStr = rs.getString(2);
 	
-				String key = profileID + "|" + targetID;
-				Boolean ansFlag = ansMap.get(docID + "|" + start + "|" + end);
+					Long targetID2 = targetStrMap.get(profileStr);
+					if (targetID2 == null) {
+						targetStrMap.put(profileStr, targetID);
+						targetIDMap.put(targetID, targetID);
+					}
+					else
+						targetIDMap.put(targetID, targetID2);
+				}
+				*/
 				
-
-				long profileID2 = profileID;
-				if (ansFlag != null) {
-					//System.out.println(profileID + "|" + targetID + "|" + docID + "|" + start + "|" + end + "|" + targetStr + "|" + ansFlag);
-
-					Integer count = posMap.get(key);
-					if (count == null)
-						count = 0;
+				System.out.println("retrieving profile matches...");
+				//ResultSet rs = stmt.executeQuery("select distinct a.profile_id, a.target_id, a.document_id, a.start, a.end, b.profile, c.profile from msa_profile_match_index a, msa_profile b, msa_profile c "
+				//	+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.target_id = c.profile_id "
+				//	+ "order by a.profile_id");
+				
+				rs = stmt.executeQuery("select distinct a.profile_id, a.target_id, a.document_id, a.start, a.end from " + indexTable + " a, " + profileTable + " b "
+					+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id");
+				
+				Map<String, Integer> posMap = new HashMap<String, Integer>();
+				Map<String, Integer> negMap = new HashMap<String, Integer>();
+				String targetStr = "";
+				
+				long currProfileID = -1;
+				
+				Map<Long, List<Long>> docMap = new HashMap<Long, List<Long>>();
+				Map<Long, List<Long>> invDocMap = new HashMap<Long, List<Long>>();
+				Map<Long, Integer> profileTotals = new HashMap<Long, Integer>();
+				while (rs.next()) {
+					/*
+					long profileID = rs.getLong(1);
+					Long targetID = rs.getLong(2);
+					long docID = rs.getLong(3);
+					long start = rs.getLong(4);
+					long end = rs.getLong(5);
+					String profileStr = rs.getString(6);
+					String targetProfileStr = rs.getString(7);
+					*/
 					
-					posMap.put(key, ++count);
+					long profileID = rs.getLong(1);
+					long targetID = rs.getLong(2);
+					long docID = rs.getLong(3);
+					long start = rs.getLong(4);
+					long end = rs.getLong(5);
 					
-					Integer profileCount = profileTotals.get(profileID);
-					if (profileCount == null)
-						profileCount = 0;
-					profileTotals.put(profileID, ++profileCount);
+					
+					
+					/*
+					int index = profileStr.indexOf(":target");
+					if (index < 0) {
+						System.out.println("ERROR: " + profileID + ", " + profileStr);
+					}
+					*/
+					
+					
+					
+		
+					String key = profileID + "|" + targetID;
+					Boolean ansFlag = ansMap.get(docID + "|" + start + "|" + end);
+					
+	
+					long profileID2 = profileID;
+					if (ansFlag != null) {
+						//System.out.println(profileID + "|" + targetID + "|" + docID + "|" + start + "|" + end + "|" + targetStr + "|" + ansFlag);
+	
+						Integer count = posMap.get(key);
+						if (count == null)
+							count = 0;
+						
+						posMap.put(key, ++count);
+						
+						Integer profileCount = profileTotals.get(profileID);
+						if (profileCount == null)
+							profileCount = 0;
+						profileTotals.put(profileID, ++profileCount);
+						
+						
+					}
+					else {
+						Integer count = negMap.get(key);
+						if (count == null)
+							count = 0;
+						
+						negMap.put(key, ++count);
+						
+						profileID2 = -profileID;
+					}
+					
+					
+					
+					//profile conditionals
+					List<Long> docList = docMap.get(profileID2);
+					if (docList == null) {
+						docList = new ArrayList<Long>();
+						docMap.put(profileID2, docList);
+					}
+					
+					docList.add(docID);
+					
+					List<Long> profileList = invDocMap.get(docID);
+					if (profileList == null) {
+						profileList = new ArrayList<Long>();
+						invDocMap.put(docID, profileList);
+					}
+					
+					profileList.add(profileID);
+					
+					
 					
 					
 				}
-				else {
-					Integer count = negMap.get(key);
-					if (count == null)
-						count = 0;
+				
+				
+				conn.setAutoCommit(false);
+				int count = 0;
+				for (String key : posMap.keySet()) {
+					int posCount = posMap.get(key);
+					Integer negCount = negMap.get(key);
 					
-					negMap.put(key, ++count);
+					if (negCount == null)
+						negCount = 0;
 					
-					profileID2 = -profileID;
-				}
-				
-				
-				
-				//profile conditionals
-				List<Long> docList = docMap.get(profileID2);
-				if (docList == null) {
-					docList = new ArrayList<Long>();
-					docMap.put(profileID2, docList);
-				}
-				
-				docList.add(docID);
-				
-				List<Long> profileList = invDocMap.get(docID);
-				if (profileList == null) {
-					profileList = new ArrayList<Long>();
-					invDocMap.put(docID, profileList);
-				}
-				
-				profileList.add(profileID);
-				
-				
-				
-				
-			}
-			
-			
-			conn.setAutoCommit(false);
-			int count = 0;
-			for (String key : posMap.keySet()) {
-				int posCount = posMap.get(key);
-				Integer negCount = negMap.get(key);
-				
-				if (negCount == null)
-					negCount = 0;
-				
-				double prec = ((double) posCount) / ((double) (posCount + negCount));
-
-				boolean write = false;
-				int valence = 0;
-				
-				double score = 0.0;
-				
-				if (prec >= posThreshold && (posCount + negCount) >= posMinCount) {
-					write = true;
-					score = 1.0;
-				}
-				
-				if (prec < negThreshold && (posCount + negCount) >= negMinCount) {
-					score = 1.0;
-				}
-				
-				System.out.println(key + " : " + posCount + ", " + negCount + ", " + prec + ", " + score);
-				
-				String[] parts = key.split("\\|");
-				long profileID = Long.parseLong(parts[0]);
-				long targetID = Long.parseLong(parts[1]);
-				
-				pstmtUpdateProfile.setDouble(1, score);					
-				pstmtUpdateProfile.setLong(2, profileID);
-				pstmtUpdateProfile.execute();
-				
-				if (write) {
-					pstmt.setLong(1, profileID);
-					pstmt.setLong(2, targetID);
-					pstmt.setInt(3, posCount+negCount);
-					pstmt.setDouble(4, prec);
-					pstmt.setInt(5, valence);
-					pstmt.addBatch();
-					count++;
+					double prec = ((double) posCount) / ((double) (posCount + negCount));
+	
+					boolean write = false;
+					int valence = 0;
 					
-					if (count % 1000 == 0) {
-						pstmt.executeBatch();
-						conn.commit();
+					double score = 0.0;
+					
+					if (prec >= posThreshold && (posCount + negCount) >= posMinCount) {
+						write = true;
+						score = 1.0;
+					}
+					
+					if (prec < negThreshold && (posCount + negCount) >= negMinCount) {
+						score = 1.0;
+					}
+					
+					System.out.println(key + " : " + posCount + ", " + negCount + ", " + prec + ", " + score);
+					
+					String[] parts = key.split("\\|");
+					long profileID = Long.parseLong(parts[0]);
+					long targetID = Long.parseLong(parts[1]);
+					
+					pstmtUpdateProfile.setDouble(1, score);					
+					pstmtUpdateProfile.setLong(2, profileID);
+					pstmtUpdateProfile.execute();
+					
+					if (write) {
+						pstmt.setLong(1, profileID);
+						pstmt.setLong(2, targetID);
+						pstmt.setInt(3, posCount+negCount);
+						pstmt.setDouble(4, prec);
+						pstmt.setInt(5, valence);
+						pstmt.addBatch();
+						count++;
+						
+						if (count % 1000 == 0) {
+							pstmt.executeBatch();
+							conn.commit();
+						}
 					}
 				}
+				
+				pstmt.executeBatch();
+				conn.commit();
+				
+				stmt.close();
+				pstmt.close();
+				pstmtUpdateProfile.close();
 			}
 			
-			
-			pstmt.executeBatch();
-			conn.commit();
-			
-			stmt.close();
-			pstmt.close();
+		
 			
 			System.out.println("filter overlap...");
 			//filterOverlapping(annotType);
@@ -304,7 +390,6 @@ public class BestPatterns
 				}
 			}
 			*/
-			
 			
 			
 			conn.close();
@@ -444,9 +529,17 @@ public class BestPatterns
 		
 		
 		Statement stmt = annotConn.createStatement();
+		/*
 		ResultSet rs = stmt.executeQuery("select distinct a.document_id, a.start, a.end from annotation a, annotation b where a.annotation_type = 'Token' and "
 			+ "a.start >= b.start and a.end <= b.end and b.annotation_type = '" + annotType + "' and "
 			+ "b.provenance = '" + provenance + "' and a.document_id = b.document_id and a.document_id < 1163 order by start");
+			*/
+		
+		if (annotType.equals("lungrads-exam-date"))
+			System.out.println("here");
+		
+		ResultSet rs = stmt.executeQuery("select distinct document_id, start, end from annotation where annotation_type = '" + annotType + "' and "
+				+ "provenance = '" + provenance + "' order by start");
 		
 		while (rs.next()) {
 			long docID = rs.getLong(1);
@@ -503,13 +596,22 @@ public class BestPatterns
 		}
 		
 		
-		BestPatterns filter = new BestPatterns();
+		BestPatterns best = new BestPatterns();
 		//filter.filter(args[0], args[1], args[2], args[3], args[4], args[5]);
 		//filter.getBestPatterns("fmeng", "fmeng", "fmeng", "fmeng", "10.9.94.203", "ner", "msa", "mysql", "I-NOT-PER", "final_not_per", 
 		//	"index_not_per", "profile_not_per", "conll2003-not-per-token", 0.9, 20);
 		//filter.filter("fmeng", "fmeng", "10.9.94.203", "msa", "mysql", "I-PER", "msa_profile_target_final_per", "msa_profile_match_index_per", "msa_profile_per", "conll2003-token");
 		//filter.removeDupes();
 		
-		filter.getBestPatterns(args[0], args[1], args[2], args[3], args[4]);
+		try {
+			Properties props = new Properties();
+			props.load(new FileReader(args[4]));
+			best.init(props);
+			best.getBestPatterns(args[0], args[1], args[2], args[3]);
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
 	}
 }

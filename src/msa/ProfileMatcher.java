@@ -2,6 +2,7 @@ package msa;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,7 @@ public class ProfileMatcher
 	
 	private List<ProfileMatch> noMatchList;
 	private Map<String, List<String>> profileTargetMap;
+	
 	
 	private PrintWriter pw;
 	
@@ -60,15 +62,15 @@ public class ProfileMatcher
 		sw.setMultiMatch(profileMatch);
 	}
 	
-	public List<ProfileMatch> matchProfile(List<AnnotationSequenceGrid> gridList, List<ProfileGrid> profileGridList, String annotType, boolean extraction, 
-		int maxGaps, int syntax, int phrase, boolean evaluation,  Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap, Map<AnnotationSequenceGrid, MSAProfile> msaTargetProfileMap)
+	public List<ProfileMatch> matchProfile(List<AnnotationSequenceGrid> gridList, List<ProfileGrid> profileGridList, List<AnnotationSequenceGrid> targetGridList, String annotType, boolean extraction, 
+		int maxGaps, int syntax, int phrase, boolean evaluation,  Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap, Map<AnnotationSequenceGrid, MSAProfile> msaTargetProfileMap, ProfileInvertedIndex invertedIndex)
 	{
-		return matchProfile(gridList, profileGridList, annotType, extraction, maxGaps, syntax, phrase, evaluation, 0, gridList.size(), msaProfileMap, msaTargetProfileMap);
+		return matchProfile(gridList, profileGridList, targetGridList, annotType, extraction, maxGaps, syntax, phrase, evaluation, 0, gridList.size(), msaProfileMap, msaTargetProfileMap, invertedIndex);
 	}
 	
-	public List<ProfileMatch> matchProfile(List<AnnotationSequenceGrid> gridList, List<ProfileGrid> profileGridList, String annotType, boolean extraction, 
+	public List<ProfileMatch> matchProfile(List<AnnotationSequenceGrid> gridList, List<ProfileGrid> profileGridList, Collection<AnnotationSequenceGrid> targetProfileGridList, String annotType, boolean extraction, 
 		int maxGaps, int syntax, int phrase, boolean evaluation, int gridStartIndex, int gridEndIndex,  
-		Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap, Map<AnnotationSequenceGrid, MSAProfile> msaTargetProfileMap)
+		Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap, Map<AnnotationSequenceGrid, MSAProfile> msaTargetProfileMap, ProfileInvertedIndex invertedIndex)
 	{
 		List<ProfileMatch> matchList = new ArrayList<ProfileMatch>();
 		noMatchList = new ArrayList<ProfileMatch>();
@@ -80,6 +82,11 @@ public class ProfileMatcher
 
 			AnnotationSequenceGrid grid = gridList.get(i);
 			List<String> toks = grid.getSequence().getToks();
+			
+			//get profiles from inverted index
+			List<ProfileGrid> profileGridListIndex = invertedIndex.getMatchedGridList(grid);
+			
+			//System.out.println(profileGridListIndex.size());
 			
 			Map<String, Boolean> gridMap = new HashMap<String, Boolean>();
 			gridMap.put(":" + annotType.toLowerCase(), true);
@@ -148,7 +155,7 @@ public class ProfileMatcher
 				//iterate through each profile
 				matchCount = 0;
 
-				for (ProfileGrid profileGridObj : profileGridList) {
+				for (ProfileGrid profileGridObj : profileGridListIndex) {
 					AnnotationSequenceGrid profileGrid = profileGridObj.getGrid();
 					List<String> profileToks = profileGrid.getSequence().getToks();
 					
@@ -163,7 +170,7 @@ public class ProfileMatcher
 
 					String profileStr = gson.toJson(profileToks);
 					//System.out.println(profileStr);
-					//System.out.println("profileGrid: " + profileGrid.toString());
+					System.out.println("profileGrid: " + profileGrid.toString());
 					
 					/*
 					if (profileStr.equals("[\":start|start\",\":target\",\":i-org\"]") || 
@@ -198,7 +205,7 @@ public class ProfileMatcher
 						continue;
 					}
 					
-					List<AnnotationSequenceGrid> targetProfileGridList = profileGridObj.getTargetGridList();
+					//List<AnnotationSequenceGrid> targetProfileGridList = profileGridObj.getTargetGridList();
 					
 					
 					//each profile has its own clone of grid
@@ -242,9 +249,9 @@ public class ProfileMatcher
 							long annotIndex2 = grid.get(indexes[1]-1).get(0).getAnnot().getStart();
 							
 							if (verbose) {
-								//System.out.println("\n\nprofile matched: " + profileStr);
-								//System.out.println("indexes: " + gson.toJson(indexes) + ", focusCoords: " + gson.toJson(focusCoords));
-								//System.out.println("annotIndex1: " + annotIndex1 + ", annotIndex2: " + annotIndex2);
+								System.out.println("\n\nprofile matched: " + profileStr);
+								System.out.println("indexes: " + gson.toJson(indexes) + ", focusCoords: " + gson.toJson(focusCoords));
+								System.out.println("annotIndex1: " + annotIndex1 + ", annotIndex2: " + annotIndex2);
 							}
 									
 							List<int[]> matchCoords1 = matchCoords1List.get(j);
@@ -293,8 +300,8 @@ public class ProfileMatcher
 							AnnotationSequenceGrid targetGrid = grid.subGrid(indexes[0], indexes[1]);
 							
 							if (verbose) {
-								//System.out.println("match profile: " + align1 + ", " + align2 + ", indexes[0]:" + indexes[0] + ", indexes[1]:" + indexes[1] + ", targetgrid: " + gson.toJson(targetGrid.getSequence().getToks()));
-								//System.out.println("matchcoords1: " + gson.toJson(matchCoords1) + "\nmatchCoords2: " + gson.toJson(matchCoords2));
+								System.out.println("match profile: " + align1 + ", " + align2 + ", indexes[0]:" + indexes[0] + ", indexes[1]:" + indexes[1] + ", targetgrid: " + gson.toJson(targetGrid.getSequence().getToks()));
+								System.out.println("matchcoords1: " + gson.toJson(matchCoords1) + "\nmatchCoords2: " + gson.toJson(matchCoords2));
 							}
 		
 							
@@ -303,10 +310,18 @@ public class ProfileMatcher
 							List<String> targetProfileStrList = new ArrayList<String>();
 							List<String> targetStrList = new ArrayList<String>();
 							List<AnnotationSequenceGrid> targetGridList = new ArrayList<AnnotationSequenceGrid>();
+							List<int[]> targetMatchIndexesList = new ArrayList<int[]>();
+							List<List<int[]>> targetMatchCoords1List = new ArrayList<List<int[]>>();
+							List<List<int[]>> targetMatchCoords2List = new ArrayList<List<int[]>>();
+							
+							
 							String targetStr = "";
 							int[] targetMatchIndexes = null;
 							List<int[]> targetMatchCoords = null;
 							
+							
+							if (!evaluation)
+								targetProfileGridList = profileGridObj.getTargetGridMap().keySet();
 							
 							//iterate through each target profile
 							for (AnnotationSequenceGrid targetProfileGrid : targetProfileGridList) {
@@ -440,6 +455,11 @@ public class ProfileMatcher
 									targetGridList.add(targetProfileGrid);
 									targetStrList.add(targetStr);
 									
+									targetMatchIndexesList.add(targetMatchIndexes);
+									targetMatchCoords1List.add(matchCoords1);
+									targetMatchCoords2List.add(matchCoords2);
+									
+									
 									//break out of matching more target profiles since we found one if extraction = true
 									if (extraction)
 										break;
@@ -460,39 +480,54 @@ public class ProfileMatcher
 							//matched target
 							if (targetMatch || targetGridList.size() > 0) {
 								matched = true;
-	
+
 								MSAProfile profile = msaProfileMap.get(profileGrid);
-								List<MSAProfile> targetList = new ArrayList<MSAProfile>();
-								for (AnnotationSequenceGrid targetProfileGrid : targetGridList) {
-									MSAProfile target = msaTargetProfileMap.get(targetProfileGrid);
-									targetList.add(target);
-								}
 								
-								ProfileMatch match = new ProfileMatch(profile, targetList, i, matchCoords1, matchCoords2, targetMatchIndexes,  
-										targetStr, toksStr, grid.getSequence());
-								matchList.add(match);
-								matchCount++;
-								
-								if (verbose) {
-									System.out.println("MATCHED!: " + annotType + ", " + profileStr + ", " + gson.toJson(matchCoords1) + ", " + gson.toJson(matchCoords2) + ", " + targetMatchIndexes[0] + ":" + targetMatchIndexes[1]);
-									//System.out.println("Target: " + targetStr);
+								for (int tIndex=0; tIndex<targetGridList.size(); tIndex++) {
+									List<MSAProfile> targetList = new ArrayList<MSAProfile>();
 									
-									for (int k=0; k<targetList.size(); k++) {
-										MSAProfile target = targetList.get(k);
-										String targetStr2 = targetStrList.get(k);
-										System.out.println("targetProfile: " + target.getProfileStr());
-										System.out.println("Target: " + targetStr2);
+									/*
+									for (AnnotationSequenceGrid targetProfileGrid : targetGridList) {
+										MSAProfile target = msaTargetProfileMap.get(targetProfileGrid);
+										targetList.add(target);
 									}
+									*/
 									
-									if (pw != null) {
-										pw.println("MATCHED!: " + annotType + ", " + profileStr + ", " + gson.toJson(matchCoords1) + ", " + gson.toJson(matchCoords2) + ", " + targetMatchIndexes[0] + ":" + targetMatchIndexes[1]);
-										//pw.println("Target: " + targetStr);
+									MSAProfile target = msaTargetProfileMap.get(targetGridList.get(tIndex));
+									targetList.add(target);
+									
+									/*
+									ProfileMatch match = new ProfileMatch(profile, targetList, i, matchCoords1, matchCoords2, targetMatchIndexes,  
+											targetStr, toksStr, grid.getSequence());
+											*/
+									
+									ProfileMatch match = new ProfileMatch(profile, targetList, i, targetMatchCoords1List.get(tIndex), targetMatchCoords2List.get(tIndex), targetMatchIndexesList.get(tIndex),  
+											targetStrList.get(tIndex), toksStr, grid.getSequence());
+									
+									matchList.add(match);
+									matchCount++;
+									
+									if (verbose) {
+										System.out.println("MATCHED!: " + annotType + ", " + profileStr + ", " + gson.toJson(matchCoords1) + ", " + gson.toJson(matchCoords2) + ", " + targetMatchIndexes[0] + ":" + targetMatchIndexes[1]);
+										//System.out.println("Target: " + targetStr);
 										
 										for (int k=0; k<targetList.size(); k++) {
-											MSAProfile target = targetList.get(k);
-											String targetStr2 = targetStrList.get(k);
-											pw.println("targetProfile: " + target.getProfileStr());
-											pw.println("Target: " + targetStr2);
+											target = targetList.get(k);
+											String targetStr2 = targetStrList.get(tIndex);
+											System.out.println("targetProfile: " + target.getProfileStr());
+											System.out.println("Target: " + targetStr2);
+										}
+										
+										if (pw != null) {
+											pw.println("MATCHED!: " + annotType + ", " + profileStr + ", " + gson.toJson(matchCoords1) + ", " + gson.toJson(matchCoords2) + ", " + targetMatchIndexes[0] + ":" + targetMatchIndexes[1]);
+											//pw.println("Target: " + targetStr);
+											
+											for (int k=0; k<targetList.size(); k++) {
+												target = targetList.get(k);
+												String targetStr2 = targetStrList.get(tIndex);
+												pw.println("targetProfile: " + target.getProfileStr());
+												pw.println("Target: " + targetStr2);
+											}
 										}
 									}
 								}
@@ -608,7 +643,7 @@ public class ProfileMatcher
 		ProfileGrid profile2 = null;
 		
 		if (i >= 0 && i < profileGrid.size()) {
-			profile2 = new ProfileGrid(profile.getGrid().clone(), profile.getTargetGridList());
+			profile2 = new ProfileGrid(profile.getGrid().clone(), profile.getTargetGridMap());
 			profile2.getGrid().get(i).get(0).setTok(":token|orth|upperinitial");
 			profile2.getGrid().getSequence().getToks().set(i, ":token|orth|upperinitial");
 		}

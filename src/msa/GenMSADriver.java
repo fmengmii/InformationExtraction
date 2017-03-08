@@ -1,7 +1,7 @@
 package msa;
 
 import java.io.FileReader;
-import java.sql.Connection;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,7 +13,7 @@ import com.google.gson.Gson;
 //import align.AnnotationGridElement;
 import align.AnnotationSequenceGrid;
 import align.GenAnnotationGrid;
-//import msa.db.CassandraDBInterface;
+
 import msa.db.MSADBInterface;
 import msa.db.MySQLDBInterface;
 import nlputils.sequence.SequenceUtilities;
@@ -57,6 +57,7 @@ public class GenMSADriver
 	private int syntax;
 	private int phrase;
 	private int msaMinRows;
+	private int targetMinRows;
 
 	private String host;
 	private String dbType;
@@ -64,9 +65,13 @@ public class GenMSADriver
 	private String msaKeyspace;
 	private String profileTable;
 	
+	private List<DocBean> totalDocList;
+	
 	private Gson gson;
 	
 	private Connection docDBConn;
+	
+	private boolean incrementalFlag = false;
 	
 	
 	public GenMSADriver()
@@ -89,6 +94,16 @@ public class GenMSADriver
 	public void setTargetType(String targetType)
 	{
 		this.targetType = targetType;
+	}
+	
+	public List<DocBean> getDocList()
+	{
+		return totalDocList;
+	}
+	
+	public void setRequireTarget(boolean requireTarget)
+	{
+		this.requireTarget = requireTarget;
 	}
 	
 	public void init(String config)
@@ -142,6 +157,7 @@ public class GenMSADriver
 			msaAnnotFilterStr = props.getProperty("msaAnnotFilterList");
 
 			msaMinRows = Integer.parseInt(props.getProperty("msaMinRows"));
+			targetMinRows = Integer.parseInt(props.getProperty("targetMinRows"));
 			
 			limit = -1;
 			String limitStr = props.getProperty("limit");
@@ -161,6 +177,8 @@ public class GenMSADriver
 			
 				
 			msaBlockSize = Integer.parseInt(props.getProperty("msaBlockSize"));
+			
+			incrementalFlag = Boolean.parseBoolean(props.getProperty("incrementalFlag"));
 			
 			
 			
@@ -205,15 +223,25 @@ public class GenMSADriver
 			annotTypeNameList.add(":" + targetType.toLowerCase());
 			scoreList.add(10.0);
 			
-			if (docDBQuery != null) {				
+			if (docDBQuery != null) {			
 				docDBConn = DBConnection.dbConnection(docUser, docPassword, docDBHost, docDBName, docDBType);	
 				//docIDList = getDocIDList(docDBQuery);
-				docIDList = MSAUtils.getDocIDList(docDBConn, docDBQuery);
+				//docIDList = MSAUtils.getDocIDList(docDBConn, docDBQuery);
+				
+				PreparedStatement pstmtGetDocIDs = docDBConn.prepareStatement(docDBQuery);
+				//pstmtGetDocIDs.setString(1, targetType);
+				
+				docIDList = new ArrayList<Long>();
+				ResultSet rs = pstmtGetDocIDs.executeQuery();
+				while (rs.next()) {
+					docIDList.add(rs.getLong(1));
+				}
+				
 				docDBConn.close();
 			}
 			
 			db.init(user, password, host, keyspace, msaKeyspace);
-
+			
 			//generate the sentences
 			genSent.setRequireTarget(requireTarget);
 			genSent.setPunct(punct);
@@ -241,14 +269,40 @@ public class GenMSADriver
 			int currStartIndex = 0;
 			
 			System.out.println("msaBlockSize: " + msaBlockSize + " numBlocks: " + numBlocks + " seqList size: " + seqList.size());
+
 			
+			totalDocList = new ArrayList<DocBean>();
+			List<DocBean> docList = new ArrayList<DocBean>();
+
 			for (int blockNum=0; blockNum<numBlocks; blockNum++) {
 				System.out.println("blockNum: " + blockNum);
 				System.out.println("currStartIndex: " + currStartIndex);
+
+				//remove the last docID because it may not have been fully used
+				if (docList.size() > 0)
+					docList.remove(docList.size()-1);
+				
+				if (blockNum > 0) {
+					totalDocList.addAll(docList);
+				}
+				
+				docList = new ArrayList<DocBean>();
+				
+
+				
 				
 				List<AnnotationSequence> seqList2 = new ArrayList<AnnotationSequence>();
+				Map<Long, Boolean> docIDMap = new HashMap<Long, Boolean>();
 				for (int i=currStartIndex; i<seqList.size(); i++) {
 					seqList2.add(seqList.get(i));
+					long docID = seqList.get(i).getDocID();
+					Boolean flag = docIDMap.get(docID);
+					if (flag == null) {
+						docIDMap.put(docID,  true);
+						DocBean docBean = new DocBean();
+						docBean.setDocID(seqList.get(i).getDocID());
+						docList.add(docBean);
+					}
 					
 					if (seqList2.size() >= msaBlockSize)
 						break;
@@ -284,7 +338,7 @@ public class GenMSADriver
 				genMSA.setScoreList(scoreList);
 				genMSA.setSyntax(syntax);
 				genMSA.setPhrase(phrase);
-				//genMSA.setGridList(null);
+				genMSA.setGridList(null);
 				
 							
 				List<MultipleSequenceAlignment> msaList = genMSA.genMSA();
@@ -331,15 +385,21 @@ public class GenMSADriver
 	
 					
 					System.out.println("profile: " + SequenceUtilities.getStrFromToks(profileToks));
+					
+					/*
 					if (msa.getTotalRows() < msaMinRows) {
 						System.out.println("Filtered! rows: " + msa.getTotalRows());
 						continue;
 					}
+					*/
 					
 					AnnotationSequenceGrid profileGrid = genGrid.toAnnotSeqGrid(profileToks, false);
 					
 					if (requireTarget) {
 						int targetTokIndex = profileToks.indexOf(":target");
+						if (targetTokIndex == -1)
+							System.out.println("here");
+						
 						int[] targetCoords = new int[2];
 						targetCoords[0] = targetTokIndex;
 						targetCoords[1] = profileGrid.get(targetTokIndex).size()-1;
@@ -374,6 +434,7 @@ public class GenMSADriver
 					genMSA.setRequireTarget(false);
 					genMSA.setMatchSize(true);
 					genMSA.setGridList(targetGridList);
+					genMSA.setMsaMinRows(targetMinRows);
 					List<MultipleSequenceAlignment> targetMSAList = genMSA.genMSA();
 					
 					//get grids from target MSAs
@@ -412,6 +473,10 @@ public class GenMSADriver
 					}
 				}
 				
+				//Add empty profile in case a target is self-sufficient and doesn't need outside context
+				List<String> toks = new ArrayList<String>();
+				MSAProfile emptyProfile = new MSAProfile("[\":start|start\",\":target\",\":end|end\"]", targetType, group, 0, toks, 0.0, 1);
+				profileList.add(emptyProfile);
 				
 				//write profiles
 				if (write) {
@@ -431,7 +496,6 @@ public class GenMSADriver
 			}
 			
 			genMSA.close();
-			db.close();
 		}
 		catch(Exception e)
 		{

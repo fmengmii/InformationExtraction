@@ -48,8 +48,8 @@ public class AutoAnnotate
 	private List<Map<String, Object>> contextAnnotFilterList;
 	private List<Double> scoreList;
 	private int limit;
-	private boolean requireTarget = false;
-	
+	private Boolean requireTarget;
+		
 	private MSADBInterface db;
 	private Connection docDBConn;
 	private Connection conn;
@@ -59,6 +59,7 @@ public class AutoAnnotate
 	private PreparedStatement pstmt3;
 	private PreparedStatement pstmtWrite;
 	private PreparedStatement pstmtCheck;
+	private PreparedStatement pstmtDeleteFrameData;
 	private PreparedStatement pstmtDeleteAnnots;
 	
 	private int maxGaps = 1;
@@ -83,6 +84,7 @@ public class AutoAnnotate
 	private String autoProvenance;
 	private String negTargetType;
 	private String negTargetProvenance;
+	private Map<String, Boolean> requireTargetMap;
 	
 	private boolean contextFlag = false;
 	private PrintWriter pw;
@@ -94,7 +96,7 @@ public class AutoAnnotate
 	private SmithWatermanDim sw;
 	private List<ProfileMatch> noMatchList;
 	
-	private Map<Long, MSAProfile> profileIDMap;
+	//private Map<Long, MSAProfile> profileIDMap;
 	private int profileMinTotal;
 	private double profileMinPrec;
 	private double minMatchPrec;
@@ -233,6 +235,11 @@ public class AutoAnnotate
 				finalTableList.add(finalTable);
 			}
 			
+			if (requireTarget != null) {
+				requireTargetMap = new HashMap<String, Boolean>();
+				requireTargetMap.put(targetType, requireTarget);
+			}
+			
 			profileMinTotal = Integer.parseInt(props.getProperty("profileMinTotal"));
 			profileMinPrec = Double.parseDouble(props.getProperty("profileMinPrec"));
 			
@@ -262,6 +269,7 @@ public class AutoAnnotate
 			
 			
 			//add annotation type tags from previous runs
+			/*
 			Map<String, Object> targetMap = new HashMap<String, Object>();
 			targetMap.put("annotType", targetType);
 			targetMap.put("provenance", "conll2003-final");
@@ -270,7 +278,7 @@ public class AutoAnnotate
 			featureList.add("$literal");
 			targetMap.put("features", featureList);
 			msaAnnotFilterList.add(targetMap);
-			
+			*/
 			
 			
 			docDBQuery = props.getProperty("docDBQuery");
@@ -329,19 +337,32 @@ public class AutoAnnotate
 			
 			pstmtCheck = conn2.prepareStatement("select count(*) from " + autoMatchTable + " where document_id = ? and start = ? and end = ? and run_name = '" + runName + "'");
 			
-			pstmtDeleteAnnots = conn.prepareStatement("delete from annotation where provenance = '" + autoProvenance + "'");
+			pstmtDeleteFrameData = conn.prepareStatement("delete from frame_instance_data where document_id = ? and annotation_id in (select a.id from annotation a where a.document_id = ? and a.annotation_type = ?)");
+			pstmtDeleteAnnots = conn.prepareStatement("delete from annotation where annotation_type = ? and document_id = ? and provenance = '" + autoProvenance + "'");
 			
 			
 			
 
 			
 			
-			//check for docID list info			
+			//check for docID list info		
+			/*
 			if (docDBQuery != null) {				
 				docDBConn = DBConnection.dbConnection(docUser, docPassword, docDBHost, docNamespace, docDBType);	
 				docIDList = MSAUtils.getDocIDList(docDBConn, docDBQuery);
 				docDBConn.close();
 			}
+			*/
+			
+			Statement stmt = conn.createStatement();
+			/*
+			ResultSet rs = stmt.executeQuery("select max(document_id) from " + docNamespace + "." + docTable);
+			long maxDocID = -1;
+			if (rs.next()) {
+				maxDocID = rs.getLong(1);
+			}
+			*/
+			
 			
 			for (int index=0; index<annotTypeList.size(); index++) {
 				targetType = annotTypeList.get(index);
@@ -350,8 +371,14 @@ public class AutoAnnotate
 				
 				if (targetType.length() == 0 || profileTable.length() == 0 || finalTable.length() == 0)
 					continue;
+
 				
-				
+				docIDList = new ArrayList<Long>();
+				//ResultSet rs = stmt.executeQuery("select distinct document_id from document_status where status = 0 order by document_id");
+				ResultSet rs = stmt.executeQuery(docDBQuery);
+				while (rs.next()) {
+					docIDList.add(rs.getLong(1));
+				}
 			
 				ansMap = new TreeMap<String, String>();
 				negAnsMap = new TreeMap<String, String>();
@@ -447,12 +474,14 @@ public class AutoAnnotate
 				System.out.println("reading profiles...");
 				ProfileReader reader = new ProfileReader();
 				reader.setOrder(Order.DSC);
-				reader.setMinScore(1.0);
+				reader.setMinScore(0.0);
 				reader.init(msaUser, msaPassword, host, dbType, msaKeyspace);
 	
 				List<ProfileGrid> profileGridList = new ArrayList<ProfileGrid>();
 				Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap = new HashMap<AnnotationSequenceGrid, MSAProfile>();
 				Map<AnnotationSequenceGrid, MSAProfile> msaTargetProfileMap = new HashMap<AnnotationSequenceGrid, MSAProfile>();
+				Map<Long, ProfileGrid> profileIDMap = new HashMap<Long, ProfileGrid>();
+				Map<Long, AnnotationSequenceGrid> targetIDMap = new HashMap<Long, AnnotationSequenceGrid>();
 				
 				Map<MSAProfile, List<MSAProfile>> profileMap = reader.readFinal(targetType, profileMinTotal, profileMinPrec, finalTable, profileTable);
 				
@@ -460,19 +489,22 @@ public class AutoAnnotate
 					AnnotationSequenceGrid profileSeqGrid = genGrid.toAnnotSeqGrid(profile.getToks(), false);
 					msaProfileMap.put(profileSeqGrid, profile);
 					
-					List<AnnotationSequenceGrid> targetSeqGridList = new ArrayList<AnnotationSequenceGrid>();
+					Map<AnnotationSequenceGrid, Boolean> targetSeqGridMap = new HashMap<AnnotationSequenceGrid, Boolean>();
 					List<MSAProfile> targetList = profileMap.get(profile);
 					for (MSAProfile target : targetList) {
 						AnnotationSequenceGrid targetGrid = genGrid.toAnnotSeqGrid(target.getToks(), false);
 						
 						MSAProfile target2 = msaTargetProfileMap.get(targetGrid);
-						if (target2 == null)
+						if (target2 == null) {
 							msaTargetProfileMap.put(targetGrid, target);
+							targetIDMap.put(target.getProfileID(), targetGrid);
+						}
 						
-						targetSeqGridList.add(targetGrid);
+						targetSeqGridMap.put(targetGrid, true);
 					}
 					
-					ProfileGrid  profileGrid = new ProfileGrid(profileSeqGrid, targetSeqGridList);
+					ProfileGrid  profileGrid = new ProfileGrid(profileSeqGrid, targetSeqGridMap);
+					profileIDMap.put(profile.getProfileID(), profileGrid);
 					
 					boolean inserted = false;
 					for (int i=0; i<profileGridList.size(); i++) {
@@ -489,6 +521,9 @@ public class AutoAnnotate
 				}
 				
 				
+				Map<AnnotationSequenceGrid, Boolean> targetGridMap = new HashMap<AnnotationSequenceGrid, Boolean>();
+				List<AnnotationSequenceGrid> targetGridList = new ArrayList<AnnotationSequenceGrid>();
+
 				System.out.println("\n\nProfiles: " + profileGridList.size());
 				pw.println("\n\nProfiles: " + profileGridList.size());
 				for (ProfileGrid profileGrid : profileGridList) {
@@ -499,11 +534,17 @@ public class AutoAnnotate
 					
 					System.out.println("Targets: ");
 					pw.println("Targets:");
-					List<AnnotationSequenceGrid> targetSeqGridList = profileGrid.getTargetGridList();
-					for (AnnotationSequenceGrid targetSeqGrid : targetSeqGridList) {
+					Map<AnnotationSequenceGrid, Boolean> targetSeqGridMap = profileGrid.getTargetGridMap();
+					for (AnnotationSequenceGrid targetSeqGrid : targetSeqGridMap.keySet()) {
 						profileStr = gson.toJson(targetSeqGrid.getSequence().getToks());
 						System.out.println(profileStr);
 						pw.println(profileStr);
+						
+						Boolean flag = targetGridMap.get(targetSeqGrid);
+						if (flag == null) {
+							targetGridMap.put(targetSeqGrid, true);
+							targetGridList.add(targetSeqGrid);
+						}
 					}
 					
 					System.out.println("\n\n");
@@ -514,8 +555,13 @@ public class AutoAnnotate
 	
 				//match grids
 				matchMap = new HashMap<String, Boolean>();
+				
+				ProfileInvertedIndex invertedIndex = new ProfileInvertedIndex();
+				invertedIndex.setTargetFlag(true);
+				invertedIndex.genIndex(profileGridList, targetGridList, profileIDMap, targetIDMap);
 	
-				List<ProfileMatch> matchList = profileMatcher.matchProfile(negGridList, profileGridList, targetType, true, maxGaps, syntax, phrase, false, msaProfileMap, msaTargetProfileMap);
+				List<ProfileMatch> matchList = profileMatcher.matchProfile(negGridList, profileGridList, null, targetType, true, maxGaps, syntax, phrase, false, msaProfileMap, msaTargetProfileMap, invertedIndex);
+				
 				noMatchList = profileMatcher.getNoMatchList();
 				
 				
@@ -580,6 +626,9 @@ public class AutoAnnotate
 				
 				
 				reader.close();
+				
+				if (writeAnnots)
+					writeAnnotations(targetType);
 			}
 		}
 		catch(Exception e)
@@ -772,16 +821,29 @@ public class AutoAnnotate
 			pw.println("prec: " + prec + ", recall: " + recall + ", total: " + total);
 		}
 		
+		/*
 		if (writeAnnots) {
 			writeAnnotations();
 		}
+		*/
 		
 	}
 	
-	public void writeAnnotations()
+	public void writeAnnotations(String annotType)
 	{
 		try {
-			pstmtDeleteAnnots.execute();
+			if (finalAnnotList.size() > 0) {
+				pstmtDeleteAnnots.setString(1, annotType);
+				for (long docID : docIDList) {
+					pstmtDeleteFrameData.setLong(1, docID);
+					pstmtDeleteFrameData.setLong(2, docID);
+					pstmtDeleteFrameData.setString(3, annotType);
+					pstmtDeleteFrameData.execute();
+					
+					pstmtDeleteAnnots.setLong(2, docID);
+					pstmtDeleteAnnots.execute();
+				}
+			}
 			
 			for (Annotation annot : finalAnnotList) {
 					

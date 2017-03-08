@@ -16,6 +16,7 @@ public class IEDriver
 	private FilterPatterns filterPatt;
 	private BestPatterns bestPatt;
 	private AutoAnnotate autoAnnot;
+	private PopulateFrame pop;
 	
 	private Gson gson;
 	
@@ -46,6 +47,12 @@ public class IEDriver
 	
 	private String newDocQuery;
 	private String annotTypeQuery;
+
+	private String profileTableName;
+	private String indexTableName;
+	private String finalTableName;
+
+
 	
 
 	
@@ -72,10 +79,11 @@ public class IEDriver
 	private int phrase;
 	private int maxGaps;
 	private boolean requireTarget;
-	private String targetType;
+	//private String targetType;
 	private String targetProvenance;
 	private String tokType;
 	private int msaMinRows;
+	private int targetMinRows;
 	private int limit;
 	private int msaBlockSize;
 	
@@ -83,15 +91,19 @@ public class IEDriver
 	
 	//Filter
 	private String filterDocQuery;
-	private String indexTableName;
-	private double filterThreshold;
-	private int filterMinCount;
+	private double negFilterThreshold;
+	private int negFilterMinCount;
+	private double posFilterThreshold;
+	private int posFilterMinCount;
 	private int blockSize;
+	private int clusterSize;
 	
 	
 	//Best
-	private double bestThreshold;
-	private int bestMinCount;
+	private double negThreshold;
+	private int negMinCount;
+	private double posThreshold;
+	private int posMinCount;
 	
 	
 	//AutoAnnot
@@ -114,6 +126,8 @@ public class IEDriver
 	private boolean filterFlag;
 	private boolean bestFlag;
 	private boolean autoFlag;
+	private boolean populateFlag;
+	private boolean incrementalFlag;
 	
 	
 	private Statement stmt;
@@ -122,7 +136,22 @@ public class IEDriver
 	private PreparedStatement pstmtGetNewDocs;
 	private PreparedStatement pstmtGetDocsWithStatus;
 	private PreparedStatement pstmtUpdateDocsWithStatus;
+	private PreparedStatement pstmtUpdateDocsWithStatusDocID;
 	private PreparedStatement pstmtTableLookup;
+	private PreparedStatement pstmtCheckAutoStatus;
+	private PreparedStatement pstmtInsertAutoStatus;
+	private PreparedStatement pstmtUpdateAutoStatus;
+	private PreparedStatement pstmtGetMinAutoDocID;
+	private PreparedStatement pstmtGetMaxAutoDocID;
+	private PreparedStatement pstmtGetMaxAutoProfileID;
+	private PreparedStatement pstmtGetAnnotCount;
+	private PreparedStatement pstmtInsertGenMSAStatus;
+	private PreparedStatement pstmtUpdateGenMSAStatus;
+	private PreparedStatement pstmtGetGenMSAStatus;
+	private PreparedStatement pstmtGetGenFilterStatus;
+	private PreparedStatement pstmtInsertGenFilterStatus;
+	private PreparedStatement pstmtUpdateGenFilterStatus;
+	
 
 	
 	private long sleep;
@@ -135,6 +164,7 @@ public class IEDriver
 		filterPatt = new FilterPatterns();
 		bestPatt = new BestPatterns();
 		autoAnnot = new AutoAnnotate();
+		pop = new PopulateFrame();
 		
 		gson = new Gson();
 	}
@@ -177,6 +207,8 @@ public class IEDriver
 			newDocQuery = props.getProperty("newDocQuery");
 			annotTypeQuery = props.getProperty("annotTypeQuery");
 			
+			incrementalFlag = Boolean.parseBoolean(props.getProperty("incrementalFlag"));
+			
 			
 			//get Gate properties
 			//gateDocQuery = props.getProperty("gateDocQuery");
@@ -205,7 +237,7 @@ public class IEDriver
 			syntax = Integer.parseInt(props.getProperty("syntax"));
 			phrase = Integer.parseInt(props.getProperty("phrase"));
 			requireTarget = Boolean.parseBoolean(props.getProperty("requireTarget"));
-			targetType = props.getProperty("targetType");
+			//targetType = props.getProperty("targetType");
 			targetProvenance = props.getProperty("targetProvenance");
 			tokType = props.getProperty("tokType");
 			
@@ -216,25 +248,33 @@ public class IEDriver
 			scoreList = gson.fromJson(props.getProperty("scoreList"), scoreList.getClass());
 
 			msaMinRows = Integer.parseInt(props.getProperty("msaMinRows"));
+			targetMinRows = Integer.parseInt(props.getProperty("targetMinRows"));
 			limit = Integer.parseInt(props.getProperty("limit"));
 			msaBlockSize = Integer.parseInt(props.getProperty("msaBlockSize"));
 			
 			filterDocQuery = props.getProperty("filterDocQuery");
+			profileTableName = props.getProperty("profileTableName");
 			indexTableName = props.getProperty("indexTableName");
+			finalTableName = props.getProperty("finalTableName");
 			
 			
 			
 			
 			//get FilterPatterns properties
 			blockSize = Integer.parseInt(props.getProperty("blockSize"));
-			filterThreshold = Double.parseDouble(props.getProperty("filterThreshold"));
-			filterMinCount = Integer.parseInt(props.getProperty("filterMinCount"));
+			negFilterThreshold = Double.parseDouble(props.getProperty("negFilterThreshold"));
+			negFilterMinCount = Integer.parseInt(props.getProperty("negFilterMinCount"));
+			posFilterThreshold = Double.parseDouble(props.getProperty("posFilterThreshold"));
+			posFilterMinCount = Integer.parseInt(props.getProperty("posFilterMinCount"));
+			clusterSize = Integer.parseInt(props.getProperty("clusterSize"));
 			
 			
 			
 			//get BestPatterns properties
-			bestThreshold = Double.parseDouble(props.getProperty("bestThreshold"));
-			bestMinCount = Integer.parseInt(props.getProperty("bestMinCount"));
+			negThreshold = Double.parseDouble(props.getProperty("negThreshold"));
+			negMinCount = Integer.parseInt(props.getProperty("negMinCount"));
+			posThreshold = Double.parseDouble(props.getProperty("posThreshold"));
+			posMinCount = Integer.parseInt(props.getProperty("posMinCount"));
 			
 			
 			//get AutoAnnot properties
@@ -250,6 +290,9 @@ public class IEDriver
 			evalFlag = Boolean.parseBoolean(props.getProperty("evalFlag"));
 			autoProvenance = props.getProperty("autoProvenance");
 			
+			//get Populate properties
+			populateFlag = Boolean.parseBoolean(props.getProperty("populateFlag"));
+			
 			
 			
 			
@@ -261,7 +304,23 @@ public class IEDriver
 			pstmtGetNewDocs = conn.prepareStatement("select document_namespace, document_table, document_id from frame_instance_document where frame_instance_id = ?");
 			pstmtGetDocsWithStatus = conn.prepareStatement("select document_namespace, document_table, document_id from document_status where status = ?");
 			pstmtUpdateDocsWithStatus = conn.prepareStatement("update document_status set status = ? where status = ?");
+			pstmtUpdateDocsWithStatusDocID = conn.prepareStatement("update document_status set status = ? where status = ? and document_id = ?");
+			pstmtUpdateGenFilterStatus = conn.prepareStatement("update gen_filter_status set document_id = ? where annotation_type = ?");
 			pstmtTableLookup = conn.prepareStatement("select table_name from tablename_lookup where table_type = ? and annotation_type = ?");
+			pstmtInsertAutoStatus = conn.prepareStatement("insert into auto_status (annotation_type, profile_id, document_id) values (?,0,0)");
+			pstmtGetMinAutoDocID = conn.prepareStatement("select document_id from filter_status where annotation_type = ?");
+			pstmtGetMaxAutoDocID = conn.prepareStatement("select max(document_id) from document_status where status = 0");
+			pstmtCheckAutoStatus = conn.prepareStatement("select profile_id, document_id from auto_status where annotation_type = ?");
+			pstmtUpdateAutoStatus = conn.prepareStatement("update auto_status set document_id = ?, profile_id = ? where annotation_type = ?");
+			pstmtGetMaxAutoProfileID = conn.prepareStatement("select max(profile_id) from profile where annotation_type = ? and profile_type = ?");
+			pstmtGetAnnotCount = conn.prepareStatement("select count(*) from annotation a, document_status b where a.annotation_type = ? and b.status = 1 and "
+				+ "a.document_namespace = b.document_namespace and a.document_table = b.document_table and a.document_id = b.document_id");
+			pstmtInsertGenMSAStatus = conn.prepareStatement("insert into gen_msa_status (annotation_type, profile_count) values (?,?)");
+			pstmtUpdateGenMSAStatus = conn.prepareStatement("update gen_msa_status set profile_count = ? where annotation_type = ?");
+			pstmtGetGenMSAStatus = conn.prepareStatement("select profile_count from gen_msa_status where annotation_type = ?");
+			pstmtGetGenFilterStatus = conn.prepareStatement("select document_id from gen_filter_status");
+			pstmtInsertGenFilterStatus = conn.prepareStatement("insert into gen_filter_status (document_id) values (?)");
+			pstmtUpdateGenFilterStatus = conn.prepareStatement("update gen_filter_status set document_id = ?");
 			
 		}
 		catch(Exception e)
@@ -282,6 +341,10 @@ public class IEDriver
 			pstmtTableLookup.close();
 			
 			conn.close();
+			
+			genMSADriver.close();
+			filterPatt.close();
+			//pop.close();
 		}
 		catch(Exception e)
 		{
@@ -356,6 +419,7 @@ public class IEDriver
 			msaProps.setProperty("scoreList", gson.toJson(scoreList));
 
 			msaProps.setProperty("msaMinRows", Integer.toString(msaMinRows));
+			msaProps.setProperty("targetMinRows", Integer.toString(targetMinRows));
 			msaProps.setProperty("msaBlockSize", Integer.toString(msaBlockSize));
 			msaProps.setProperty("limit", Integer.toString(limit));
 			msaProps.setProperty("write", Boolean.toString(write));
@@ -391,9 +455,11 @@ public class IEDriver
 			pattProps.setProperty("syntax", Integer.toString(syntax));
 			pattProps.setProperty("phrase", Integer.toString(phrase));
 			pattProps.setProperty("requireTarget", Boolean.toString(requireTarget));
-			pattProps.setProperty("targetType", targetType);
+			//pattProps.setProperty("targetType", targetType);
 			pattProps.setProperty("targetProvenance", targetProvenance);
 			pattProps.setProperty("tokType", tokType);
+			
+			pattProps.setProperty("clusterSize", Integer.toString(clusterSize));
 
 			pattProps.setProperty("limit", Integer.toString(limit));
 			
@@ -403,13 +469,36 @@ public class IEDriver
 			pattProps.setProperty("msaAnnotFilterList", gson.toJson(msaAnnotFilterList));
 			pattProps.setProperty("scoreList", gson.toJson(scoreList));
 			
-			pattProps.setProperty("filterThreshold", Double.toString(filterThreshold));
-			pattProps.setProperty("filterMinCount", Integer.toString(filterMinCount));
+			pattProps.setProperty("negFilterThreshold", Double.toString(negFilterThreshold));
+			pattProps.setProperty("negFilterMinCount", Integer.toString(negFilterMinCount));
+			pattProps.setProperty("posFilterThreshold", Double.toString(posFilterThreshold));
+			pattProps.setProperty("posFilterMinCount", Integer.toString(posFilterMinCount));
 			
 			pattProps.setProperty("blockSize", Integer.toString(blockSize));
 			pattProps.setProperty("write", Boolean.toString(write));
 			
 			filterPatt.init(pattProps);
+			
+			
+			//best patts props
+			Properties bestProps = new Properties();
+			
+			bestProps.setProperty("host", host);
+			bestProps.setProperty("keyspace", keyspace);
+			bestProps.setProperty("annotKeyspace", keyspace);
+			bestProps.setProperty("msaKeyspace", msaKeyspace);
+			bestProps.setProperty("dbType", dbType);
+			//bestProps.setProperty("annotType", annotType);
+			//bestProps.setProperty("finalTable", finalTable);
+			//bestProps.setProperty("indexTable", indexTableName);
+			//bestProps.setProperty("profileTable", profileTableName);
+			bestProps.setProperty("provenance", targetProvenance);
+			bestProps.setProperty("negThreshold", Double.toString(negThreshold));
+			bestProps.setProperty("negMinCount", Integer.toString(negMinCount));
+			bestProps.setProperty("posThreshold", Double.toString(posThreshold));
+			bestProps.setProperty("posMinCount", Integer.toString(posMinCount));
+			
+			bestPatt.init(bestProps);
 			
 			
 			//Auto annot
@@ -431,7 +520,7 @@ public class IEDriver
 			autoProps.setProperty("syntax", Integer.toString(syntax));
 			autoProps.setProperty("phrase", Integer.toString(phrase));
 			autoProps.setProperty("requireTarget", Boolean.toString(requireTarget));
-			autoProps.setProperty("targetType", targetType);
+			//autoProps.setProperty("targetType", targetType);
 			autoProps.setProperty("targetProvenance", targetProvenance);
 			autoProps.setProperty("tokType", tokType);
 
@@ -440,11 +529,11 @@ public class IEDriver
 			autoProps.setProperty("runName", runName);
 			autoProps.setProperty("autoMatchTable", autoMatchTable);
 						
-			autoProps.setProperty("annotFilterList", gson.toJson(msaAnnotFilterList));
+			autoProps.setProperty("msaAnnotFilterList", gson.toJson(msaAnnotFilterList));
 			autoProps.setProperty("scoreList", gson.toJson(scoreList));
 			
-			autoProps.setProperty("filterThreshold", Double.toString(filterThreshold));
-			autoProps.setProperty("filterMinCount", Integer.toString(filterMinCount));
+			//autoProps.setProperty("filterThreshold", Double.toString(filterThreshold));
+			//autoProps.setProperty("filterMinCount", Integer.toString(filterMinCount));
 			
 			autoProps.setProperty("blockSize", Integer.toString(blockSize));
 			autoProps.setProperty("write", Boolean.toString(writeAuto));
@@ -460,6 +549,7 @@ public class IEDriver
 			autoAnnot.init(autoProps);
 
 			
+			pop.init(conn);
 			
 			
 
@@ -471,6 +561,7 @@ public class IEDriver
 			List<String> profileTableList = new ArrayList<String>();
 			List<String> indexTableList = new ArrayList<String>();
 			List<String> finalTableList = new ArrayList<String>();
+			Map<String, Boolean> requireTargetMap = new HashMap<String, Boolean>();
 			
 			ResultSet rs = stmt.executeQuery(annotTypeQuery);
 			while (rs.next()) {
@@ -485,7 +576,9 @@ public class IEDriver
 				if (rs2.next()) {
 					profileTable = rs2.getString(1);
 				}
-				profileTableList.add(profileTable);
+				//profileTableList.add(profileTable);
+				profileTableList.add(profileTableName);
+				
 				
 				pstmtTableLookup.setString(1, "index");
 				rs2 = pstmtTableLookup.executeQuery();
@@ -493,7 +586,8 @@ public class IEDriver
 				if (rs2.next()) {
 					indexTable = rs2.getString(1);
 				}
-				indexTableList.add(indexTable);
+				//indexTableList.add(indexTable);
+				indexTableList.add(indexTableName);
 
 				
 				pstmtTableLookup.setString(1, "final");
@@ -502,14 +596,31 @@ public class IEDriver
 				if (rs2.next()) {
 					finalTable = rs2.getString(1);
 				}
-				finalTableList.add(finalTable);
+				//finalTableList.add(finalTable);
+				finalTableList.add(finalTableName);
 			}
+			
+			/*
+			rs = stmt.executeQuery("select a.annotation_type, b.element_type from slot a, element b, value c, element_value d "
+					+ "where a.slot_id = c.slot_id and d.value_id = c.value_id and b.element_id = c.element_id");
+			while (rs.next()) {
+				String annotType = rs.getString(1);
+				int elementType = rs.getInt(2);
+				
+				boolean requireTarget = false;
+				if (elementType == 1)
+					requireTarget = true;
+				
+				requireTargetMap.put(annotType, requireTarget);
+			}
+			*/
 			
 			
 			while (flag) {
 				//get docs from frameinstances that have been imported but not insert into the frame_instance_status table
 						
 				if (gateFlag) {
+					System.out.println("** GATE **");
 					List<DocBean> docList = checkNewDocuments();
 					
 					//run GATE pipeline
@@ -520,57 +631,117 @@ public class IEDriver
 				}
 				
 				
+				List<String> activeAnnotTypeList = new ArrayList<String>();
+				List<DocBean> docList = new ArrayList<DocBean>();
+				long minDocID = -1;
+				
 				//gen MSAs
 				if (msaFlag) {
+					System.out.println("** Gen MSA **");
 					//run MSA generator
+					
+					
+					
 					for (int i=0; i<annotTypeList.size(); i++) {
+					//for (int i=0; i<2; i++) {
 						String annotType = annotTypeList.get(i);
 						String profileTable = profileTableList.get(i);
 						
-						genMSADriver.setTargetType(annotType);
-						genMSADriver.setProfileTable(profileTable);
-						genMSADriver.run(annotUser, annotPassword, docUser, docPassword);
-						updateDocsWithStatus(1, 2);
+						int annotCount = 0;
+						pstmtGetAnnotCount.setString(1, annotType);
+						rs = pstmtGetAnnotCount.executeQuery();
+						if (rs.next()) {
+							annotCount = rs.getInt(1);
+						}
+						
+
+						int currCount = -1;
+						pstmtGetGenMSAStatus.setString(1, annotType);
+						rs = pstmtGetGenMSAStatus.executeQuery();
+						if (rs.next()) {
+							currCount = rs.getInt(1);
+						}
+						
+						if (currCount == -1) {
+							pstmtInsertGenMSAStatus.setString(1, annotType);
+							pstmtInsertGenMSAStatus.setInt(2, 0);
+							pstmtInsertGenMSAStatus.execute();
+							currCount = 0;
+						}
+						
+						minDocID = -1;
+						rs = pstmtGetGenFilterStatus.executeQuery();
+						if (rs.next())
+							minDocID = rs.getLong(1);
+
+
+						if (annotCount > currCount) {
+							activeAnnotTypeList.add(annotType);
+							genMSADriver.setTargetType(annotType);
+							genMSADriver.setProfileTable(profileTable);
+							//genMSADriver.setRequireTarget(requireTargetMap.get(annotType));
+							genMSADriver.run(annotUser, annotPassword, docUser, docPassword);
+							
+							pstmtUpdateGenMSAStatus.setInt(1, annotCount);
+							pstmtUpdateGenMSAStatus.setString(2, annotType);
+							pstmtUpdateGenMSAStatus.execute();
+							
+							docList = genMSADriver.getDocList();
+						}
 					}
+					
+					//gen relation patterns
+					
 				}
 				
 				
 				//filter patterns
 				if (filterFlag) {
+					System.out.println("** FILTER **");
 					//run filter patterns
-					filterPatt.setAnnotTypeList(annotTypeList);
+					
+					//filterPatt.setMinDocIDList(minDocIDList);
+					filterPatt.setAnnotTypeList(activeAnnotTypeList);
 					filterPatt.setProfileTableList(profileTableList);
 					filterPatt.setIndexTableList(indexTableList);
 					filterPatt.filterPatterns(annotUser, annotPassword, docUser, docPassword, msaUser, msaPassword);
-					updateDocsWithStatus(2, 3);
+					//updateDocsWithStatus(2, 3);
 				}
 				
+				if (docList.size() > 0) {
+					updateDocsWithStatusDocID(1, 2, docList);
+				}
+
+				
 				//best patterns
-				if (bestFlag && filterPatt.getDocIDList().size() > 0) {
-					for (int i=0; i<annotTypeList.size(); i++) {
-						String annotType = annotTypeList.get(i);
-						String profileTable = profileTableList.get(i);
-						String indexTable = indexTableList.get(i);
-						String finalTable = finalTableList.get(i);
-						
-						if (targetType.length() == 0 || profileTable.length() == 0 || indexTable.length() == 0 || finalTable.length() == 0)
-							continue;
-						
-						bestPatt.getBestPatterns(msaUser, msaPassword, annotUser, annotPassword, host, keyspace, msaKeyspace, dbType, annotType, finalTable, 
-							indexTable, profileTable, targetProvenance, bestThreshold, bestMinCount);
-					}
+				if (bestFlag && filterPatt.getDocIDMap().size() > 0) {
+					System.out.println("** BEST **");
+					bestPatt.setAnnotTypeList(activeAnnotTypeList);
+					bestPatt.setProfileTableList(profileTableList);
+					bestPatt.setIndexTableList(indexTableList);
+					bestPatt.setFinalTableList(finalTableList);					
+					bestPatt.getBestPatterns(msaUser, msaPassword, annotUser, annotPassword);
 				}
 				
 				//auto annotate
 				if (autoFlag) {
-					autoAnnot.setAnnotTypeList(annotTypeList);
+					System.out.println("** AUTO **");
+					
+					autoAnnot.setAnnotTypeList(activeAnnotTypeList);
 					autoAnnot.setProfileTableList(profileTableList);
 					autoAnnot.setFinalTableList(finalTableList);
 					autoAnnot.annotate(msaUser, msaPassword, docUser, docPassword);
-					if (writeAuto)
-						autoAnnot.writeAnnotations();
+					
 					autoAnnot.close();
 				}
+				
+				
+				//populate
+				if (populateFlag) {
+					System.out.println("*** POPULATE ***");
+					pop.populate();
+				}
+				
 				
 				//sleep
 				if (sleep >= 0) {
@@ -609,7 +780,7 @@ public class IEDriver
 			ResultSet rs2 = pstmtGetNewDocs.executeQuery();
 
 			while (rs2.next()) {
-				if (docList.size() == 15)
+				if (docList.size() == 30)
 					break;
 
 				String docNamespace = rs2.getString(1);
@@ -657,10 +828,19 @@ public class IEDriver
 	
 	private void updateDocsWithStatus(int oldStatus, int newStatus) throws SQLException
 	{
-		List<DocBean> docList = new ArrayList<DocBean>();
 		pstmtUpdateDocsWithStatus.setInt(1, newStatus);
 		pstmtUpdateDocsWithStatus.setInt(2, oldStatus);
 		pstmtUpdateDocsWithStatus.execute();
+	}
+	
+	private void updateDocsWithStatusDocID(int oldStatus, int newStatus, List<DocBean> docList) throws SQLException
+	{
+		for (DocBean docBean : docList) {
+			pstmtUpdateDocsWithStatusDocID.setInt(1, newStatus);
+			pstmtUpdateDocsWithStatusDocID.setInt(2, oldStatus);
+			pstmtUpdateDocsWithStatusDocID.setLong(3, docBean.getDocID());
+			pstmtUpdateDocsWithStatusDocID.execute();
+		}
 	}
 	
 	public static void main(String[] args)

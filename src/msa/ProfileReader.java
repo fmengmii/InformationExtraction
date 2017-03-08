@@ -20,8 +20,10 @@ public class ProfileReader
 	private Order order = Order.NONE;
 	private double minScore = 0.0;
 	private double maxScore = 1.0;
+	private int minProfileID = -1;
 	
 	private Map<Long, MSAProfile> profileIDMap;
+	private Map<MSAProfile, Map<MSAProfile, Boolean>> targetFilterMap;
 	
 	public enum Order {NONE, ASC, DSC};
 	
@@ -52,6 +54,11 @@ public class ProfileReader
 		return profileIDMap;
 	}
 	
+	public void setMinProfileID(int minProfileID)
+	{
+		this.minProfileID = minProfileID;
+	}
+	
 	public void init(String user, String password, String host, String dbType, String keyspace) throws SQLException, ClassNotFoundException
 	{
 		this.dbType = dbType;
@@ -65,6 +72,8 @@ public class ProfileReader
 			rq = DBConnection.reservedQuote;
 			pstmtSQL = conn.prepareStatement(queryStr);
 		}
+		
+		profileIDMap = new HashMap<Long, MSAProfile>();
 	}
 	
 	public void close()
@@ -97,40 +106,9 @@ public class ProfileReader
 	public List<MSAProfile> read(String annotType, List<String> groupList, int start, int clusterSize, int profileType, String msaTable) throws SQLException, ClassNotFoundException
 	{
 		List<MSAProfile> profileList= new ArrayList<MSAProfile>();
-		profileIDMap = new HashMap<Long, MSAProfile>();
+		//profileIDMap = new HashMap<Long, MSAProfile>();
 
-		if (dbType.equals("cassandra")) {
-			/*
-			com.datastax.driver.core.ResultSet rs = session.execute(pstmtCass.bind(annotType, group, profileType));
-			Iterator<Row> iter = rs.iterator();
-			for (;iter.hasNext();) {
-				Row row = iter.next();
-				int msaID = row.getInt(0);
-				
-				String profileStr = row.getString(1);
-				int type = row.getInt(2);
-				double score = row.getDouble(3);
-				
-				
-				if (score >= minScore) {
-					List<String> toks = new ArrayList<String>();
-					toks = gson.fromJson(profileStr, toks.getClass());
-					MSAProfile profile = new MSAProfile(profileStr, annotType, group, type, toks, score);
-					
-					if (order == Order.NONE)
-						profileList.add(profile);
-					else
-						insertIntoProfileList(profileList, profile);
-				}
-			}
-			*/
-		}
-		else if (dbType.equals("mysql")) {
-			/*
-			pstmtSQL.setString(1, annotType);
-			pstmtSQL.setString(2, group);
-			pstmtSQL.setInt(3, profileType);
-			*/
+		if (dbType.equals("mysql")) {
 			
 			Statement stmt = conn.createStatement();
 			StringBuilder strBlder = new StringBuilder();
@@ -154,16 +132,6 @@ public class ProfileReader
 			while (rs.next()) {
 				long profileID = rs.getLong(1);
 				
-				
-				/*
-				String profileJSONStr = row.getString(1);
-				
-				Map<String, String> profileMap = new HashMap<String, String>();
-				profileMap = (Map<String, String>) gson.fromJson(profileJSONStr, profileMap.getClass());
-				String profileStr = profileMap.get("profile");
-				String contextStr = profileMap.get("context");
-				*/
-				
 				String profileStr = rs.getString(2);
 				int type = rs.getInt(3);	
 				double score = rs.getDouble(4);
@@ -177,8 +145,8 @@ public class ProfileReader
 				
 				//remove targets with multiple elements
 				//if (profileType == 1 && (profileStr.indexOf("\",\"") >= 0 || ((profileStr.startsWith("[\":token|string") || profileStr.startsWith("[\":token|root")) && profileStr.indexOf("token|string|.") < 0)))
-				if (profileType == 1 && (profileStr.indexOf("\",\"") >= 0 || profileStr.indexOf(":" + annotType.toLowerCase()) >= 0))
-					continue;
+				//if (profileType == 1 && (profileStr.indexOf("\",\"") >= 0 || profileStr.indexOf(":" + annotType.toLowerCase()) >= 0))
+				//	continue;
 				
 				
 				if (score >= minScore && score <= maxScore) {
@@ -227,8 +195,8 @@ public class ProfileReader
 			String targetStr = rs.getString(5);
 			
 			//remove targets with multiple elements
-			if (targetStr.indexOf("\",\"") >= 0)
-				continue;
+			//if (targetStr.indexOf("\",\"") >= 0)
+			//	continue;
 
 			
 			List<String> toks = new ArrayList<String>();
@@ -269,6 +237,19 @@ public class ProfileReader
 		stmt.close();
 		
 		return profileMap;
+	}
+	
+	public void readFilter() throws SQLException
+	{
+		Statement stmt = conn.createStatement();
+		ResultSet rs = stmt.executeQuery("select profile_id, target_id from filter");
+		while (rs.next()) {
+			long profileID = rs.getLong(1);
+			long targetID = rs.getLong(2);
+			
+		}
+		
+		stmt.close();
 	}
 	
 	private void insertIntoProfileList(List<MSAProfile> profileList, MSAProfile profile)
@@ -326,6 +307,31 @@ public class ProfileReader
 		stmt.close();
 		
 		return targetProfileMap;
+	}
+	
+	public Map<MSAProfile, Map<MSAProfile, Boolean>> readTargetFilters() throws SQLException
+	{
+		Map<MSAProfile, Map<MSAProfile, Boolean>> targetFilterMap = new HashMap<MSAProfile, Map<MSAProfile, Boolean>>();
+		Statement stmt = conn.createStatement();
+		ResultSet rs = stmt.executeQuery("select profile_id, target_id from filter");
+		while (rs.next()) {
+			long profileID = rs.getLong(1);
+			long targetID = rs.getLong(2);
+			MSAProfile profile = profileIDMap.get(profileID);
+			MSAProfile target = profileIDMap.get(targetID);
+			
+			Map<MSAProfile, Boolean> targetMap = targetFilterMap.get(profile);
+			if (targetMap == null) {
+				targetMap = new HashMap<MSAProfile, Boolean>();
+				targetFilterMap.put(profile, targetMap);
+			}
+			
+			targetMap.put(target, true);
+		}
+		
+		stmt.close();
+		
+		return targetFilterMap;
 	}
 	
 	public static void main(String[] args)

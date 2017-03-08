@@ -6,22 +6,23 @@ import align.AnnotationSequenceGrid;
 public class ProfileGrid
 {
 	private AnnotationSequenceGrid grid;
-	private List<AnnotationSequenceGrid> targetGridList;
+	private Map<AnnotationSequenceGrid, Boolean> targetGridMap;
 	
 	public ProfileGrid()
 	{
-		targetGridList = new ArrayList<AnnotationSequenceGrid>();
+		targetGridMap = new HashMap<AnnotationSequenceGrid, Boolean>();
 	}
 	
 	public ProfileGrid(AnnotationSequenceGrid grid)
 	{
+		this();
 		this.grid = grid;
 	}
 	
-	public ProfileGrid(AnnotationSequenceGrid grid, List<AnnotationSequenceGrid> targetGridList)
+	public ProfileGrid(AnnotationSequenceGrid grid, Map<AnnotationSequenceGrid, Boolean> targetGridMap)
 	{
 		this(grid);
-		this.targetGridList = targetGridList;
+		this.targetGridMap = targetGridMap;
 	}
 
 	public AnnotationSequenceGrid getGrid() {
@@ -32,16 +33,16 @@ public class ProfileGrid
 		this.grid = grid;
 	}
 
-	public List<AnnotationSequenceGrid> getTargetGridList() {
-		return targetGridList;
+	public Map<AnnotationSequenceGrid, Boolean> getTargetGridMap() {
+		return targetGridMap;
 	}
 
-	public void setTargetGridList(List<AnnotationSequenceGrid> targetGridList) {
-		this.targetGridList = targetGridList;
+	public void setTargetGridMap(Map<AnnotationSequenceGrid, Boolean> targetGridMap) {
+		this.targetGridMap = targetGridMap;
 	}
 	
 	public void addTarget(AnnotationSequenceGrid targetGrid)
 	{
-		targetGridList.add(targetGrid);
+		targetGridMap.put(targetGrid, true);
 	}
 }

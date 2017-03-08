@@ -48,7 +48,7 @@ public class FilterPatterns
 	private int limit;
 	private List<String> annotTypeNameList;
 	
-	private boolean requireTarget;
+	private Boolean requireTarget = true;
 	
 	private List<Map<String, Object>> msaAnnotFilterList;
 	private List<Double> scoreList;
@@ -71,14 +71,27 @@ public class FilterPatterns
 	private int clusterSize;
 	
 	private List<Long> docIDList;
+	private Map<String, List<Long>> docIDMap;
 	
+	private Connection conn;
 	private Connection docDBConn;
 	
 	private List<String> annotTypeList;
 	private List<String> profileTableList;
 	private List<String> indexTableList;
-	
+	private Map<String, Boolean> requireTargetMap;
 
+	
+	private Map<String, Object> targetMap;
+	private Map<String, Object> targetMap2;
+	
+	private PreparedStatement pstmtGetFilterStatus;
+	private PreparedStatement pstmtInsertFilterStatus;
+	private PreparedStatement pstmtUpdateFilterStatus;
+	
+	private long minDocID;
+	
+	
 	public FilterPatterns()
 	{
 		genSent = new GenSentences();
@@ -112,6 +125,11 @@ public class FilterPatterns
 		this.indexTableList = indexTableList;
 	}
 	
+	public void setMinDocID(long minDocID)
+	{
+		this.minDocID = minDocID;
+	}
+	
 	public void init(String config)
 	{
 		try {
@@ -129,7 +147,6 @@ public class FilterPatterns
 	{
 		try {
 			stats.close();
-			
 		}
 		catch(Exception e)
 		{
@@ -140,6 +157,11 @@ public class FilterPatterns
 	public List<Long> getDocIDList()
 	{
 		return docIDList;
+	}
+	
+	public Map<String, List<Long>> getDocIDMap()
+	{
+		return docIDMap;
 	}
 	
 	public void init(Properties props)
@@ -170,6 +192,7 @@ public class FilterPatterns
 			
 			profileTable = props.getProperty("profileTable");
 			indexTable = props.getProperty("indexTable");
+			requireTarget = Boolean.parseBoolean(props.getProperty("requireTarget"));
 
 			
 			if (targetType != null) {
@@ -181,6 +204,11 @@ public class FilterPatterns
 				
 				indexTableList = new ArrayList<String>();
 				indexTableList.add(indexTable);
+			}
+			
+			if (requireTarget == null) {
+				requireTargetMap = new HashMap<String, Boolean>();
+				requireTargetMap.put(targetType, requireTarget);
 			}
 			
 			
@@ -212,19 +240,19 @@ public class FilterPatterns
 			posFilterMinCount = Integer.parseInt(props.getProperty("posFilterMinCount"));
 			
 			
-			Map<String, Object> targetMap = new HashMap<String, Object>();
+			targetMap = new HashMap<String, Object>();
 			targetMap.put("annotType", targetType);
 			targetMap.put("target", true);
 			targetMap.put("provenance", targetProvenance);
-			targetMap.put("targetStr", ":" + targetType.toLowerCase());
+			//targetMap.put("targetStr", ":" + targetType.toLowerCase());
 			msaAnnotFilterList.add(targetMap);
 			
 			if (targetType2 != null) {
-				targetMap = new HashMap<String, Object>();
-				targetMap.put("annotType", targetType2);
-				targetMap.put("target", true);
-				targetMap.put("provenance", targetProvenance);
-				targetMap.put("targetStr", ":target2");
+				targetMap2 = new HashMap<String, Object>();
+				targetMap2.put("annotType", targetType2);
+				targetMap2.put("target", true);
+				targetMap2.put("provenance", targetProvenance);
+				targetMap2.put("targetStr", ":target2");
 				msaAnnotFilterList.add(targetMap);
 				profileType = 2;
 			}
@@ -233,7 +261,8 @@ public class FilterPatterns
 			
 			
 			annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType);
-			annotTypeNameList.add(":" + targetType.toLowerCase());
+			//annotTypeNameList.add(":" + targetType.toLowerCase());
+			//annotTypeNameList.add(":" + targetType.toLowerCase());
 			scoreList.add(10.0);
 			
 			
@@ -249,6 +278,7 @@ public class FilterPatterns
 			docDBHost = props.getProperty("docDBHost");
 			docDBName = props.getProperty("docDBName");
 			docDBType = props.getProperty("docDBType");
+			
 		}
 		catch(Exception e)
 		{
@@ -259,28 +289,83 @@ public class FilterPatterns
 	public void filterPatterns(String annotUser, String annotPassword, String docUser, String docPassword, String msaUser, String msaPassword)
 	{
 		try {
+			/*
 			if (docDBQuery != null) {				
 				docDBConn = DBConnection.dbConnection(docUser, docPassword, docDBHost, docDBName, docDBType);	
 				//docIDList = getDocIDList(docDBQuery);
 				docIDList = MSAUtils.getDocIDList(docDBConn, docDBQuery);
 				docDBConn.close();
 			}
+			*/
 			
+			
+			docIDMap = new HashMap<String, List<Long>>();
 			
 			db.init(annotUser, annotPassword, host, keyspace, msaKeyspace);
 			
+			conn = DBConnection.dbConnection(msaUser, msaPassword, host, msaKeyspace, dbType);
+			pstmtGetFilterStatus = conn.prepareStatement("select document_id from filter_status where annotation_type = ?");
+			pstmtInsertFilterStatus = conn.prepareStatement("insert into filter_status (annotation_type, document_id) values (?,?)");
+			pstmtUpdateFilterStatus = conn.prepareStatement("update filter_status set document_id = ? where annotation_type = ?");
 			
+			if (docDBQuery == null)
+				docDBQuery = "select distinct document_id from document_status where annotation_type = ? and b.status = 1 order by document_id";
+			PreparedStatement pstmtGetDocIDs = conn.prepareStatement(docDBQuery);
 			
+			Statement stmt = conn.createStatement();
 			
 			for (int index=0; index<annotTypeList.size(); index++) {
+				
 				
 				targetType = annotTypeList.get(index);
 				profileTable = profileTableList.get(index);
 				indexTable = indexTableList.get(index);
+
 			
 				if (targetType.length() == 0 || profileTable.length() == 0 || indexTable.length() == 0)
 					continue;
+				
+				stmt.execute("delete from " + indexTable + " where document_id in (select distinct a.document_id from document_status a where status = 1) and "
+					+ "profile_id in (select distinct b.profile_id from " + profileTable + " b where b.annotation_type = '" + targetType + "')");
 			
+				targetMap.put("targetStr", ":" + targetType.toLowerCase());		
+				annotTypeNameList.add(":" + targetType.toLowerCase());
+
+				
+				docIDList = new ArrayList<Long>();
+				
+				/*
+				long filterDocID = -1;
+				pstmtGetFilterStatus.setString(1, targetType);
+				ResultSet rs = pstmtGetFilterStatus.executeQuery();
+				if (rs.next()) {
+					filterDocID = rs.getLong(1);
+				}
+				
+				if (filterDocID == -1) {
+					pstmtInsertFilterStatus.setString(1, targetType);
+					pstmtInsertFilterStatus.setLong(2, 0);
+					pstmtInsertFilterStatus.execute();
+				}
+				*/
+				
+				//pstmtGetDocIDs.setString(1, targetType);
+				//pstmtGetDocIDs.setLong(2, filterDocID);
+				ResultSet rs = pstmtGetDocIDs.executeQuery();
+				while (rs.next()) {
+					docIDList.add(rs.getLong(1));
+				}
+				
+				docIDMap.put(targetType, docIDList);
+				
+				/*
+				if (docIDList.size() > 0) {
+					pstmtUpdateFilterStatus.setLong(1, docIDList.get(docIDList.size()-1));
+					pstmtUpdateFilterStatus.setString(2, targetType);
+					pstmtUpdateFilterStatus.execute();
+				}
+				*/
+
 
 				//generate the sentences
 				genSentences(docIDList, docNamespace, docTable, requireTarget, punct, limit);
@@ -349,6 +434,7 @@ public class FilterPatterns
 				
 
 
+				
 			
 				//read profiles
 				System.out.println("reading profiles...");
@@ -356,18 +442,27 @@ public class FilterPatterns
 				reader.setOrder(Order.DSC);
 				reader.init(msaUser, msaPassword, host, dbType, msaKeyspace);
 				
+				//TODO: may not need this anymore
 				msaTargetProfileMap = new HashMap<AnnotationSequenceGrid, MSAProfile>();
-				
 				
 				
 				reader.setMinScore(targetMinScore);
 				reader.setMaxScore(1.0);
 				targetProfileList = reader.read(targetType, targetGroup, 0, Integer.MAX_VALUE, 1, profileTable);
+				Map<MSAProfile, Map<MSAProfile, Boolean>> targetFilterMap = reader.readTargetFilters();
+				Map<MSAProfile, AnnotationSequenceGrid> targetGridMap = new HashMap<MSAProfile, AnnotationSequenceGrid>();
+				Map<Long, AnnotationSequenceGrid> targetIDMap = new HashMap<Long, AnnotationSequenceGrid>();
+				
 				for (MSAProfile targetProfile : targetProfileList) {
 					double score = getProfileScore(targetProfile, annotTypeScoreMap);
 					//System.out.println(targetProfile.getProfileStr() + ", " + score);
 					AnnotationSequenceGrid profileGrid = genGrid.toAnnotSeqGrid(targetProfile.getToks(), false);
+					
+					targetGridMap.put(targetProfile, profileGrid);
+					
 					msaTargetProfileMap.put(profileGrid, targetProfile);
+					
+					targetIDMap.put(targetProfile.getProfileID(), profileGrid);
 					
 					boolean inserted = false;
 					for (int i=0; i<targetProfileGridList.size(); i++) {
@@ -403,10 +498,14 @@ public class FilterPatterns
 				
 				
 				int readStart = 0;
+				ProfileInvertedIndex invertedIndex = new ProfileInvertedIndex();
+
 				while (true) {
 					profileGridList = new ArrayList<ProfileGrid>();
 					//targetProfileGridList = new ArrayList<AnnotationSequenceGrid>();
 					//for (String ansAnnotType : ansAnnotTypeList) {
+					
+					Map<Long, ProfileGrid> profileIDMap = new HashMap<Long, ProfileGrid>();
 					
 					reader.setMinScore(0.0);
 					reader.setMaxScore(0.99);
@@ -421,17 +520,32 @@ public class FilterPatterns
 					
 					
 					msaProfileMap = new HashMap<AnnotationSequenceGrid, MSAProfile>();
-					for (MSAProfile annotTypeProfile : profileList) {
+					for (MSAProfile msaProfile : profileList) {
 						//AnnotationSequenceGrid profileGrid = genGrid.toAnnotSeqGrid(annotTypeProfile.getToks(), false);
-						AnnotationSequenceGrid profileGrid = genGrid.toAnnotSeqGrid(annotTypeProfile.getToks(), false);
-						msaProfileMap.put(profileGrid, annotTypeProfile);
+						AnnotationSequenceGrid profileGrid = genGrid.toAnnotSeqGrid(msaProfile.getToks(), false);
+						msaProfileMap.put(profileGrid, msaProfile);
 						
+						/*
 						List<AnnotationSequenceGrid> targetProfileGridList2 = new ArrayList<AnnotationSequenceGrid>();
 						for (AnnotationSequenceGrid targetProfileGrid : targetProfileGridList) {
 							targetProfileGridList2.add(targetProfileGrid);
 						}
+						*/
 						
-						ProfileGrid profileGridObj = new ProfileGrid(profileGrid, targetProfileGridList2);
+						//get the target filter for this profile
+						Map<MSAProfile, Boolean> msaProfileFilterMap = targetFilterMap.get(msaProfile);
+						Map<AnnotationSequenceGrid, Boolean> targetFilterMap2 = new HashMap<AnnotationSequenceGrid, Boolean>();
+						
+						if (msaProfileFilterMap != null) {
+							for (MSAProfile msaProfile2 : msaProfileFilterMap.keySet()) {
+								AnnotationSequenceGrid grid = targetGridMap.get(msaProfile2);
+								targetFilterMap2.put(grid, true);
+							}
+						}
+						
+						ProfileGrid profileGridObj = new ProfileGrid(profileGrid, targetFilterMap2);
+						profileIDMap.put(msaProfile.getProfileID(), profileGridObj);
+
 						
 						boolean inserted = false;
 						for (int i=0; i<profileGridList.size(); i++) {
@@ -459,9 +573,13 @@ public class FilterPatterns
 					int prevProfileSize = profileGridList.size();
 					
 					//stats.setMinFilterNegCount(minFilterNegCount);
+					
+					//set up inverted index
+					System.out.println("gen inverted index...");
+					invertedIndex.genIndex(profileGridList, targetProfileGridList, profileIDMap, targetIDMap);
 	
 					
-					stats.getProfileStats(gridList, profileGridList, profileType, msaProfileMap, msaTargetProfileMap);
+					stats.getProfileStats(gridList, profileGridList, targetProfileGridList, profileType, msaProfileMap, msaTargetProfileMap, invertedIndex);
 					
 					int filterProfileSize = profileGridList.size();
 					
@@ -472,8 +590,13 @@ public class FilterPatterns
 				
 
 				reader.close();
-				db.close();
+				stats.close();
+				
+				annotTypeNameList.remove(annotTypeNameList.size()-1);
 			}
+			
+			db.close();
+			conn.close();
 		}
 		catch(Exception e)
 		{

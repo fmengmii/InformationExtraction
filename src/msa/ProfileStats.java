@@ -147,7 +147,8 @@ public class ProfileStats
 			msaConn = DBConnection.dbConnection(msaUser, msaPassword, host, msaKeyspace, dbType);
 			
 			pstmt = msaConn.prepareStatement("select document_id, start, end from msa_profile_match_index where profile_id = ? and target_id = ?");
-			pstmt2 = msaConn.prepareStatement("select count(*) from msa_profile_match_index where profile_id = ?");
+			//pstmt2 = msaConn.prepareStatement("select count(*) from msa_profile_match_index where profile_id = ?");
+			pstmt2 = msaConn.prepareStatement("insert into filter (profile_id, target_id) values (?,?)");
 			
 			matchWriter = new MatchWriter();
 			matchWriter.init(msaUser, msaPassword, host, msaKeyspace, dbType, indexTable);
@@ -168,6 +169,7 @@ public class ProfileStats
 	{
 		try {
 			pstmt.close();
+			pstmt2.close();
 			conn.close();
 			msaConn.close();
 
@@ -179,8 +181,8 @@ public class ProfileStats
 		}
 	}
 	
-	public void getProfileStats(List<AnnotationSequenceGrid> gridList, List<ProfileGrid> profileGridList, int profileType, 
-		Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap, Map<AnnotationSequenceGrid, MSAProfile> msaTargetProfileMap)
+	public void getProfileStats(List<AnnotationSequenceGrid> gridList, List<ProfileGrid> profileGridList, List<AnnotationSequenceGrid> targetGridList, int profileType, 
+		Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap, Map<AnnotationSequenceGrid, MSAProfile> msaTargetProfileMap, ProfileInvertedIndex invertedIndex)
 	{		
 
 		try {
@@ -219,7 +221,7 @@ public class ProfileStats
 			
 			while (start < gridList.size()) {
 				System.out.println("BLOCK: " + start + ", " + end);
-				List<ProfileMatch> matchList = profileMatcher.matchProfile(gridList, profileGridList, annotType, false, maxGaps, syntax, phrase, true, start, end, msaProfileMap, msaTargetProfileMap);
+				List<ProfileMatch> matchList = profileMatcher.matchProfile(gridList, profileGridList, targetGridList, annotType, false, maxGaps, syntax, phrase, true, start, end, msaProfileMap, msaTargetProfileMap, invertedIndex);
 				
 				currMatchList.addAll(matchList);
 
@@ -236,7 +238,7 @@ public class ProfileStats
 				*/				
 				
 				//filter low precision patterns
-				//removePatterns(matchList, profileGridList, msaProfileMap, msaTargetProfileMap);
+				removePatterns(matchList, profileGridList, targetGridList, msaProfileMap, msaTargetProfileMap);
 				
 				
 				//List<String> profileMapStrList = new ArrayList<String>();
@@ -297,7 +299,7 @@ public class ProfileStats
 		}
 	}
 	
-	private void removePatterns(List<ProfileMatch> matchList, List<ProfileGrid> profileGridList, Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap, 
+	private void removePatterns(List<ProfileMatch> matchList, List<ProfileGrid> profileGridList, List<AnnotationSequenceGrid> targetGridList, Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap, 
 		Map<AnnotationSequenceGrid, MSAProfile> msaTargetProfileMap) throws SQLException
 	{
 		Map<String, Boolean> matchMap = new HashMap<String, Boolean>();
@@ -351,16 +353,18 @@ public class ProfileStats
 		for (int i=0; i<profileGridList.size(); i++) {
 			ProfileGrid profileGrid = profileGridList.get(i);
 			MSAProfile profile = msaProfileMap.get(profileGrid.getGrid());
-			String profileID = Long.toString(profile.getProfileID());
+			long profileID = profile.getProfileID();
 			
-			List<AnnotationSequenceGrid> targetGridList = profileGrid.getTargetGridList();
+			Map<AnnotationSequenceGrid, Boolean> targetGridMap = profileGrid.getTargetGridMap();
 				
+			/*
 			Integer tp = posMap.get(profileID);
 			if (tp == null)
 				tp = 0;
 			Integer fp = negMap.get(profileID);
 			if (fp == null)
 				fp = 0;
+			
 			
 			double prec = ((double) tp) / ((double) (tp + fp));
 			if (((tp + fp) >= negFilterMinCount && prec < negFilterThreshold) || 
@@ -373,28 +377,49 @@ public class ProfileStats
 				negMap.remove(profileID);
 				i--;
 			}
+			*/
 			
 			for (int j=0; j<targetGridList.size(); j++) {
 				AnnotationSequenceGrid targetGrid = targetGridList.get(j);
+				if (targetGridMap.get(targetGrid) != null)
+					continue;
+				
 				MSAProfile target = msaTargetProfileMap.get(targetGrid);
 				long targetID = target.getProfileID();
 				
-				tp = posMap.get(profileID + "|" + targetID);
+				Integer tp = posMap.get(profileID + "|" + targetID);
 				if (tp == null)
 					tp = 0;
-				fp = negMap.get(profileID + "|" + targetID);
+				Integer fp = negMap.get(profileID + "|" + targetID);
 				if (fp == null)
 					fp = 0;
 				
-				prec = ((double) tp) / ((double) (tp + fp));
-				if ((tp + fp) >= 10 && prec < .9) {
+				double prec = ((double) tp) / ((double) (tp + fp));
+				//if ((tp + fp) >= 10 && prec < .9) {
+				if (((tp + fp) >= negFilterMinCount && prec < negFilterThreshold) || 
+						((tp + fp)  >= posFilterMinCount && prec >= posFilterThreshold)) {
 					//remove target
 					System.out.println("Removing target: " + profile.getProfileStr() + ", " + target.getProfileStr());
 					System.out.println(tp + ", " + fp + ", " + prec);
-					targetGridList.remove(j);
+					//targetGridList.remove(j);
+					
+					Map<AnnotationSequenceGrid, Boolean> targetFilterGrid = profileGrid.getTargetGridMap();
+					targetFilterGrid.put(targetGrid, true);
+					
 					posMap.remove(profileID + "|" + targetID);
 					negMap.remove(profileID + "|" + targetID);
 					j--;
+					
+					if (write) {
+						try {
+							pstmt2.setLong(1, profileID);
+							pstmt2.setLong(2, targetID);
+							pstmt2.execute();
+						}
+						catch(SQLException e)
+						{
+						}
+					}
 				}
 			}
 		}
