@@ -535,8 +535,6 @@ public class BestPatterns
 			+ "b.provenance = '" + provenance + "' and a.document_id = b.document_id and a.document_id < 1163 order by start");
 			*/
 		
-		if (annotType.equals("lungrads-exam-date"))
-			System.out.println("here");
 		
 		ResultSet rs = stmt.executeQuery("select distinct document_id, start, end from annotation where annotation_type = '" + annotType + "' and "
 				+ "provenance = '" + provenance + "' order by start");

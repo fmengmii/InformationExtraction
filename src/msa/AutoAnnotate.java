@@ -311,8 +311,6 @@ public class AutoAnnotate
 	{
 		System.out.println("auto annotate...");
 		
-		finalAnnotList = new ArrayList<Annotation>();
-		finalMatchList = new ArrayList<ProfileMatch>();
 		//extractMap = new HashMap<String, Boolean>();
 		
 		totalTP = 0;
@@ -337,7 +335,7 @@ public class AutoAnnotate
 			
 			pstmtCheck = conn2.prepareStatement("select count(*) from " + autoMatchTable + " where document_id = ? and start = ? and end = ? and run_name = '" + runName + "'");
 			
-			pstmtDeleteFrameData = conn.prepareStatement("delete from frame_instance_data where document_id = ? and annotation_id in (select a.id from annotation a where a.document_id = ? and a.annotation_type = ?)");
+			pstmtDeleteFrameData = conn.prepareStatement("delete from frame_instance_data where document_id = ? and annotation_id in (select a.id from annotation a where a.document_id = ? and a.annotation_type = ? and provenance = '" + autoProvenance + "')");
 			pstmtDeleteAnnots = conn.prepareStatement("delete from annotation where annotation_type = ? and document_id = ? and provenance = '" + autoProvenance + "'");
 			
 			
@@ -365,6 +363,9 @@ public class AutoAnnotate
 			
 			
 			for (int index=0; index<annotTypeList.size(); index++) {
+				finalAnnotList = new ArrayList<Annotation>();
+				finalMatchList = new ArrayList<ProfileMatch>();
+
 				targetType = annotTypeList.get(index);
 				profileTable = profileTableList.get(index);
 				finalTable = finalTableList.get(index);
