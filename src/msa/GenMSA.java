@@ -41,6 +41,7 @@ public class GenMSA
 	private List<Double> scoreList;
 	
 	private String host;
+	private String dbName;
 	private String dbType;
 	private String docNamespace;
 	private String docTable;
@@ -223,8 +224,9 @@ public class GenMSA
 			props.load(new FileReader(config));
 			
 			host = props.getProperty("host");
-			String keyspace = props.getProperty("keyspace");
-			msaKeyspace = props.getProperty("msaKeyspace");
+			//String keyspace = props.getProperty("keyspace");
+			//msaKeyspace = props.getProperty("msaKeyspace");
+			dbName = props.getProperty("dbName");
 			dbType = props.getProperty("dbType");
 			
 			docNamespace = props.getProperty("docNamespace");
@@ -249,7 +251,7 @@ public class GenMSA
 			if (dbType.equals("mysql"))
 				db = new MySQLDBInterface();
 				
-			db.init(user, password, host, keyspace, msaKeyspace);
+			db.init(user, password, host, dbName, dbName);
 			
 			annotFilterList = new ArrayList<Map<String, Object>>();
 			annotFilterList = gson.fromJson(props.getProperty("annotFilterList"), annotFilterList.getClass());

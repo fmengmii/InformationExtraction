@@ -24,9 +24,10 @@ public class FilterPatterns
 	private MSADBInterface db;
 	
 	private String host;
+	private String dbName;
 	private String dbType;
-	private String keyspace;
-	private String msaKeyspace;
+	//private String keyspace;
+	//private String msaKeyspace;
 	
 	private String docNamespace;
 	private String docTable;
@@ -74,6 +75,7 @@ public class FilterPatterns
 	private Map<String, List<Long>> docIDMap;
 	
 	private Connection conn;
+	private Connection conn2;
 	private Connection docDBConn;
 	
 	private List<String> annotTypeList;
@@ -168,8 +170,9 @@ public class FilterPatterns
 	{
 		try {			
 			host = props.getProperty("host");
-			keyspace = props.getProperty("keyspace");
-			msaKeyspace = props.getProperty("msaKeyspace");
+			dbName = props.getProperty("dbName");
+			//keyspace = props.getProperty("keyspace");
+			//msaKeyspace = props.getProperty("msaKeyspace");
 			dbType = props.getProperty("dbType");
 			
 			docNamespace = props.getProperty("docNamespace");
@@ -301,16 +304,17 @@ public class FilterPatterns
 			
 			docIDMap = new HashMap<String, List<Long>>();
 			
-			db.init(annotUser, annotPassword, host, keyspace, msaKeyspace);
+			db.init(annotUser, annotPassword, host, dbName, dbName);
 			
-			conn = DBConnection.dbConnection(msaUser, msaPassword, host, msaKeyspace, dbType);
+			conn = DBConnection.dbConnection(msaUser, msaPassword, host, dbName, dbType);
+			conn2 = DBConnection.dbConnection(annotUser, annotPassword, host, dbName, dbType);
 			pstmtGetFilterStatus = conn.prepareStatement("select document_id from filter_status where annotation_type = ?");
 			pstmtInsertFilterStatus = conn.prepareStatement("insert into filter_status (annotation_type, document_id) values (?,?)");
 			pstmtUpdateFilterStatus = conn.prepareStatement("update filter_status set document_id = ? where annotation_type = ?");
 			
 			if (docDBQuery == null)
 				docDBQuery = "select distinct document_id from document_status where annotation_type = ? and b.status = 1 order by document_id";
-			PreparedStatement pstmtGetDocIDs = conn.prepareStatement(docDBQuery);
+			PreparedStatement pstmtGetDocIDs = conn2.prepareStatement(docDBQuery);
 			
 			Statement stmt = conn.createStatement();
 			
@@ -325,8 +329,14 @@ public class FilterPatterns
 				if (targetType.length() == 0 || profileTable.length() == 0 || indexTable.length() == 0)
 					continue;
 				
-				stmt.execute("delete from " + indexTable + " where document_id in (select distinct a.document_id from document_status a where status = 1) and "
-					+ "profile_id in (select distinct b.profile_id from " + profileTable + " b where b.annotation_type = '" + targetType + "')");
+				try {
+					stmt.execute("delete from " + indexTable + " where document_id in (select distinct a.document_id from document_status a where status = 1) and "
+						+ "profile_id in (select distinct b.profile_id from " + profileTable + " b where b.annotation_type = '" + targetType + "')");
+				}
+				catch(SQLException e)
+				{
+					System.out.println("Index table not cleared");
+				}
 			
 				targetMap.put("targetStr", ":" + targetType.toLowerCase());		
 				annotTypeNameList.add(":" + targetType.toLowerCase());
@@ -417,7 +427,7 @@ public class FilterPatterns
 				stats.setNegFilterMinCount(negFilterMinCount);
 				stats.setPosFilterThreshold(posFilterThreshold);
 				stats.setPosFilterMinCount(posFilterMinCount);
-				stats.init(annotUser, annotPassword, msaUser, msaPassword, host, keyspace, msaKeyspace, dbType, indexTable,
+				stats.init(annotUser, annotPassword, msaUser, msaPassword, host, dbName, dbName, dbType, indexTable,
 					targetType, targetProvenance);
 				
 				
@@ -440,7 +450,7 @@ public class FilterPatterns
 				System.out.println("reading profiles...");
 				ProfileReader reader = new ProfileReader();
 				reader.setOrder(Order.DSC);
-				reader.init(msaUser, msaPassword, host, dbType, msaKeyspace);
+				reader.init(msaUser, msaPassword, host, dbType, dbName);
 				
 				//TODO: may not need this anymore
 				msaTargetProfileMap = new HashMap<AnnotationSequenceGrid, MSAProfile>();
@@ -597,6 +607,7 @@ public class FilterPatterns
 			
 			db.close();
 			conn.close();
+			conn2.close();
 		}
 		catch(Exception e)
 		{

@@ -25,11 +25,12 @@ public class AutoAnnotate
 	private List<AnnotationSequence> negSeqList;
 	
 	private String host;
+	private String dbName;
 	private String dbType;
 	private String docNamespace;
 	private String docTable;
-	private String keyspace;
-	private String msaKeyspace;
+	//private String keyspace;
+	//private String msaKeyspace;
 	
 	private String docDBHost;
 	private String docDBQuery;
@@ -174,8 +175,9 @@ public class AutoAnnotate
 	{
 		try {			
 			host = props.getProperty("host");
-			keyspace = props.getProperty("keyspace");
-			msaKeyspace = props.getProperty("msaKeyspace");
+			dbName = props.getProperty("dbName");
+			//keyspace = props.getProperty("keyspace");
+			//msaKeyspace = props.getProperty("msaKeyspace");
 			dbType = props.getProperty("dbType");
 			
 			docDBHost = props.getProperty("docDBHost");
@@ -307,7 +309,7 @@ public class AutoAnnotate
 		}
 	}
 	
-	public void annotate(String msaUser, String msaPassword, String docUser, String docPassword)
+	public void annotate(String annotUser, String annotPassword, String msaUser, String msaPassword, String docUser, String docPassword)
 	{
 		System.out.println("auto annotate...");
 		
@@ -318,10 +320,10 @@ public class AutoAnnotate
 		try {
 			//init DB connections
 			db = new MySQLDBInterface();
-			db.init(msaUser, msaPassword, host, keyspace, msaKeyspace);
+			db.init(msaUser, msaPassword, host, dbName, dbName);
 			
-			conn = DBConnection.dbConnection("fmeng", "fmeng", host, keyspace, "mysql");
-			conn2 = DBConnection.dbConnection("fmeng", "fmeng", host, "msa", "mysql");
+			conn = DBConnection.dbConnection(annotUser, annotPassword, host, dbName, dbType);
+			conn2 = DBConnection.dbConnection(annotUser, annotPassword, host, dbName, dbType);
 			pstmt = conn.prepareStatement("select max(id) from annotation where document_namespace = '" + docNamespace + "' and document_table = '" + docTable + "' "
 				+ "and document_id = ?");
 			pstmt2 = conn.prepareStatement("insert into annotation (id, document_namespace, document_table, document_id, annotation_type, start, end, value, features, provenance, score) "
@@ -476,7 +478,7 @@ public class AutoAnnotate
 				ProfileReader reader = new ProfileReader();
 				reader.setOrder(Order.DSC);
 				reader.setMinScore(0.0);
-				reader.init(msaUser, msaPassword, host, dbType, msaKeyspace);
+				reader.init(msaUser, msaPassword, host, dbType, dbName);
 	
 				List<ProfileGrid> profileGridList = new ArrayList<ProfileGrid>();
 				Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap = new HashMap<AnnotationSequenceGrid, MSAProfile>();
@@ -1143,14 +1145,14 @@ public class AutoAnnotate
 	public static void main(String[] args)
 	{
 		if (args.length != 5) {
-			System.out.println("usage: user password docUser docPassword config");
+			System.out.println("usage: annotUser annotPassword msaUser msaPassword docUser docPassword config");
 			System.exit(0);
 		}
 		
 		try {
 			AutoAnnotate auto = new AutoAnnotate();
-			auto.init(args[4]);
-			auto.annotate(args[0], args[1], args[2], args[3]);
+			auto.init(args[6]);
+			auto.annotate(args[0], args[1], args[2], args[3], args[4], args[5]);
 			//auto.eval();
 			
 			//if (auto.write)

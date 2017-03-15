@@ -234,21 +234,20 @@ public class GateBatch
 		try {
 			docFile = new File(tempDocFolder + "temp.txt");
 			
-			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);						
+			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);					
 			
 			docConn = DBConnection.dbConnection(docUser, docPassword, docDBHost, docDBName, docDBType);
-			Statement stmt = docConn.createStatement();
+			Statement stmt = conn.createStatement();
 			//ResultSet rs = stmt.executeQuery("select RECORD_ID, REPORT_IMPRESSION from RADIOLOGY_REPORTS");
 			//rs = stmt.executeQuery("select " + docIDCol + ", " + docTextCol + " from " + docTable + " order by " + docIDCol);
 			
 			Statement stmt2 = docConn.createStatement();
 			List<Long> docIDList = new ArrayList<Long>();
-			ResultSet rs2 = stmt2.executeQuery(docQuery);
+			ResultSet rs2 = stmt.executeQuery(docQuery);
 			while (rs2.next()) {
 				docIDList.add(rs2.getLong(1));
 			}
 			
-			stmt2.close();
 			
 			String queryStr = "insert into " + annotOutputTable
 					+ " (id, document_namespace, document_table, document_id, document_name, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance) "
@@ -426,6 +425,7 @@ public class GateBatch
 				pstmt.close();
 				pstmtGetText.close();
 				stmt.close();
+				stmt2.close();
 				conn.close();
 			}
 			else {

@@ -60,16 +60,17 @@ public class GenMSADriver
 	private int targetMinRows;
 
 	private String host;
+	private String dbName;
 	private String dbType;
-	private String keyspace;
-	private String msaKeyspace;
+	//private String keyspace;
+	//private String msaKeyspace;
 	private String profileTable;
 	
 	private List<DocBean> totalDocList;
 	
 	private Gson gson;
 	
-	private Connection docDBConn;
+	private Connection conn;
 	
 	private boolean incrementalFlag = false;
 	
@@ -129,8 +130,9 @@ public class GenMSADriver
 			//props.load(new FileReader(config));
 			
 			host = props.getProperty("host");
-			keyspace = props.getProperty("keyspace");
-			msaKeyspace = props.getProperty("msaKeyspace");
+			dbName = props.getProperty("dbName");
+			//keyspace = props.getProperty("keyspace");
+			//msaKeyspace = props.getProperty("msaKeyspace");
 			dbType = props.getProperty("dbType");
 			
 			docNamespace = props.getProperty("docNamespace");
@@ -224,11 +226,11 @@ public class GenMSADriver
 			scoreList.add(10.0);
 			
 			if (docDBQuery != null) {			
-				docDBConn = DBConnection.dbConnection(docUser, docPassword, docDBHost, docDBName, docDBType);	
+				conn = DBConnection.dbConnection(user, password, host, dbName, dbType);	
 				//docIDList = getDocIDList(docDBQuery);
 				//docIDList = MSAUtils.getDocIDList(docDBConn, docDBQuery);
 				
-				PreparedStatement pstmtGetDocIDs = docDBConn.prepareStatement(docDBQuery);
+				PreparedStatement pstmtGetDocIDs = conn.prepareStatement(docDBQuery);
 				//pstmtGetDocIDs.setString(1, targetType);
 				
 				docIDList = new ArrayList<Long>();
@@ -237,10 +239,10 @@ public class GenMSADriver
 					docIDList.add(rs.getLong(1));
 				}
 				
-				docDBConn.close();
+				conn.close();
 			}
 			
-			db.init(user, password, host, keyspace, msaKeyspace);
+			db.init(user, password, host, dbName, dbName);
 			
 			//generate the sentences
 			genSent.setRequireTarget(requireTarget);
@@ -482,7 +484,7 @@ public class GenMSADriver
 				if (write) {
 					ProfileWriter writer = new ProfileWriter();
 					writer.setMsaTable(profileTable);
-					writer.init(user, password, host, dbType, msaKeyspace);
+					writer.init(user, password, host, dbType, dbName);
 				
 					System.out.println("writing... ");
 					

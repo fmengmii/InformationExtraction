@@ -14,10 +14,11 @@ public class BestPatterns
 	private List<Long> docIDList;
 	
 	private String host;
-	private String msaKeyspace;
+	private String dbName;
+	//private String msaKeyspace;
 	private String dbType;
 	private String annotType;
-	private String annotKeyspace;
+	//private String annotKeyspace;
 	private String finalTable;
 	private String indexTable;
 	private String profileTable;
@@ -41,10 +42,11 @@ public class BestPatterns
 	public void init(Properties props)
 	{
 		host = props.getProperty("host");
-		msaKeyspace = props.getProperty("msaKeyspace");
+		dbName = props.getProperty("dbName");
+		//msaKeyspace = props.getProperty("msaKeyspace");
 		dbType = props.getProperty("dbType");
 		annotType = props.getProperty("annotType");
-		annotKeyspace = props.getProperty("annotKeyspace");
+		//annotKeyspace = props.getProperty("annotKeyspace");
 		finalTable = props.getProperty("finalTable");
 		indexTable = props.getProperty("indexTable");
 		profileTable = props.getProperty("profileTable");
@@ -94,8 +96,8 @@ public class BestPatterns
 	public void getBestPatterns(String msaUser, String msaPassword, String annotUser, String annotPassword)
 	{
 		try {			
-			conn = DBConnection.dbConnection(msaUser, msaPassword, host, msaKeyspace, dbType);
-			annotConn = DBConnection.dbConnection(annotUser, annotPassword, host, annotKeyspace, dbType);
+			conn = DBConnection.dbConnection(msaUser, msaPassword, host, dbName, dbType);
+			annotConn = DBConnection.dbConnection(annotUser, annotPassword, host, dbName, dbType);
 			
 			
 			if (annotType != null) {
@@ -536,8 +538,7 @@ public class BestPatterns
 			*/
 		
 		
-		ResultSet rs = stmt.executeQuery("select distinct document_id, start, end from annotation where annotation_type = '" + annotType + "' and "
-				+ "provenance = '" + provenance + "' order by start");
+		ResultSet rs = stmt.executeQuery("select distinct document_id, start, end from annotation where annotation_type = '" + annotType + "' order by start");
 		
 		while (rs.next()) {
 			long docID = rs.getLong(1);

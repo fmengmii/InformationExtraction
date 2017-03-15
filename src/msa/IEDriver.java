@@ -24,8 +24,8 @@ public class IEDriver
 	
 	private Connection conn;
 	private String host;
-	private String keyspace;
-	private String msaKeyspace;
+	//private String keyspace;
+	//private String msaKeyspace;
 	private String dbType;
 	private String dbName;
 	private String docDBHost;
@@ -145,6 +145,7 @@ public class IEDriver
 	private PreparedStatement pstmtGetMaxAutoDocID;
 	private PreparedStatement pstmtGetMaxAutoProfileID;
 	private PreparedStatement pstmtGetAnnotCount;
+	private PreparedStatement pstmtResetGenMSAStatus;
 	private PreparedStatement pstmtInsertGenMSAStatus;
 	private PreparedStatement pstmtUpdateGenMSAStatus;
 	private PreparedStatement pstmtGetGenMSAStatus;
@@ -186,8 +187,8 @@ public class IEDriver
 			docDBName = props.getProperty("docDBName");
 			docDBType = props.getProperty("docDBType");
 			
-			keyspace = props.getProperty("keyspace");
-			msaKeyspace = props.getProperty("msaKeyspace");
+			//keyspace = props.getProperty("keyspace");
+			//msaKeyspace = props.getProperty("msaKeyspace");
 			
 			write = Boolean.parseBoolean(props.getProperty("write"));
 			docNamespace = props.getProperty("docNamespace");
@@ -227,7 +228,7 @@ public class IEDriver
 			
 			
 			//get MSA properties
-			msaKeyspace = props.getProperty("msaKeyspace");
+			//msaKeyspace = props.getProperty("msaKeyspace");
 			group = props.getProperty("group");
 			targetGroup = props.getProperty("targetGroup");
 			msaDocQuery = props.getProperty("msaDocQuery");
@@ -296,7 +297,7 @@ public class IEDriver
 			
 			
 			
-			conn = DBConnection.dbConnection(user, password, host, keyspace, dbType);
+			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			
 			pstmtInsertFrameInstanceStatus = conn.prepareStatement("insert into " + schema + "frame_instance_status (frame_instance_id, status) values (?,0)");
 			pstmtInsertDocStatus = conn.prepareStatement("insert into " + schema + "document_status (document_namespace, document_table, document_id, status) "
@@ -315,6 +316,7 @@ public class IEDriver
 			pstmtGetMaxAutoProfileID = conn.prepareStatement("select max(profile_id) from profile where annotation_type = ? and profile_type = ?");
 			pstmtGetAnnotCount = conn.prepareStatement("select count(*) from annotation a, document_status b where a.annotation_type = ? and b.status = 1 and "
 				+ "a.document_namespace = b.document_namespace and a.document_table = b.document_table and a.document_id = b.document_id");
+			pstmtResetGenMSAStatus = conn.prepareStatement("update gen_msa_status set profile_count = 0");
 			pstmtInsertGenMSAStatus = conn.prepareStatement("insert into gen_msa_status (annotation_type, profile_count) values (?,?)");
 			pstmtUpdateGenMSAStatus = conn.prepareStatement("update gen_msa_status set profile_count = ? where annotation_type = ?");
 			pstmtGetGenMSAStatus = conn.prepareStatement("select profile_count from gen_msa_status where annotation_type = ?");
@@ -399,8 +401,8 @@ public class IEDriver
 			msaProps.setProperty("docDBName", docDBName);
 			msaProps.setProperty("docDBType", docDBType);
 			msaProps.setProperty("docDBQuery", msaDocQuery);
-			msaProps.setProperty("keyspace", keyspace);
-			msaProps.setProperty("msaKeyspace", msaKeyspace);
+			//msaProps.setProperty("keyspace", keyspace);
+			//msaProps.setProperty("msaKeyspace", msaKeyspace);
 			msaProps.setProperty("docNamespace", docNamespace);
 			msaProps.setProperty("docTable", docTable);
 			
@@ -441,8 +443,8 @@ public class IEDriver
 			pattProps.setProperty("docDBName", docDBName);
 			pattProps.setProperty("docDBType", docDBType);
 			pattProps.setProperty("docDBQuery", filterDocQuery);
-			pattProps.setProperty("keyspace", keyspace);
-			pattProps.setProperty("msaKeyspace", msaKeyspace);
+			//pattProps.setProperty("keyspace", keyspace);
+			//pattProps.setProperty("msaKeyspace", msaKeyspace);
 			pattProps.setProperty("docNamespace", docNamespace);
 			pattProps.setProperty("docTable", docTable);
 			//pattProps.setProperty("profileTable", msaTable);
@@ -484,9 +486,10 @@ public class IEDriver
 			Properties bestProps = new Properties();
 			
 			bestProps.setProperty("host", host);
-			bestProps.setProperty("keyspace", keyspace);
-			bestProps.setProperty("annotKeyspace", keyspace);
-			bestProps.setProperty("msaKeyspace", msaKeyspace);
+			bestProps.setProperty("dbName", dbName);
+			//bestProps.setProperty("keyspace", keyspace);
+			//bestProps.setProperty("annotKeyspace", keyspace);
+			//bestProps.setProperty("msaKeyspace", msaKeyspace);
 			bestProps.setProperty("dbType", dbType);
 			//bestProps.setProperty("annotType", annotType);
 			//bestProps.setProperty("finalTable", finalTable);
@@ -504,13 +507,14 @@ public class IEDriver
 			//Auto annot
 			Properties autoProps = new Properties();
 			autoProps.setProperty("host", host);
+			autoProps.setProperty("dbName", dbName);
 			autoProps.setProperty("dbType", dbType);
 			autoProps.setProperty("docDBHost", docDBHost);
 			autoProps.setProperty("docDBName", docDBName);
 			autoProps.setProperty("docDBType", docDBType);
 			autoProps.setProperty("docDBQuery", autoDBQuery);
-			autoProps.setProperty("keyspace", keyspace);
-			autoProps.setProperty("msaKeyspace", msaKeyspace);
+			//autoProps.setProperty("keyspace", keyspace);
+			//autoProps.setProperty("msaKeyspace", msaKeyspace);
 			autoProps.setProperty("docNamespace", docNamespace);
 			autoProps.setProperty("docTable", docTable);
 			
@@ -710,6 +714,7 @@ public class IEDriver
 				
 				if (docList.size() > 0) {
 					updateDocsWithStatusDocID(1, 2, docList);
+					pstmtResetGenMSAStatus.execute();
 				}
 
 				
@@ -730,7 +735,7 @@ public class IEDriver
 					autoAnnot.setAnnotTypeList(activeAnnotTypeList);
 					autoAnnot.setProfileTableList(profileTableList);
 					autoAnnot.setFinalTableList(finalTableList);
-					autoAnnot.annotate(msaUser, msaPassword, docUser, docPassword);
+					autoAnnot.annotate(annotUser, annotPassword, msaUser, msaPassword, docUser, docPassword);
 					
 					autoAnnot.close();
 				}
@@ -780,8 +785,8 @@ public class IEDriver
 			ResultSet rs2 = pstmtGetNewDocs.executeQuery();
 
 			while (rs2.next()) {
-				if (docList.size() == 30)
-					break;
+				//if (docList.size() == 30)
+				//	break;
 
 				String docNamespace = rs2.getString(1);
 				String docTable = rs2.getString(2);
