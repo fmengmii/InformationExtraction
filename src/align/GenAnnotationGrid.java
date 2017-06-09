@@ -118,7 +118,7 @@ public class GenAnnotationGrid
 		return index;
 	}
 	
-	public List<AnnotationSequenceGrid> toAnnotSeqGrid(AnnotationSequence seq, boolean requireTarget, boolean exposeTarget, boolean exposeTargetLabel, boolean startEnd)
+	public List<AnnotationSequenceGrid> toAnnotSeqGrid(AnnotationSequence seq, boolean requireTarget, boolean exposeTarget, boolean exposeTargetLabel, boolean startEnd, boolean target2Flag)
 	{
 		List<AnnotationSequenceGrid> gridList = new ArrayList<AnnotationSequenceGrid>();
 		
@@ -254,7 +254,7 @@ public class GenAnnotationGrid
 					}
 					
 				}
-				else if (annotType.equals(":target2")) {					
+				else if (target2Flag && annotType.equals(":target2")) {					
 					targetIndexList2.add(indexes);
 					targetAnnotList2.add(annot);
 					System.out.println("adding target2: " + annot.getAnnotationType() + ", " + annot.getValue() + ", " + startIndex + ", " + endIndex);

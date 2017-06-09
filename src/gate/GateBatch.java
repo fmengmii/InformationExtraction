@@ -43,11 +43,6 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 
 import utils.db.DBConnection;
-
-import com.datastax.driver.core.*;
-import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
-import com.datastax.driver.core.policies.DefaultRetryPolicy;
-import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.google.gson.Gson;
 
 
@@ -56,11 +51,6 @@ public class GateBatch
 
 	private Connection conn;
 	private Connection docConn;
-	
-	private Session session;
-	private Cluster cluster;
-	private Session docSession;
-	private Cluster docCluster;
 	
 	private int batchSize;
 	
@@ -71,8 +61,6 @@ public class GateBatch
 	private String rq = "`";
 	
 	private PreparedStatement pstmt;
-	private BoundStatement bstmt;
-	private com.datastax.driver.core.PreparedStatement pstmtCheckDocAnnots;
 	
 	private Gson gson;
 	private List<File> fileList;
@@ -117,6 +105,9 @@ public class GateBatch
 	private boolean verbose;
 	
 	private PreparedStatement pstmtGetText;
+	
+	private String schema = "";
+	private String docSchema = "";
 	
 	
 	
@@ -213,6 +204,9 @@ public class GateBatch
 			docQuery = props.getProperty("docQuery");
 			gappFile = new File(props.getProperty("gappFile"));
 			
+			schema = props.getProperty("schema") + ".";
+			docSchema = props.getProperty("docSchema") + ".";
+			
 		}
 		catch(Exception e)
 		{
@@ -234,7 +228,8 @@ public class GateBatch
 		try {
 			docFile = new File(tempDocFolder + "temp.txt");
 			
-			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);					
+			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);	
+			rq = DBConnection.reservedQuote;
 			
 			docConn = DBConnection.dbConnection(docUser, docPassword, docDBHost, docDBName, docDBType);
 			Statement stmt = conn.createStatement();
@@ -249,16 +244,15 @@ public class GateBatch
 			}
 			
 			
-			String queryStr = "insert into " + annotOutputTable
+			String queryStr = "insert into " + schema + annotOutputTable
 					+ " (id, document_namespace, document_table, document_id, document_name, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance) "
 					+ "	values (?,?,?,?,?,?,?,?,?,?,?)";
 			
-			pstmtGetText = docConn.prepareStatement("select " + docTextCol + " from " + docTable + " where " + docIDCol + " = ?");
+			pstmtGetText = docConn.prepareStatement("select " + docTextCol + " from " + docSchema + docTable + " where " + docIDCol + " = ?");
 
 
 
 			conn.setAutoCommit(false);
-			rq = DBConnection.reservedQuote;
 			
 			pstmt = conn.prepareStatement(queryStr);
 			  
@@ -309,6 +303,7 @@ public class GateBatch
 				
 				if (reportText != null && reportText.length() > 0) {
 					  reportText = reportText.trim();
+					  reportText = reportText.replaceAll("\\r", "");
 					  PrintWriter pw = new PrintWriter(new FileWriter(docFile));
 					  pw.println(reportText);
 					  pw.close();
@@ -419,27 +414,15 @@ public class GateBatch
 		  
 			logPW.close();
 		  
-			if (!dbType.equals("cassandra")) {
-				pstmt.executeBatch();
-				conn.commit();	  
-				pstmt.close();
-				pstmtGetText.close();
-				stmt.close();
-				stmt2.close();
-				conn.close();
-			}
-			else {
-				session.close();
-				cluster.close();
-			}
-			
-			if (!docDBType.equals("cassandra")) {
-				docConn.close();
-			}
-			else {
-				docSession.close();
-				docCluster.close();
-			}
+			pstmt.executeBatch();
+			conn.commit();	  
+			pstmt.close();
+			pstmtGetText.close();
+			stmt.close();
+			stmt2.close();
+			conn.close();
+
+			docConn.close();
 			
 			System.out.println("All done");
 		}
@@ -453,7 +436,7 @@ public class GateBatch
   {
 	  System.out.println("loading annotations...");
 	  Statement stmt = conn.createStatement();
-	  StringBuilder strBlder = new StringBuilder("select id, annotation_type, start, " + rq + "end" + rq + ", features from " + annotInputTable + " where (");
+	  StringBuilder strBlder = new StringBuilder("select id, annotation_type, start, " + rq + "end" + rq + ", features from " + schema + annotInputTable + " where (");
 	  
 	  boolean first = true;
 	  for (String annotType : loadAnnotationTypes) {
@@ -519,40 +502,19 @@ public class GateBatch
 	  pstmt.addBatch();
   }
   
-  private void insertIntoCassandra(int id, int docID, String annotType, int start, int end, String valueStr, String featureStr) throws InvalidOffsetException
-  { 
-	  String docName = docNamespace + "-" + docTable + "-" + docID;
-
-	  if (verbose) {
-		  System.out.println(id + ", " + docNamespace + ", " + docTable + ", " + docID + ", " + docName + ", " 
-				 + annotType + ", " + start + ", " + end + ", " + valueStr + ", " + featureStr + ", " + provenance);
-	  }
-	  session.execute(bstmt.bind(id, docNamespace, docTable, docID, docName, annotType, start, end, valueStr, featureStr, provenance));
-  }
   
   private long checkDocumentAnnotations(long docID2) throws SQLException
   {
 	  long count = 0;
 	  
-	  if (dbType.equals("cassandra")) {
-		  com.datastax.driver.core.ResultSet rs = session.execute(pstmtCheckDocAnnots.bind(docID2));
-		  
-		  Iterator<Row> iter = rs.iterator();
-		  if (iter.hasNext()) {
-			  Row row = iter.next();
-			  count = row.getLong(0);
-		  }
+	  Statement stmt = conn.createStatement();
+	  ResultSet rs = stmt.executeQuery("select count(*) from " + schema + "annotation where document_namespace = '" + docNamespace + "' and document_table = '" + docTable + "' "
+	  	+ "and document_id = " + docID2 + " and provenance = '" + provenance + "'");
+	  if (rs.next()) {
+		  count = rs.getLong(1);
 	  }
-	  else {
-		  Statement stmt = conn.createStatement();
-		  ResultSet rs = stmt.executeQuery("select count(*) from annotation where document_namespace = '" + docNamespace + "' and document_table = '" + docTable + "' "
-		  	+ "and document_id = " + docID2 + " and provenance = '" + provenance + "'");
-		  if (rs.next()) {
-			  count = rs.getLong(1);
-		  }
-		  
-		  stmt.close();
-	  }
+	  
+	  stmt.close();
 	  
 	  return count;
   }

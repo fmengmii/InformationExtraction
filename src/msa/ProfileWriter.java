@@ -26,12 +26,13 @@ public class ProfileWriter
 	public void init(String user, String password, String host, String dbType, String keyspace) throws SQLException, ClassNotFoundException
 	{
 		conn = DBConnection.dbConnection(user, password, host, keyspace, dbType);
-		pstmtInsert = conn.prepareStatement("insert into " + msaTable + " (profile, annotation_type, `group`, profile_type, score, true_pos, false_pos, rows) "
+		String rq = DBConnection.reservedQuote;
+		pstmtInsert = conn.prepareStatement("insert into " + msaTable + " (profile, annotation_type, " + rq + "group" + rq + ", profile_type, score, true_pos, false_pos, rows) "
 			+ "values (?,?,?,?,?,?,?,?)");
 		pstmtUpdate = conn.prepareStatement("update " + msaTable + " set score=?,true_pos=?,false_pos=?,rows=? where profile=? and annotation_type=? "
-			+ "and `group`=? and profile_type=?");
-		pstmtExists = conn.prepareStatement("select count(*) from " + msaTable + " where profile=? and annotation_type=? "
-				+ "and profile_type=?");		
+			+ "and " + rq + "group" + rq + "=? and profile_type=?");
+		pstmtExists = conn.prepareStatement("select count(*) from " + msaTable + " where profile = ? and annotation_type = ? "
+				+ "and profile_type = ?");		
 	}
 	
 	public void close() throws SQLException

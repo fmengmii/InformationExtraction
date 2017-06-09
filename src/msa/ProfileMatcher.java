@@ -320,8 +320,14 @@ public class ProfileMatcher
 							List<int[]> targetMatchCoords = null;
 							
 							
-							if (!evaluation)
-								targetProfileGridList = profileGridObj.getTargetGridMap().keySet();
+							//if (!evaluation)
+							Map<AnnotationSequenceGrid, Boolean> targetGridMap = profileGridObj.getTargetGridMap();
+							targetProfileGridList = new ArrayList<AnnotationSequenceGrid>();
+							for (AnnotationSequenceGrid targetGrid2 : targetGridMap.keySet()) {
+								boolean flag = targetGridMap.get(targetGrid2);
+								if (flag)
+									targetProfileGridList.add(targetGrid2);
+							}
 							
 							//iterate through each target profile
 							for (AnnotationSequenceGrid targetProfileGrid : targetProfileGridList) {

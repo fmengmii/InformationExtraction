@@ -20,8 +20,9 @@ public class MatchWriter
 	public void init(String user, String password, String host, String dbName, String dbType, String tableName) throws SQLException, ClassNotFoundException
 	{
 		conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
+		String rq = DBConnection.reservedQuote;
 		conn.setAutoCommit(false);
-		pstmtTarget = conn.prepareStatement("insert into " + tableName + " (profile_id, document_id, start, end, target_id) values (?,?,?,?,?)");
+		pstmtTarget = conn.prepareStatement("insert into " + rq + tableName + rq + " (profile_id, document_id, start, " + rq + "end" + rq + ", target_id) values (?,?,?,?,?)");
 	}
 	
 	public void write(List<ProfileMatch> matchList) throws SQLException

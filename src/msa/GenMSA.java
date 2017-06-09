@@ -346,7 +346,7 @@ public class GenMSA
 			if (gridList == null) {
 				gridList = new ArrayList<AnnotationSequenceGrid>();
 				for (AnnotationSequence seq : seqList) {
-					List<AnnotationSequenceGrid> seqGridList = genGrid.toAnnotSeqGrid(seq, requireTarget, true, false, true);
+					List<AnnotationSequenceGrid> seqGridList = genGrid.toAnnotSeqGrid(seq, requireTarget, true, false, true, false);
 					gridList.addAll(seqGridList);
 				}
 			}

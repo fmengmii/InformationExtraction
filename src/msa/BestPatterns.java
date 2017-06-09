@@ -32,6 +32,10 @@ public class BestPatterns
 	private List<String> profileTableList;
 	private List<String> indexTableList;
 	private List<String> finalTableList;
+	
+	private String rq;
+	
+	private String schema = "";
 
 	
 	
@@ -55,6 +59,7 @@ public class BestPatterns
 		negMinCount = Integer.parseInt(props.getProperty("negMinCount"));
 		posThreshold = Double.parseDouble(props.getProperty("posThreshold"));
 		posMinCount = Integer.parseInt(props.getProperty("posMinCount"));
+		schema = props.getProperty("schema") + ".";
 	}
 	
 	public void close()
@@ -99,6 +104,8 @@ public class BestPatterns
 			conn = DBConnection.dbConnection(msaUser, msaPassword, host, dbName, dbType);
 			annotConn = DBConnection.dbConnection(annotUser, annotPassword, host, dbName, dbType);
 			
+			rq = DBConnection.reservedQuote;
+			
 			
 			if (annotType != null) {
 				annotTypeList = new ArrayList<String>();
@@ -138,7 +145,7 @@ public class BestPatterns
 			
 				System.out.println("getting doc IDs...");
 				docIDList = new ArrayList<Long>();
-				ResultSet rs = stmt.executeQuery("select distinct document_id from " + indexTable + " order by document_id");
+				ResultSet rs = stmt.executeQuery("select distinct document_id from " + rq + indexTable + rq + " order by document_id");
 				while (rs.next()) {
 					docIDList.add(rs.getLong(1));
 				}
@@ -146,6 +153,8 @@ public class BestPatterns
 				
 				System.out.println("reading answers...");
 				Map<String, Boolean> ansMap = readAnswers(annotType, provenance);
+				
+				System.out.println("ansMap size: " + ansMap.size());
 				
 					//+ " where profile_id in "
 					//+ "(select distinct profile_id from msa_profile where annotation_type = '" + annotType + "')");
@@ -173,7 +182,7 @@ public class BestPatterns
 				//	+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.target_id = c.profile_id "
 				//	+ "order by a.profile_id");
 				
-				rs = stmt.executeQuery("select distinct a.profile_id, a.target_id, a.document_id, a.start, a.end from " + indexTable + " a, " + profileTable + " b "
+				rs = stmt.executeQuery("select distinct a.profile_id, a.target_id, a.document_id, a.start, a." + rq + "end" + rq + " from " + rq + indexTable + rq + " a, " + profileTable + " b "
 					+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id");
 				
 				Map<String, Integer> posMap = new HashMap<String, Integer>();
@@ -407,7 +416,7 @@ public class BestPatterns
 	{
 		PreparedStatement pstmt = conn.prepareStatement("delete from msa_profile_target_final where profile_id = ? and target_id = ?");
 		
-		String queryStr = "select distinct a.profile_id, a.target_id, a.document_id, a.start, a.end from msa_profile_match_index a, msa_profile b, msa_profile_target_final c "
+		String queryStr = "select distinct a.profile_id, a.target_id, a.document_id, a.start, a." + rq + "end" + rq + " from msa_profile_match_index a, msa_profile b, msa_profile_target_final c "
 			+ "where a.profile_id = b.profile_id and a.profile_id = c.profile_id and b.annotation_type = '" + annotType + "'";
 		filterLoop(queryStr, pstmt);
 		pstmt.close();
@@ -538,7 +547,7 @@ public class BestPatterns
 			*/
 		
 		
-		ResultSet rs = stmt.executeQuery("select distinct document_id, start, end from annotation where annotation_type = '" + annotType + "' order by start");
+		ResultSet rs = stmt.executeQuery("select distinct document_id, start, " + rq + "end" + rq + " from " + schema + "annotation where annotation_type = '" + annotType + "' order by start");
 		
 		while (rs.next()) {
 			long docID = rs.getLong(1);

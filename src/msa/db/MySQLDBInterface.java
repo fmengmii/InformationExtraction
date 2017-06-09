@@ -38,6 +38,9 @@ public class MySQLDBInterface implements MSADBInterface
 	private PreparedStatement pstmtDeleteProfiles;
 	private PreparedStatement pstmtReadProfile;
 	private PreparedStatement pstmtUpdateProfileScore;
+	private String dbType = "mysql";
+	private String schema = "";
+	
 	
 	public MySQLDBInterface()
 	{
@@ -49,13 +52,23 @@ public class MySQLDBInterface implements MSADBInterface
 		this.group = group;
 	}
 	
+	public void setDBType(String dbType)
+	{
+		this.dbType = dbType;
+	}
+	
+	public void setSchema(String schema)
+	{
+		this.schema = schema + ".";
+	}
+	
 	public void init(String user, String password, String host, String keyspace, String msaKeyspace) throws MSADBException
 	{
 		try {
-			conn = DBConnection.dbConnection(user, password, host, keyspace, "mysql");
+			conn = DBConnection.dbConnection(user, password, host, keyspace, dbType);
 			
 			if (msaKeyspace != null)
-				msaConn = DBConnection.dbConnection(user, password, host, msaKeyspace, "mysql");
+				msaConn = DBConnection.dbConnection(user, password, host, msaKeyspace, dbType);
 			
 			rq = DBConnection.reservedQuote;
 			
@@ -66,30 +79,25 @@ public class MySQLDBInterface implements MSADBInterface
 			String provenance = props.getProperty("provenance");
 			*/
 			
-			this.docNamespace = docNamespace;
-			this.docTable = docTable;
-			this.group = group;
-			this.provenance = provenance;
-			
 			if (msaKeyspace != null) {
 				pstmtMSAInsert = msaConn.prepareStatement("insert into msa (msa_id, document_namespace, document_table, " + rq + "group" + rq + ") values (?,?,?,?)");
 				pstmtMSARowInsert = msaConn.prepareStatement("insert into msa_row (msa_id, document_namespace, document_table, " + rq + "group" + rq + ", row_id, base_tokens, filler_tokens, multiplicity, sentences) values (?,?,?,?,?,?,?,?,?)");
 				pstmtProfileInsert = msaConn.prepareStatement("insert into msa_profile (msa_id, document_namespace, document_table, annotation_type, `group`, profile_type, name, profile, score) values (?,?,?,?,?,?,?,?,?)");
 				pstmtDeleteProfiles = msaConn.prepareStatement("delete from msa_profile where annotation_type = ? and `group` = ?");
-				pstmtReadProfile = msaConn.prepareStatement("select score from msa_profile where `group` = ? and profile = ? and profile_type = ? and annotation_type = ?");
-				pstmtUpdateProfileScore = msaConn.prepareStatement("update msa_profile set score = ? where document_namespace = ? and document_table = ? and `group` = ? and profile = ? and profile_type = ? and annotation_type = ?");
+				pstmtReadProfile = msaConn.prepareStatement("select score from msa_profile where " + rq + "group" + rq + " = ? and profile = ? and profile_type = ? and annotation_type = ?");
+				pstmtUpdateProfileScore = msaConn.prepareStatement("update msa_profile set score = ? where document_namespace = ? and document_table = ? and " + rq + "group" + rq + " = ? and profile = ? and profile_type = ? and annotation_type = ?");
 
 			}
 
-			pstmtSents = conn.prepareStatement("select document_id, start, end, id from annotation "
+			pstmtSents = conn.prepareStatement("select document_id, start, " + rq + "end" + rq + ", id from " + schema + "annotation "
 					+ "where document_namespace = ? and document_table = ? and "
 					+ "annotation_type = 'Sentence' and document_id = ? order by start");
 			
-			pstmtSentAnnots = conn.prepareStatement("select document_namespace, document_table, document_id, id, annotation_type, start, end, value, features, provenance "
-					+ "from annotation where document_namespace = ? and document_table = ? and "
+			pstmtSentAnnots = conn.prepareStatement("select document_namespace, document_table, document_id, id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance "
+					+ "from " + schema + "annotation where document_namespace = ? and document_table = ? and "
 					+ "document_id = ? and start >= ? and start < ? order by start");
 			
-			pstmtAnnotInsert = conn.prepareStatement("insert into annotation (id, document_namespace, document_table, document_id, annotation_type, start, end, features, score, value, provenance) values (?,?,?,?,?,?,?,?,?,?,?)");
+			pstmtAnnotInsert = conn.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", features, score, value, provenance) values (?,?,?,?,?,?,?,?,?,?,?)");
 
 		}
 		catch(SQLException e)
@@ -251,7 +259,7 @@ public class MySQLDBInterface implements MSADBInterface
 		List<Annotation> annotList = new ArrayList<Annotation>();
 		
 		try {
-			StringBuilder queryStr = new StringBuilder("select document_id, document_namespace, document_table, id, start, end, value, annotation_type, value, features from annotation where");
+			StringBuilder queryStr = new StringBuilder("select document_id, document_namespace, document_table, id, start, " + rq + "end" + rq + ", value, annotation_type, value, features from annotation where");
 			
 			queryStr.append(" document_namespace = '" + docNamespace + "'");
 			queryStr.append(" and document_table = '" + docTable + "'");

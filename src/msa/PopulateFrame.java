@@ -8,16 +8,19 @@ public class PopulateFrame
 {
 	private Connection conn;
 	private PreparedStatement pstmtInsert;
+	private String schema;
 	
 	public PopulateFrame()
 	{
 	}
 	
-	public void init(Connection conn)
+	public void init(Connection conn, String schema)
 	{
+		this.schema = schema + ".";
+		
 		try {
 			this.conn = conn;
-			pstmtInsert = conn.prepareStatement("insert into frame_instance_data (frame_instance_id, slot_id, value, section_slot_number, element_slot_number, document_namespace, "
+			pstmtInsert = conn.prepareStatement("insert into " + this.schema + "frame_instance_data (frame_instance_id, slot_id, value, section_slot_number, element_slot_number, document_namespace, "
 				+ "document_table, document_id, annotation_id, provenance, element_id, v_scroll_pos, scroll_height, scroll_width) values (?,?,?,0,0,?,?,?,?,'msa-ie',?,null,null,null)");
 		}
 		catch(Exception e)
@@ -31,8 +34,29 @@ public class PopulateFrame
 		try {
 			
 			Statement stmt = conn.createStatement();
-			ResultSet rs = stmt.executeQuery("select id, document_namespace, document_table, document_id, value, annotation_type from annotation where provenance = 'msa-ie' and (document_namespace, document_table, document_id, id) not in "
-					+ "(select distinct a.document_namespace, a.document_table, a.document_id, a.annotation_id from frame_instance_data a)");
+			
+			String queryStr = "delete from " + schema + "frame_instance_data where (document_id, annotation_id) in (select distinct document_id, id from " + schema + "annotation where provenance = 'msa-ie')";
+			if (DBConnection.dbType.startsWith("sqlserver")) {
+				queryStr = "delete from " + schema + "frame_instance_data where exists "
+					+ "(select b.* from " + schema + "annotation b where b.provenance = 'msa-ie' and " + schema + "frame_instance_data.document_id = b.document_id and "
+					+ schema + "frame_instance_data.annotation_id = b.id)";
+			}
+			
+			stmt.execute(queryStr);
+			
+			queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type from " + schema + "annotation where provenance = 'msa-ie' and (document_namespace, document_table, document_id, id) not in "
+					+ "(select distinct a.document_namespace, a.document_table, a.document_id, a.annotation_id from frame_instance_data a)";
+			
+			if (DBConnection.dbType.startsWith("sqlserver")) {
+				queryStr = "select a.id, a.document_namespace, a.document_table, a.document_id, a.value, a.annotation_type from " + schema + "annotation a where provenance = 'msa-ie' and not exists "
+					+ "(select b.* from " + schema + "frame_instance_data b where "
+					+ "a.document_namespace = b.document_namespace and a.document_table = b.document_table and a.document_id = b.document_id and "
+					+ "a.id = b.annotation_id)";
+			}
+			
+			ResultSet rs = stmt.executeQuery(queryStr);
+			
+			
 			while (rs.next()) {
 				int annotID = rs.getInt(1);
 				String docNamespace = rs.getString(2);
@@ -70,7 +94,7 @@ public class PopulateFrame
 		
 		try {
 			Statement stmt = conn.createStatement();
-			ResultSet rs = stmt.executeQuery("select distinct frame_instance_id from frame_instance_document where document_id = " + docID);
+			ResultSet rs = stmt.executeQuery("select distinct frame_instance_id from " + schema + "frame_instance_document where document_id = " + docID);
 			if (rs.next())
 				frameInstanceID = rs.getInt(1);
 			
@@ -93,12 +117,12 @@ public class PopulateFrame
 			int elementID = -1;
 			
 			Statement stmt = conn.createStatement();
-			ResultSet rs = stmt.executeQuery("select slot_id from slot where annotation_type = '" + annotType + "'");
+			ResultSet rs = stmt.executeQuery("select slot_id from " + schema + "slot where annotation_type = '" + annotType + "'");
 			if (rs.next())
 				slotID = rs.getInt(1);
 			
 			
-			rs = stmt.executeQuery("select a.element_id from element_value a, value b where b.slot_id = " + slotID + " and a.value_id = b.value_id");
+			rs = stmt.executeQuery("select a.element_id from " + schema + "element_value a, " + schema + "value b where b.slot_id = " + slotID + " and a.value_id = b.value_id");
 			if (rs.next())
 				elementID = rs.getInt(1);
 			

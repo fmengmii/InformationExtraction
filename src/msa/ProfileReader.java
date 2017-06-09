@@ -15,8 +15,6 @@ public class ProfileReader
 	private String dbType;
 	private String docNamespace;
 	private String docTable;
-	//private com.datastax.driver.core.PreparedStatement pstmtCass;
-	private PreparedStatement pstmtSQL;
 	private Order order = Order.NONE;
 	private double minScore = 0.0;
 	private double maxScore = 1.0;
@@ -24,6 +22,9 @@ public class ProfileReader
 	
 	private Map<Long, MSAProfile> profileIDMap;
 	private Map<MSAProfile, Map<MSAProfile, Boolean>> targetFilterMap;
+	
+	//private PreparedStatement pstmtSQL;
+	
 	
 	public enum Order {NONE, ASC, DSC};
 	
@@ -62,16 +63,13 @@ public class ProfileReader
 	public void init(String user, String password, String host, String dbType, String keyspace) throws SQLException, ClassNotFoundException
 	{
 		this.dbType = dbType;
-		//this.docNamespace = docNamespace;
-		//this.docTable = docTable;
+		String queryStr = "select profile_id, profile, profile_type, score, true_pos, false_pos from msa_profile where annotation_type = ? and " + rq + "group" + rq + " = ? and profile_type = ?";
 		
-		String queryStr = "select profile_id, profile, profile_type, score, true_pos, false_pos from msa_profile where annotation_type = ? and `group` = ? and profile_type = ?";
-		
-		if (dbType.equals("mysql")) {
+		//if (dbType.equals("mysql")) {
 			conn = DBConnection.dbConnection(user, password, host, keyspace, dbType);
 			rq = DBConnection.reservedQuote;
-			pstmtSQL = conn.prepareStatement(queryStr);
-		}
+			//pstmtSQL = conn.prepareStatement(queryStr);
+		//}
 		
 		profileIDMap = new HashMap<Long, MSAProfile>();
 	}
@@ -98,7 +96,8 @@ public class ProfileReader
 	public List<MSAProfile> read(String annotType, String group, int start, int clusterSize, int profileType, String msaTable) throws SQLException, ClassNotFoundException
 	{
 		List<String> groupList = new ArrayList<String>();
-		groupList.add(group);
+		if (group != null)
+			groupList.add(group);
 		
 		return read(annotType, groupList, start, clusterSize, profileType, msaTable);
 	}
@@ -108,7 +107,7 @@ public class ProfileReader
 		List<MSAProfile> profileList= new ArrayList<MSAProfile>();
 		//profileIDMap = new HashMap<Long, MSAProfile>();
 
-		if (dbType.equals("mysql")) {
+		//if (dbType.equals("mysql")) {
 			
 			Statement stmt = conn.createStatement();
 			StringBuilder strBlder = new StringBuilder();
@@ -121,13 +120,19 @@ public class ProfileReader
 					strBlder.append("'" + group + "'");
 				}
 				
-				strBlder.insert(0, " and `group` in (");
+				strBlder.insert(0, " and " + rq + "group" + rq + " in (");
 				strBlder.append(")");
 			}
+			
+			StringBuilder limitStr = new StringBuilder();
+			if (dbType.equals("mysql"))
+				limitStr.append("limit " + start + ", " + clusterSize);
+			else if (dbType.startsWith("sqlserver"))
+				limitStr.append("offset " + start + " rows fetch next " + clusterSize + " rows only");
 
-			ResultSet rs = stmt.executeQuery("select profile_id, profile, profile_type, score, true_pos, false_pos, `group` from " + msaTable
+			ResultSet rs = stmt.executeQuery("select profile_id, profile, profile_type, score, true_pos, false_pos, " + rq + "group" + rq + " from " + msaTable
 				+ " where annotation_type = '" + annotType + "' and profile_type = " + profileType + strBlder.toString() + " order by profile_id "
-				+ "limit " + start + ", " + clusterSize);
+				+ limitStr.toString());
 
 			while (rs.next()) {
 				long profileID = rs.getLong(1);
@@ -166,7 +171,7 @@ public class ProfileReader
 			}
 			
 			stmt.close();
-		}
+		//}
 		
 		return profileList;
 			
@@ -179,7 +184,7 @@ public class ProfileReader
 		
 		Statement stmt = conn.createStatement();
 		
-		ResultSet rs = stmt.executeQuery("select a.profile_id, a.target_id, b.profile, b.`group`, c.profile "
+		ResultSet rs = stmt.executeQuery("select a.profile_id, a.target_id, b.profile, b." + rq + "group" + rq + ", c.profile "
 			+ "from " + finalProfileTable + " a, " + profileTable + " b, " + profileTable + " c "
 			+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.target_id = c.profile_id and "
 			+ "a.total >= " + total + " and a.prec >= " + prec);
@@ -309,11 +314,13 @@ public class ProfileReader
 		return targetProfileMap;
 	}
 	
-	public Map<MSAProfile, Map<MSAProfile, Boolean>> readTargetFilters() throws SQLException
+	public Map<MSAProfile, Map<MSAProfile, Boolean>> readTargetFilters(String filterTable) throws SQLException
 	{
 		Map<MSAProfile, Map<MSAProfile, Boolean>> targetFilterMap = new HashMap<MSAProfile, Map<MSAProfile, Boolean>>();
+		
+		
 		Statement stmt = conn.createStatement();
-		ResultSet rs = stmt.executeQuery("select profile_id, target_id from filter");
+		ResultSet rs = stmt.executeQuery("select profile_id, target_id from " + filterTable);
 		while (rs.next()) {
 			long profileID = rs.getLong(1);
 			long targetID = rs.getLong(2);
@@ -330,6 +337,7 @@ public class ProfileReader
 		}
 		
 		stmt.close();
+		
 		
 		return targetFilterMap;
 	}

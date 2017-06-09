@@ -51,7 +51,7 @@ public class AutoAnnotate
 	private int limit;
 	private Boolean requireTarget;
 		
-	private MSADBInterface db;
+	private MySQLDBInterface db;
 	private Connection docDBConn;
 	private Connection conn;
 	private Connection conn2;
@@ -119,6 +119,9 @@ public class AutoAnnotate
 	
 	private int totalTP;
 	
+	private String schema = "";
+	
+	private String rq;
 	
 	public AutoAnnotate()
 	{
@@ -185,6 +188,8 @@ public class AutoAnnotate
 			docNamespace = props.getProperty("docNamespace");
 			docTable = props.getProperty("docTable");
 			targetType = props.getProperty("targetAnnotType");
+			schema = props.getProperty("schema");
+			
 			
 			//profileAnnotType = props.getProperty("profileAnnotType");
 			//negProfileAnnotType = props.getProperty("negProfileAnnotType");
@@ -309,7 +314,7 @@ public class AutoAnnotate
 		}
 	}
 	
-	public void annotate(String annotUser, String annotPassword, String msaUser, String msaPassword, String docUser, String docPassword)
+	public void annotate(String user, String password, String docUser, String docPassword)
 	{
 		System.out.println("auto annotate...");
 		
@@ -320,26 +325,33 @@ public class AutoAnnotate
 		try {
 			//init DB connections
 			db = new MySQLDBInterface();
-			db.init(msaUser, msaPassword, host, dbName, dbName);
+			db.setDBType(dbType);
+			db.setSchema(schema);
+			db.init(user, password, host, dbName, dbName);
 			
-			conn = DBConnection.dbConnection(annotUser, annotPassword, host, dbName, dbType);
-			conn2 = DBConnection.dbConnection(annotUser, annotPassword, host, dbName, dbType);
-			pstmt = conn.prepareStatement("select max(id) from annotation where document_namespace = '" + docNamespace + "' and document_table = '" + docTable + "' "
+			schema = schema + ".";
+			
+			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
+			conn2 = DBConnection.dbConnection(user, password, host, dbName, dbType);
+			rq = DBConnection.reservedQuote;
+			
+			pstmt = conn.prepareStatement("select max(id) from " + schema + "annotation where document_namespace = '" + docNamespace + "' and document_table = '" + docTable + "' "
 				+ "and document_id = ?");
-			pstmt2 = conn.prepareStatement("insert into annotation (id, document_namespace, document_table, document_id, annotation_type, start, end, value, features, provenance, score) "
+			pstmt2 = conn.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance, score) "
 				+ "values (?, '" + docNamespace + "', '" + docTable + "',?,?,?,?,?,?,?,?)");
 			
-			pstmt3 = conn.prepareStatement("select distinct a.annotation_type, a.value, a.document_id, a.start, a.end from annotation a, annotation b "
-				+ "where a.provenance = 'conll2003-token' and b.value = ? and a.start >= b.start and a.end <= b.end and a.document_id = b.document_id "
+			pstmt3 = conn.prepareStatement("select distinct a.annotation_type, a.value, a.document_id, a.start, a." + rq + "end" + rq + " from " + schema + "annotation a, " + schema + "annotation b "
+				+ "where a.provenance = 'conll2003-token' and b.value = ? and a.start >= b.start and a." + rq + "end" + rq + " <= b." + rq + "end" + rq + " and a.document_id = b.document_id "
 				+ "and a.document_id in (select distinct c.document_id from ner.conll2003_document c where c.`group` = 'train')");
 			
-			pstmtWrite = conn2.prepareStatement("insert into " + autoMatchTable + " (profile_id, document_id, start, end, target_id, run_name) values (?,?,?,?,?,'" + runName + "')");
+			pstmtWrite = conn2.prepareStatement("insert into " + autoMatchTable + " (profile_id, document_id, start, " + rq + "end" + rq + ", target_id, run_name) values (?,?,?,?,?,'" + runName + "')");
 			
-			pstmtCheck = conn2.prepareStatement("select count(*) from " + autoMatchTable + " where document_id = ? and start = ? and end = ? and run_name = '" + runName + "'");
+			pstmtCheck = conn2.prepareStatement("select count(*) from " + autoMatchTable + " where document_id = ? and start = ? and " + rq + "end" + rq + " = ? and run_name = '" + runName + "'");
 			
-			pstmtDeleteFrameData = conn.prepareStatement("delete from frame_instance_data where document_id = ? and annotation_id in (select a.id from annotation a where a.document_id = ? and a.annotation_type = ? and provenance = '" + autoProvenance + "')");
-			pstmtDeleteAnnots = conn.prepareStatement("delete from annotation where annotation_type = ? and document_id = ? and provenance = '" + autoProvenance + "'");
+			pstmtDeleteFrameData = conn.prepareStatement("delete from " + schema + "frame_instance_data where document_id = ? and annotation_id in (select a.id from annotation a where a.document_id = ? and a.annotation_type = ? and provenance = '" + autoProvenance + "')");
+			pstmtDeleteAnnots = conn.prepareStatement("delete from " + schema + "annotation where annotation_type = ? and document_id = ? and provenance = '" + autoProvenance + "'");
 			
+			rq = DBConnection.reservedQuote;
 			
 			
 
@@ -468,7 +480,7 @@ public class AutoAnnotate
 				
 				List<AnnotationSequenceGrid> negGridList = new ArrayList<AnnotationSequenceGrid>();
 				for (AnnotationSequence seq : negSeqList) {
-					List<AnnotationSequenceGrid> gridList = genGrid.toAnnotSeqGrid(seq, false, false, false, true);
+					List<AnnotationSequenceGrid> gridList = genGrid.toAnnotSeqGrid(seq, false, false, false, true, false);
 					negGridList.addAll(gridList);
 				}
 				
@@ -478,7 +490,7 @@ public class AutoAnnotate
 				ProfileReader reader = new ProfileReader();
 				reader.setOrder(Order.DSC);
 				reader.setMinScore(0.0);
-				reader.init(msaUser, msaPassword, host, dbType, dbName);
+				reader.init(user, password, host, dbType, dbName);
 	
 				List<ProfileGrid> profileGridList = new ArrayList<ProfileGrid>();
 				Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap = new HashMap<AnnotationSequenceGrid, MSAProfile>();
@@ -835,6 +847,7 @@ public class AutoAnnotate
 	public void writeAnnotations(String annotType)
 	{
 		try {
+			/*
 			if (finalAnnotList.size() > 0) {
 				pstmtDeleteAnnots.setString(1, annotType);
 				for (long docID : docIDList) {
@@ -847,6 +860,7 @@ public class AutoAnnotate
 					pstmtDeleteAnnots.execute();
 				}
 			}
+			*/
 			
 			for (Annotation annot : finalAnnotList) {
 					
@@ -1015,10 +1029,10 @@ public class AutoAnnotate
 	private void readAnswers(String annotType, String negAnnotType, long docID, List<AnnotationSequence> seqList) throws SQLException
 	{
 		Statement stmt = conn.createStatement();
-		PreparedStatement pstmt = conn.prepareStatement("select start, end from annotation where document_id = ? and annotation_type = 'Token' and start >= ? and end <= ? order by start");
+		PreparedStatement pstmt = conn.prepareStatement("select start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = 'Token' and start >= ? and " + rq + "end" + rq + " <= ? order by start");
 		
 		String annotType2 = "B" + annotType.substring(1);
-		String queryStr = "select start, end, value, annotation_type from annotation "
+		String queryStr = "select start, " + rq + "end" + rq + ", value, annotation_type from " + schema + "annotation "
 			+ "where document_id = " + docID + " and ";
 		
 		String annotClause = "(provenance = '" + targetProvenance + "' and (annotation_type = '" + annotType + "' or annotation_type = '" + annotType2 + "')";
@@ -1145,14 +1159,14 @@ public class AutoAnnotate
 	public static void main(String[] args)
 	{
 		if (args.length != 5) {
-			System.out.println("usage: annotUser annotPassword msaUser msaPassword docUser docPassword config");
+			System.out.println("usage: user password docUser docPassword config");
 			System.exit(0);
 		}
 		
 		try {
 			AutoAnnotate auto = new AutoAnnotate();
-			auto.init(args[6]);
-			auto.annotate(args[0], args[1], args[2], args[3], args[4], args[5]);
+			auto.init(args[4]);
+			auto.annotate(args[0], args[1], args[2], args[3]);
 			//auto.eval();
 			
 			//if (auto.write)

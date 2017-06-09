@@ -1,5 +1,6 @@
 package msa;
 
+import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -7,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -52,10 +54,14 @@ public class ProfileStats
 	
 	private List<Long> docIDList;
 	
-	private boolean write = false;
+	private boolean write = true;
 	
 	private String annotType;
 	private MatchWriter matchWriter;
+	
+	private String schema;
+	
+	private PrintWriter pw;
 	
 	public ProfileStats()
 	{
@@ -136,6 +142,16 @@ public class ProfileStats
 		this.docIDList = docIDList;
 	}
 	
+	public void setSchema(String schema)
+	{
+		this.schema = schema + ".";
+	}
+	
+	public void setPrintWriter(PrintWriter pw)
+	{
+		this.pw = pw;
+	}
+	
 	public void init(String annotUser, String annotPassword, String msaUser, String msaPassword, String host, String keyspace, String msaKeyspace, String dbType,
 		String indexTable, String annotType, String provenance)
 	{
@@ -148,7 +164,7 @@ public class ProfileStats
 			
 			pstmt = msaConn.prepareStatement("select document_id, start, end from msa_profile_match_index where profile_id = ? and target_id = ?");
 			//pstmt2 = msaConn.prepareStatement("select count(*) from msa_profile_match_index where profile_id = ?");
-			pstmt2 = msaConn.prepareStatement("insert into filter (profile_id, target_id) values (?,?)");
+			pstmt2 = msaConn.prepareStatement("insert into " + schema + "filter (profile_id, target_id) values (?,?)");
 			
 			matchWriter = new MatchWriter();
 			matchWriter.init(msaUser, msaPassword, host, msaKeyspace, dbType, indexTable);
@@ -221,6 +237,10 @@ public class ProfileStats
 			
 			while (start < gridList.size()) {
 				System.out.println("BLOCK: " + start + ", " + end);
+				
+				if (pw != null)
+					pw.println("BLOCK: " + start + ", " + end);
+				
 				List<ProfileMatch> matchList = profileMatcher.matchProfile(gridList, profileGridList, targetGridList, annotType, false, maxGaps, syntax, phrase, true, start, end, msaProfileMap, msaTargetProfileMap, invertedIndex);
 				
 				currMatchList.addAll(matchList);
@@ -346,6 +366,11 @@ public class ProfileStats
 						count = 0;
 					negMap.put(key, ++count);
 				}
+				
+				if (profileID == 182 && targetID == 318) {
+					System.out.println("here182: " + posMap.get(key) + "," + negMap.get(key));
+				}
+
 			}
 		}
 		
@@ -379,10 +404,9 @@ public class ProfileStats
 			}
 			*/
 			
-			for (int j=0; j<targetGridList.size(); j++) {
-				AnnotationSequenceGrid targetGrid = targetGridList.get(j);
-				if (targetGridMap.get(targetGrid) != null)
-					continue;
+			Iterator<AnnotationSequenceGrid> iter = targetGridMap.keySet().iterator();
+			for (;iter.hasNext();) {
+				AnnotationSequenceGrid targetGrid = iter.next();
 				
 				MSAProfile target = msaTargetProfileMap.get(targetGrid);
 				long targetID = target.getProfileID();
@@ -394,21 +418,51 @@ public class ProfileStats
 				if (fp == null)
 					fp = 0;
 				
+				if (tp == 0 && fp == 0)
+					continue;
+				
 				double prec = ((double) tp) / ((double) (tp + fp));
+				
 				//if ((tp + fp) >= 10 && prec < .9) {
-				if (((tp + fp) >= negFilterMinCount && prec < negFilterThreshold) || 
-						((tp + fp)  >= posFilterMinCount && prec >= posFilterThreshold)) {
+				boolean negRemove = false;
+				boolean posRemove = false;
+				
+				
+				
+				if (((tp + fp) >= negFilterMinCount && prec < negFilterThreshold))
+					negRemove = true;
+				
+				if ((tp + fp)  >= posFilterMinCount && prec >= posFilterThreshold)
+					posRemove = true;
+				
+				if (negRemove || posRemove) {
 					//remove target
-					System.out.println("Removing target: " + profile.getProfileStr() + ", " + target.getProfileStr());
+					System.out.println("Removing target: " + profile.getProfileID() + "," + target.getProfileID() + ": " + profile.getProfileStr() + ", " + target.getProfileStr());
 					System.out.println(tp + ", " + fp + ", " + prec);
+					if (negRemove)
+						System.out.println("Neg remove");
+					else
+						System.out.println("Pos remove");
+					
+					if (pw != null) {
+						pw.println("Removing target: " + profile.getProfileID() + "," + target.getProfileID() + ": " + profile.getProfileStr() + ", " + target.getProfileStr());
+						pw.println(tp + ", " + fp + ", " + prec);
+						if (negRemove)
+							pw.println("Neg remove");
+						else
+							pw.println("Pos remove");
+						pw.flush();
+					}
 					//targetGridList.remove(j);
 					
-					Map<AnnotationSequenceGrid, Boolean> targetFilterGrid = profileGrid.getTargetGridMap();
-					targetFilterGrid.put(targetGrid, true);
+					//Map<AnnotationSequenceGrid, Boolean> targetFilterGrid = profileGrid.getTargetGridMap();
+					//targetFilterGrid.put(targetGrid, true);
+					//targetGridMap.put(targetGrid, false);
+					iter.remove();
 					
 					posMap.remove(profileID + "|" + targetID);
 					negMap.remove(profileID + "|" + targetID);
-					j--;
+					//j--;
 					
 					if (write) {
 						try {
@@ -421,7 +475,7 @@ public class ProfileStats
 						}
 					}
 				}
-			}
+			}			
 		}
 	}
 	
@@ -472,10 +526,13 @@ public class ProfileStats
 		}
 		*/
 		
+		String rq = DBConnection.reservedQuote;
+		
 		Statement stmt = conn.createStatement();
-		ResultSet rs = stmt.executeQuery("select a.document_id, a.start, a.end from annotation a, annotation b where a.annotation_type = 'Token' and "
-			+ "a.start >= b.start and a.end <= b.end and b.annotation_type = '" + annotType + "' "
-			+ "and b.provenance = '" + provenance + "' and a.document_id = b.document_id and a.document_id < 1163 order by start");
+		ResultSet rs = stmt.executeQuery("select a.document_id, a.start, a." + rq + "end" + rq + " from " + schema + "annotation a, " + schema + "annotation b where a.annotation_type = 'Token' and "
+			+ "a.start >= b.start and a." + rq + "end" + rq + " <= b." + rq + "end" + rq + " and b.annotation_type = '" + annotType + "' "
+			+ "and b.provenance = '" + provenance + "' and a.document_id = b.document_id order by start");
+			//and a.document_id < 1163 order by start");
 		
 		while (rs.next()) {
 			long docID = rs.getLong(1);

@@ -37,6 +37,7 @@ public class IEDriver
 	
 	private boolean write;
 	private String schema;
+	private String docSchema;
 	private boolean verbose;
 	
 	private List<Map<String, Object>> msaAnnotFilterList;
@@ -70,6 +71,7 @@ public class IEDriver
 	private String gateHome;
 	private String gateLogFile;
 	private String gateProvenance;
+	private String gateDocQuery;
 	
 	
 	//MSA
@@ -196,7 +198,8 @@ public class IEDriver
 			
 			verbose = Boolean.parseBoolean(props.getProperty("verbose"));
 
-			schema = props.getProperty("schema") + ".";
+			schema = props.getProperty("schema");
+			docSchema = props.getProperty("docSchema");
 			sleep = Long.parseLong(props.getProperty("sleep"));
 			
 			gateFlag = Boolean.parseBoolean(props.getProperty("gateFlag"));
@@ -225,6 +228,7 @@ public class IEDriver
 			gateHome = props.getProperty("gate.home");
 			gateLogFile = props.getProperty("logFile");
 			gateProvenance = props.getProperty("gateProvenance");
+			gateDocQuery = props.getProperty("gateDocQuery");
 			
 			
 			//get MSA properties
@@ -299,30 +303,31 @@ public class IEDriver
 			
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			
-			pstmtInsertFrameInstanceStatus = conn.prepareStatement("insert into " + schema + "frame_instance_status (frame_instance_id, status) values (?,0)");
-			pstmtInsertDocStatus = conn.prepareStatement("insert into " + schema + "document_status (document_namespace, document_table, document_id, status) "
+			String schema2 = schema + ".";
+			pstmtInsertFrameInstanceStatus = conn.prepareStatement("insert into " + schema2 + "frame_instance_status (frame_instance_id, status) values (?,0)");
+			pstmtInsertDocStatus = conn.prepareStatement("insert into " + schema2 + "document_status (document_namespace, document_table, document_id, status) "
 				+ "values (?,?,?,0)");
-			pstmtGetNewDocs = conn.prepareStatement("select document_namespace, document_table, document_id from frame_instance_document where frame_instance_id = ?");
-			pstmtGetDocsWithStatus = conn.prepareStatement("select document_namespace, document_table, document_id from document_status where status = ?");
-			pstmtUpdateDocsWithStatus = conn.prepareStatement("update document_status set status = ? where status = ?");
-			pstmtUpdateDocsWithStatusDocID = conn.prepareStatement("update document_status set status = ? where status = ? and document_id = ?");
-			pstmtUpdateGenFilterStatus = conn.prepareStatement("update gen_filter_status set document_id = ? where annotation_type = ?");
-			pstmtTableLookup = conn.prepareStatement("select table_name from tablename_lookup where table_type = ? and annotation_type = ?");
-			pstmtInsertAutoStatus = conn.prepareStatement("insert into auto_status (annotation_type, profile_id, document_id) values (?,0,0)");
-			pstmtGetMinAutoDocID = conn.prepareStatement("select document_id from filter_status where annotation_type = ?");
-			pstmtGetMaxAutoDocID = conn.prepareStatement("select max(document_id) from document_status where status = 0");
-			pstmtCheckAutoStatus = conn.prepareStatement("select profile_id, document_id from auto_status where annotation_type = ?");
-			pstmtUpdateAutoStatus = conn.prepareStatement("update auto_status set document_id = ?, profile_id = ? where annotation_type = ?");
-			pstmtGetMaxAutoProfileID = conn.prepareStatement("select max(profile_id) from profile where annotation_type = ? and profile_type = ?");
-			pstmtGetAnnotCount = conn.prepareStatement("select count(*) from annotation a, document_status b where a.annotation_type = ? and b.status = 1 and "
+			pstmtGetNewDocs = conn.prepareStatement("select document_namespace, document_table, document_id from " + schema2 + "frame_instance_document where frame_instance_id = ?");
+			pstmtGetDocsWithStatus = conn.prepareStatement("select document_namespace, document_table, document_id from " + schema2 + "document_status where status = ?");
+			pstmtUpdateDocsWithStatus = conn.prepareStatement("update " + schema2 + "document_status set status = ? where status = ?");
+			pstmtUpdateDocsWithStatusDocID = conn.prepareStatement("update " + schema2 + "document_status set status = ? where status = ? and document_id = ?");
+			pstmtUpdateGenFilterStatus = conn.prepareStatement("update " + schema2 + "gen_filter_status set document_id = ? where annotation_type = ?");
+			pstmtTableLookup = conn.prepareStatement("select table_name from " + schema2 + "tablename_lookup where table_type = ? and annotation_type = ?");
+			pstmtInsertAutoStatus = conn.prepareStatement("insert into " + schema2 + "auto_status (annotation_type, profile_id, document_id) values (?,0,0)");
+			pstmtGetMinAutoDocID = conn.prepareStatement("select document_id from " + schema2 + "filter_status where annotation_type = ?");
+			pstmtGetMaxAutoDocID = conn.prepareStatement("select max(document_id) from " + schema2 + "document_status where status = 0");
+			pstmtCheckAutoStatus = conn.prepareStatement("select profile_id, document_id from " + schema2 + "auto_status where annotation_type = ?");
+			pstmtUpdateAutoStatus = conn.prepareStatement("update " + schema2 + "auto_status set document_id = ?, profile_id = ? where annotation_type = ?");
+			pstmtGetMaxAutoProfileID = conn.prepareStatement("select max(profile_id) from " + schema2 + "profile where annotation_type = ? and profile_type = ?");
+			pstmtGetAnnotCount = conn.prepareStatement("select count(*) from " + schema2 + "annotation a, " + schema2 + "document_status b where a.annotation_type = ? and b.status = 1 and "
 				+ "a.document_namespace = b.document_namespace and a.document_table = b.document_table and a.document_id = b.document_id");
-			pstmtResetGenMSAStatus = conn.prepareStatement("update gen_msa_status set profile_count = 0");
-			pstmtInsertGenMSAStatus = conn.prepareStatement("insert into gen_msa_status (annotation_type, profile_count) values (?,?)");
-			pstmtUpdateGenMSAStatus = conn.prepareStatement("update gen_msa_status set profile_count = ? where annotation_type = ?");
-			pstmtGetGenMSAStatus = conn.prepareStatement("select profile_count from gen_msa_status where annotation_type = ?");
-			pstmtGetGenFilterStatus = conn.prepareStatement("select document_id from gen_filter_status");
-			pstmtInsertGenFilterStatus = conn.prepareStatement("insert into gen_filter_status (document_id) values (?)");
-			pstmtUpdateGenFilterStatus = conn.prepareStatement("update gen_filter_status set document_id = ?");
+			pstmtResetGenMSAStatus = conn.prepareStatement("update " + schema2 + "gen_msa_status set profile_count = 0");
+			pstmtInsertGenMSAStatus = conn.prepareStatement("insert into " + schema2 + "gen_msa_status (annotation_type, profile_count) values (?,?)");
+			pstmtUpdateGenMSAStatus = conn.prepareStatement("update " + schema2 + "gen_msa_status set profile_count = ? where annotation_type = ?");
+			pstmtGetGenMSAStatus = conn.prepareStatement("select profile_count from " + schema2 + "gen_msa_status where annotation_type = ?");
+			pstmtGetGenFilterStatus = conn.prepareStatement("select document_id from " + schema2 + "gen_filter_status");
+			pstmtInsertGenFilterStatus = conn.prepareStatement("insert into " + schema2 + "gen_filter_status (document_id) values (?)");
+			pstmtUpdateGenFilterStatus = conn.prepareStatement("update " + schema2 + "gen_filter_status set document_id = ?");
 			
 		}
 		catch(Exception e)
@@ -354,7 +359,7 @@ public class IEDriver
 		}
 	}
 	
-	public void run(String annotUser, String annotPassword, String docUser, String docPassword, String msaUser, String msaPassword)
+	public void run(String user, String password, String docUser, String docPassword)
 	{
 		try {
 			//init gate batch processor
@@ -380,10 +385,12 @@ public class IEDriver
 			gateProps.setProperty("docIDCol", docIDCol);
 			gateProps.setProperty("docTextCol", docTextCol);
 			gateProps.setProperty("provenance", gateProvenance);
+			gateProps.setProperty("schema", schema);
+			gateProps.setProperty("docSchema", docSchema);
 			
-			String gateDocQuery = "select a." + docIDCol + ", a." + docTextCol + " from " + schema + docTable + " a, document_status b "
-				+ "where b.document_namespace = '" + docNamespace + "' and b.document_table = '" + docTable + "' and a." + docIDCol + " = b.document_id and b.status = 0 "
-				+ "order by a." + docIDCol;
+			//String gateDocQuery = "select a." + docIDCol + ", a." + docTextCol + " from " + schema + docTable + " a, document_status b "
+			//	+ "where b.document_namespace = '" + docNamespace + "' and b.document_table = '" + docTable + "' and a." + docIDCol + " = b.document_id and b.status = 0 "
+			//	+ "order by a." + docIDCol;
 			
 			gateProps.setProperty("docQuery", gateDocQuery);
 			
@@ -405,6 +412,7 @@ public class IEDriver
 			//msaProps.setProperty("msaKeyspace", msaKeyspace);
 			msaProps.setProperty("docNamespace", docNamespace);
 			msaProps.setProperty("docTable", docTable);
+			msaProps.setProperty("schema", schema);
 			
 			msaProps.setProperty("group", group);
 			msaProps.setProperty("targetGroup", targetGroup);
@@ -448,6 +456,7 @@ public class IEDriver
 			pattProps.setProperty("docNamespace", docNamespace);
 			pattProps.setProperty("docTable", docTable);
 			//pattProps.setProperty("profileTable", msaTable);
+			pattProps.setProperty("schema", schema);
 			
 			pattProps.setProperty("group", group);
 			pattProps.setProperty("targetGroup", targetGroup);
@@ -491,6 +500,7 @@ public class IEDriver
 			//bestProps.setProperty("annotKeyspace", keyspace);
 			//bestProps.setProperty("msaKeyspace", msaKeyspace);
 			bestProps.setProperty("dbType", dbType);
+			bestProps.setProperty("schema", schema);
 			//bestProps.setProperty("annotType", annotType);
 			//bestProps.setProperty("finalTable", finalTable);
 			//bestProps.setProperty("indexTable", indexTableName);
@@ -517,6 +527,7 @@ public class IEDriver
 			//autoProps.setProperty("msaKeyspace", msaKeyspace);
 			autoProps.setProperty("docNamespace", docNamespace);
 			autoProps.setProperty("docTable", docTable);
+			autoProps.setProperty("schema", schema);
 			
 			autoProps.setProperty("punctuation", Boolean.toString(punct));
 			autoProps.setProperty("verbose", Boolean.toString(verbose));
@@ -553,7 +564,7 @@ public class IEDriver
 			autoAnnot.init(autoProps);
 
 			
-			pop.init(conn);
+			pop.init(conn, schema);
 			
 			
 
@@ -629,7 +640,7 @@ public class IEDriver
 					
 					//run GATE pipeline
 					if (docList.size() > 0) {
-						gate.process(annotUser, annotPassword, docUser, docPassword);
+						gate.process(user, password, docUser, docPassword);
 						//updateDocsWithStatus(0, 1);
 					}
 				}
@@ -684,7 +695,7 @@ public class IEDriver
 							genMSADriver.setTargetType(annotType);
 							genMSADriver.setProfileTable(profileTable);
 							//genMSADriver.setRequireTarget(requireTargetMap.get(annotType));
-							genMSADriver.run(annotUser, annotPassword, docUser, docPassword);
+							genMSADriver.run(user, password, docUser, docPassword);
 							
 							pstmtUpdateGenMSAStatus.setInt(1, annotCount);
 							pstmtUpdateGenMSAStatus.setString(2, annotType);
@@ -708,7 +719,7 @@ public class IEDriver
 					filterPatt.setAnnotTypeList(activeAnnotTypeList);
 					filterPatt.setProfileTableList(profileTableList);
 					filterPatt.setIndexTableList(indexTableList);
-					filterPatt.filterPatterns(annotUser, annotPassword, docUser, docPassword, msaUser, msaPassword);
+					filterPatt.filterPatterns(user, password, docUser, docPassword, user, password);
 					//updateDocsWithStatus(2, 3);
 				}
 				
@@ -725,7 +736,7 @@ public class IEDriver
 					bestPatt.setProfileTableList(profileTableList);
 					bestPatt.setIndexTableList(indexTableList);
 					bestPatt.setFinalTableList(finalTableList);					
-					bestPatt.getBestPatterns(msaUser, msaPassword, annotUser, annotPassword);
+					bestPatt.getBestPatterns(user, password, user, password);
 				}
 				
 				//auto annotate
@@ -735,7 +746,7 @@ public class IEDriver
 					autoAnnot.setAnnotTypeList(activeAnnotTypeList);
 					autoAnnot.setProfileTableList(profileTableList);
 					autoAnnot.setFinalTableList(finalTableList);
-					autoAnnot.annotate(annotUser, annotPassword, msaUser, msaPassword, docUser, docPassword);
+					autoAnnot.annotate(user, password, docUser, docPassword);
 					
 					autoAnnot.close();
 				}
@@ -850,13 +861,13 @@ public class IEDriver
 	
 	public static void main(String[] args)
 	{
-		if (args.length != 7) {
-			System.out.println("usage: annotUser annotPassword docUser docPassword msaUser msaPassword config");
+		if (args.length != 5) {
+			System.out.println("usage: user password docUser docPassword config");
 			System.exit(0);
 		}
 		
 		IEDriver ie = new IEDriver();
-		ie.init(args[0], args[1], args[6]);
-		ie.run(args[0], args[1], args[2], args[3], args[4], args[5]);
+		ie.init(args[0], args[1], args[4]);
+		ie.run(args[0], args[1], args[2], args[3]);
 	}
 }

@@ -170,23 +170,6 @@ public class GenSentences
 					long seqStart = seq.getStart();
 					lastSentIndex = seq.getEnd();
 					
-					/*
-					for (int i=0; i<seqQ.size(); i++) {
-						long maxEnd = maxEndList.get(i);
-						if (maxEnd <= seqStart) {
-							seqQ.remove(i);
-							maxEndList.remove(i);
-							i--;
-						}
-						else {
-							AnnotationSequence seq2 = seqQ.get(i);
-							seq2.append(seq);
-						}
-					}
-					*/
-					
-					
-					
 					boolean hasTarget = false;
 					long currMaxEnd = -1;
 					//System.out.println("after get sent annots");
@@ -202,6 +185,9 @@ public class GenSentences
 
 						
 						Map<String, Object> annotFilter = annotFilterMap.get(annotType);
+						if (annotType.equals("lungrads-age"))
+							System.out.println("annotType: " + annotType + ", annotFilter: " + gson.toJson(annotFilter));
+						
 						if (annotFilter == null)
 							continue;
 						

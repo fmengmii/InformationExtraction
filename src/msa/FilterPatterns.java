@@ -21,7 +21,7 @@ public class FilterPatterns
 	private Gson gson;
 	private GenSentences genSent;
 	private ProfileStats stats;
-	private MSADBInterface db;
+	private MySQLDBInterface db;
 	
 	private String host;
 	private String dbName;
@@ -92,6 +92,10 @@ public class FilterPatterns
 	private PreparedStatement pstmtUpdateFilterStatus;
 	
 	private long minDocID;
+	
+	private String schema = "";
+	
+	private PrintWriter pw;
 	
 	
 	public FilterPatterns()
@@ -178,6 +182,8 @@ public class FilterPatterns
 			docNamespace = props.getProperty("docNamespace");
 			docTable = props.getProperty("docTable");
 			
+			schema = props.getProperty("schema");
+			
 			punct = Boolean.parseBoolean(props.getProperty("punctuation"));
 			write = Boolean.parseBoolean(props.getProperty("write"));
 			verbose = Boolean.parseBoolean(props.getProperty("verbose"));
@@ -221,8 +227,10 @@ public class FilterPatterns
 			if (limitStr != null)
 				limit = Integer.parseInt(limitStr);
 			
-			if (dbType.equals("mysql"))
-				db = new MySQLDBInterface();
+			//if (dbType.equals("mysql"))
+			db = new MySQLDBInterface();
+			db.setDBType(dbType);
+			db.setSchema(schema);
 				
 			
 			genSent.setVerbose(verbose);
@@ -302,6 +310,8 @@ public class FilterPatterns
 			*/
 			
 			
+			pw = new PrintWriter(new FileWriter("output/filter.txt"));
+			
 			docIDMap = new HashMap<String, List<Long>>();
 			
 			db.init(annotUser, annotPassword, host, dbName, dbName);
@@ -313,7 +323,7 @@ public class FilterPatterns
 			pstmtUpdateFilterStatus = conn.prepareStatement("update filter_status set document_id = ? where annotation_type = ?");
 			
 			if (docDBQuery == null)
-				docDBQuery = "select distinct document_id from document_status where annotation_type = ? and b.status = 1 order by document_id";
+				docDBQuery = "select distinct document_id from " + schema + "document_status where annotation_type = ? and b.status = 1 order by document_id";
 			PreparedStatement pstmtGetDocIDs = conn2.prepareStatement(docDBQuery);
 			
 			Statement stmt = conn.createStatement();
@@ -427,6 +437,8 @@ public class FilterPatterns
 				stats.setNegFilterMinCount(negFilterMinCount);
 				stats.setPosFilterThreshold(posFilterThreshold);
 				stats.setPosFilterMinCount(posFilterMinCount);
+				stats.setSchema(schema);
+				stats.setPrintWriter(pw);
 				stats.init(annotUser, annotPassword, msaUser, msaPassword, host, dbName, dbName, dbType, indexTable,
 					targetType, targetProvenance);
 				
@@ -438,7 +450,7 @@ public class FilterPatterns
 				
 				List<AnnotationSequenceGrid> gridList = new ArrayList<AnnotationSequenceGrid>();
 				for (AnnotationSequence negSeq : negSeqList) {
-					List<AnnotationSequenceGrid> negGridList2 = genGrid.toAnnotSeqGrid(negSeq, false, false, true, true);
+					List<AnnotationSequenceGrid> negGridList2 = genGrid.toAnnotSeqGrid(negSeq, false, false, true, true, false);
 					gridList.addAll(negGridList2);
 				}
 				
@@ -459,7 +471,7 @@ public class FilterPatterns
 				reader.setMinScore(targetMinScore);
 				reader.setMaxScore(1.0);
 				targetProfileList = reader.read(targetType, targetGroup, 0, Integer.MAX_VALUE, 1, profileTable);
-				Map<MSAProfile, Map<MSAProfile, Boolean>> targetFilterMap = reader.readTargetFilters();
+				Map<MSAProfile, Map<MSAProfile, Boolean>> targetFilterMap = reader.readTargetFilters(schema + ".filter");
 				Map<MSAProfile, AnnotationSequenceGrid> targetGridMap = new HashMap<MSAProfile, AnnotationSequenceGrid>();
 				Map<Long, AnnotationSequenceGrid> targetIDMap = new HashMap<Long, AnnotationSequenceGrid>();
 				
@@ -510,6 +522,10 @@ public class FilterPatterns
 				int readStart = 0;
 				ProfileInvertedIndex invertedIndex = new ProfileInvertedIndex();
 
+				reader.setMinScore(0.0);
+				reader.setMaxScore(0.99);
+
+				
 				while (true) {
 					profileGridList = new ArrayList<ProfileGrid>();
 					//targetProfileGridList = new ArrayList<AnnotationSequenceGrid>();
@@ -517,8 +533,6 @@ public class FilterPatterns
 					
 					Map<Long, ProfileGrid> profileIDMap = new HashMap<Long, ProfileGrid>();
 					
-					reader.setMinScore(0.0);
-					reader.setMaxScore(0.99);
 					profileList = reader.read(targetType, group, readStart, clusterSize, 0, profileTable);
 					
 					
@@ -546,12 +560,13 @@ public class FilterPatterns
 						Map<MSAProfile, Boolean> msaProfileFilterMap = targetFilterMap.get(msaProfile);
 						Map<AnnotationSequenceGrid, Boolean> targetFilterMap2 = new HashMap<AnnotationSequenceGrid, Boolean>();
 						
-						if (msaProfileFilterMap != null) {
-							for (MSAProfile msaProfile2 : msaProfileFilterMap.keySet()) {
+						for (MSAProfile msaProfile2 : targetProfileList) {
+							if (msaProfileFilterMap == null || msaProfileFilterMap.get(msaProfile2) == null) {
 								AnnotationSequenceGrid grid = targetGridMap.get(msaProfile2);
 								targetFilterMap2.put(grid, true);
 							}
 						}
+						
 						
 						ProfileGrid profileGridObj = new ProfileGrid(profileGrid, targetFilterMap2);
 						profileIDMap.put(msaProfile.getProfileID(), profileGridObj);
@@ -604,6 +619,8 @@ public class FilterPatterns
 				
 				annotTypeNameList.remove(annotTypeNameList.size()-1);
 			}
+			
+			pw.close();
 			
 			db.close();
 			conn.close();

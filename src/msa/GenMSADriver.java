@@ -45,11 +45,12 @@ public class GenMSADriver
 	private boolean punct;
 	private boolean write;
 	private boolean verbose;
-	private MSADBInterface db;
+	private MySQLDBInterface db;
 	
 	private List<Map<String, Object>> msaAnnotFilterList;
 	private String msaAnnotFilterStr;
 	private String targetType;
+	private String targetType2 = null;
 	private String targetProvenance;
 	
 	private int msaBlockSize;
@@ -64,6 +65,8 @@ public class GenMSADriver
 	private String dbType;
 	//private String keyspace;
 	//private String msaKeyspace;
+	private String schema;
+	
 	private String profileTable;
 	
 	private List<DocBean> totalDocList;
@@ -139,6 +142,7 @@ public class GenMSADriver
 			docTable = props.getProperty("docTable");
 			group = props.getProperty("group");
 			targetGroup = props.getProperty("targetGroup");
+			schema = props.getProperty("schema");
 			
 			punct = Boolean.parseBoolean(props.getProperty("punctuation"));
 			write = Boolean.parseBoolean(props.getProperty("write"));
@@ -148,6 +152,7 @@ public class GenMSADriver
 			phrase = Integer.parseInt(props.getProperty("phrase"));
 			requireTarget = Boolean.parseBoolean(props.getProperty("requireTarget"));
 			targetType = props.getProperty("targetType");
+			targetType2 = props.getProperty("targetType2");
 			
 			if (targetType != null)
 				profileTable = props.getProperty("profileTable");
@@ -166,8 +171,10 @@ public class GenMSADriver
 			if (limitStr != null)
 				limit = Integer.parseInt(limitStr);
 			
-			if (dbType.equals("mysql"))
-				db = new MySQLDBInterface();
+			//if (dbType.equals("mysql"))
+			db = new MySQLDBInterface();
+			db.setDBType(dbType);
+			db.setSchema(schema);
 				
 			
 			genSent.setVerbose(verbose);
@@ -221,6 +228,16 @@ public class GenMSADriver
 			targetMap.put("targetStr", ":target");
 			msaAnnotFilterList.add(targetMap);
 			
+			if (targetType2 != null) {
+				targetMap = new HashMap<String, Object>();
+				targetMap.put("annotType", targetType2);
+				targetMap.put("target", true);
+				targetMap.put("provenance", targetProvenance);
+				targetMap.put("targetStr", ":target2");
+				msaAnnotFilterList.add(targetMap);
+			}
+			
+			
 			annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType);
 			annotTypeNameList.add(":" + targetType.toLowerCase());
 			scoreList.add(10.0);
@@ -245,6 +262,8 @@ public class GenMSADriver
 			db.init(user, password, host, dbName, dbName);
 			
 			//generate the sentences
+			System.out.println("requireTarget: " + requireTarget + " targetType: " + targetType);
+			
 			genSent.setRequireTarget(requireTarget);
 			genSent.setPunct(punct);
 			genSent.init(db, msaAnnotFilterList, targetType, targetProvenance);
@@ -357,7 +376,7 @@ public class GenMSADriver
 				if (requireTarget) {
 					gridList = new ArrayList<AnnotationSequenceGrid>();
 					for (AnnotationSequence seq : seqList2) {
-						List<AnnotationSequenceGrid> gridList2 = genGrid.toAnnotSeqGrid(seq, true, true, true, false);
+						List<AnnotationSequenceGrid> gridList2 = genGrid.toAnnotSeqGrid(seq, true, true, true, false, false);
 						gridList.addAll(gridList2);
 					}
 					
@@ -370,10 +389,34 @@ public class GenMSADriver
 							msaList.add(msa);
 					}
 					
-					msaMap = null;
 					ansMSAList = null;
 				}
+				
+				
+				//relation MSAs
+				if (targetType2 != null) {
+					gridList = new ArrayList<AnnotationSequenceGrid>();
+					for (AnnotationSequence seq : seqList2) {
+						List<AnnotationSequenceGrid> gridList2 = genGrid.toAnnotSeqGrid(seq, true, true, true, false, true);
+						gridList.addAll(gridList2);
+					}
 					
+					genMSA.setGridList(gridList);
+					List<MultipleSequenceAlignment> relationMSAList = genMSA.genMSA();
+					
+					for (MultipleSequenceAlignment msa : relationMSAList) {
+						if (msaMap.get(msa.toProfileString(false)) == null)
+							msaList.add(msa);
+					}
+					
+					relationMSAList = null;
+				}
+				
+				msaMap = null;
+
+					
+				
+				
 				//get grids from profile MSAs
 				System.out.println("\n\nProfiles");
 	
