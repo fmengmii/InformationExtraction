@@ -1,4 +1,4 @@
-CREATE TABLE SCHEMA.`profile` (
+CREATE TABLE `profile` (
   `profile_id` int(11) NOT NULL AUTO_INCREMENT,
   `group` varchar(500) DEFAULT NULL,
   `profile` text,
