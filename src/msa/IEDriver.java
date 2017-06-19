@@ -154,6 +154,9 @@ public class IEDriver
 	private PreparedStatement pstmtGetGenFilterStatus;
 	private PreparedStatement pstmtInsertGenFilterStatus;
 	private PreparedStatement pstmtUpdateGenFilterStatus;
+	private PreparedStatement pstmtGetAutoDocIDs;
+	private PreparedStatement pstmtSetFrameInstanceLocks;
+	private PreparedStatement pstmtDeleteFrameInstanceLocks;
 	
 
 	
@@ -328,6 +331,12 @@ public class IEDriver
 			pstmtGetGenFilterStatus = conn.prepareStatement("select document_id from " + schema2 + "gen_filter_status");
 			pstmtInsertGenFilterStatus = conn.prepareStatement("insert into " + schema2 + "gen_filter_status (document_id) values (?)");
 			pstmtUpdateGenFilterStatus = conn.prepareStatement("update " + schema2 + "gen_filter_status set document_id = ?");
+			
+			pstmtGetAutoDocIDs = conn.prepareStatement(autoDBQuery);
+			pstmtSetFrameInstanceLocks = conn.prepareStatement("insert into " + schema2 + "frame_instance_lock (frame_instance_id, username) values (?,?)");
+			pstmtDeleteFrameInstanceLocks = conn.prepareStatement("delete from " + schema2 + "frame_instance_lock where username = ?");
+			pstmtSetFrameInstanceLocks.setString(2, "msa-ie");
+			pstmtDeleteFrameInstanceLocks.setString(1, "msa-ie");
 			
 		}
 		catch(Exception e)
@@ -743,10 +752,27 @@ public class IEDriver
 				if (autoFlag) {
 					System.out.println("** AUTO **");
 					
+					//set frame instance locks
+					ResultSet rs2 = pstmtGetAutoDocIDs.executeQuery();
+					while (rs2.next()) {
+						long docID = rs2.getLong(1);
+						pstmtSetFrameInstanceLocks.setLong(1, docID);
+						
+						try {
+							pstmtSetFrameInstanceLocks.execute();
+						}
+						catch(SQLException e)
+						{
+							//there is already a lock on this document
+						}
+					}
+					
 					autoAnnot.setAnnotTypeList(activeAnnotTypeList);
 					autoAnnot.setProfileTableList(profileTableList);
 					autoAnnot.setFinalTableList(finalTableList);
 					autoAnnot.annotate(user, password, docUser, docPassword);
+					
+					pstmtDeleteFrameInstanceLocks.execute();
 					
 					autoAnnot.close();
 				}
