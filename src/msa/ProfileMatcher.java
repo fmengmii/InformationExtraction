@@ -23,6 +23,8 @@ public class ProfileMatcher
 	private List<ProfileMatch> noMatchList;
 	private Map<String, List<String>> profileTargetMap;
 	
+	private int maxGridLen = 100;
+	
 	
 	private PrintWriter pw;
 	
@@ -81,10 +83,13 @@ public class ProfileMatcher
 		for (int i=gridStartIndex; i<gridEndIndex; i++) {
 
 			AnnotationSequenceGrid grid = gridList.get(i);
+			if (grid.size() > maxGridLen)
+				continue;
+			
 			List<String> toks = grid.getSequence().getToks();
 			
 			//get profiles from inverted index
-			List<ProfileGrid> profileGridListIndex = invertedIndex.getMatchedGridList(grid);
+			List<ProfileGrid> profileGridListIndex = invertedIndex.getMatchedGridList(grid, annotType);
 			
 			//System.out.println(profileGridListIndex.size());
 			
@@ -149,7 +154,6 @@ public class ProfileMatcher
 			Map<String, Boolean> profileGridMap2 = new HashMap<String, Boolean>();
 
 			do {
-				
 				String gridStr = gson.toJson(grid.getSequence().getToks());
 				
 				//iterate through each profile
@@ -329,6 +333,8 @@ public class ProfileMatcher
 									targetProfileGridList.add(targetGrid2);
 							}
 							
+								
+							
 							//iterate through each target profile
 							for (AnnotationSequenceGrid targetProfileGrid : targetProfileGridList) {
 								
@@ -488,6 +494,9 @@ public class ProfileMatcher
 								matched = true;
 
 								MSAProfile profile = msaProfileMap.get(profileGrid);
+								if (profile.getProfileID() == 182)
+									System.out.println("match targetGridMap size: " + profileGridObj.getTargetGridMap().size());
+
 								
 								for (int tIndex=0; tIndex<targetGridList.size(); tIndex++) {
 									List<MSAProfile> targetList = new ArrayList<MSAProfile>();
@@ -514,25 +523,25 @@ public class ProfileMatcher
 									matchCount++;
 									
 									if (verbose) {
-										System.out.println("MATCHED!: " + annotType + ", " + profileStr + ", " + gson.toJson(matchCoords1) + ", " + gson.toJson(matchCoords2) + ", " + targetMatchIndexes[0] + ":" + targetMatchIndexes[1]);
-										//System.out.println("Target: " + targetStr);
+										System.out.println("MATCHED!: " + annotType + ", " + ", " + gson.toJson(matchCoords1) + ", " + gson.toJson(matchCoords2) + ", " + targetMatchIndexes[0] + ":" + targetMatchIndexes[1]);
+										System.out.println("MATCHED PROFILE: " + profile.getProfileID() + "|" + profileStr);
 										
 										for (int k=0; k<targetList.size(); k++) {
 											target = targetList.get(k);
 											String targetStr2 = targetStrList.get(tIndex);
-											System.out.println("targetProfile: " + target.getProfileStr());
-											System.out.println("Target: " + targetStr2);
+											System.out.println("MATCHED TARGET PROFILE: " + target.getProfileID() + "|" + target.getProfileStr());
+											System.out.println("MATCHED TARGET: " + targetStr2);
 										}
 										
 										if (pw != null) {
-											pw.println("MATCHED!: " + annotType + ", " + profileStr + ", " + gson.toJson(matchCoords1) + ", " + gson.toJson(matchCoords2) + ", " + targetMatchIndexes[0] + ":" + targetMatchIndexes[1]);
-											//pw.println("Target: " + targetStr);
+											pw.println("MATCHED!: " + annotType + ", " + ", " + gson.toJson(matchCoords1) + ", " + gson.toJson(matchCoords2) + ", " + targetMatchIndexes[0] + ":" + targetMatchIndexes[1]);
+											pw.println("MATCHED PROFILE: " + profile.getProfileID() + "|" + profileStr);
 											
 											for (int k=0; k<targetList.size(); k++) {
 												target = targetList.get(k);
 												String targetStr2 = targetStrList.get(tIndex);
-												pw.println("targetProfile: " + target.getProfileStr());
-												pw.println("Target: " + targetStr2);
+												pw.println("MATCHED TARGET PROFILE: " + target.getProfileID() + "|" + target.getProfileStr());
+												pw.println("MATCHED TARGET: " + targetStr2);
 											}
 										}
 									}
@@ -576,7 +585,7 @@ public class ProfileMatcher
 							}
 
 							//add the matched target as an annotation
-							//we don't do this for training because there's only one target in each grid by definition
+							//we don't do this for extraction because there's only one target in each grid by definition
 							/*
 							if (profileMatched && extraction) {
 								int start = targetMatchCoords.get(0)[0];
@@ -586,6 +595,7 @@ public class ProfileMatcher
 								col.add(elem);
 							}
 							*/
+							
 						}
 					}
 	
@@ -593,6 +603,10 @@ public class ProfileMatcher
 				}
 				
 				profileGridList.addAll(profileGridList2);
+				
+				if (extraction)
+					profileGridListIndex = invertedIndex.getMatchedGridList(grid, annotType);
+
 			}
 			while(extraction && matchCount > 0);
 			

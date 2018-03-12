@@ -207,7 +207,7 @@ public class GenMSADriver
 	public void close()
 	{
 		try {
-			db.close();
+			//db.close();
 		}
 		catch(Exception e)
 		{
@@ -374,14 +374,14 @@ public class GenMSADriver
 				//gen MSAs with answers
 				
 				if (requireTarget) {
-					gridList = new ArrayList<AnnotationSequenceGrid>();
+					List<AnnotationSequenceGrid> gridListAnswers = new ArrayList<AnnotationSequenceGrid>();
 					for (AnnotationSequence seq : seqList2) {
 						List<AnnotationSequenceGrid> gridList2 = genGrid.toAnnotSeqGrid(seq, true, true, true, false, false);
-						gridList.addAll(gridList2);
+						gridListAnswers.addAll(gridList2);
 					}
 					
 					
-					genMSA.setGridList(gridList);
+					genMSA.setGridList(gridListAnswers);
 					List<MultipleSequenceAlignment> ansMSAList = genMSA.genMSA();
 					
 					for (MultipleSequenceAlignment msa : ansMSAList) {
@@ -394,6 +394,7 @@ public class GenMSADriver
 				
 				
 				//relation MSAs
+				/*
 				if (targetType2 != null) {
 					gridList = new ArrayList<AnnotationSequenceGrid>();
 					for (AnnotationSequence seq : seqList2) {
@@ -411,6 +412,7 @@ public class GenMSADriver
 					
 					relationMSAList = null;
 				}
+				*/
 				
 				msaMap = null;
 
@@ -500,6 +502,7 @@ public class GenMSADriver
 				profileList = new ArrayList<MSAProfile>();
 				targetProfileList = new ArrayList<MSAProfile>();
 	
+				
 				for (int i=0; i<profileSeqGridList.size(); i++) {
 					AnnotationSequenceGrid grid = profileSeqGridList.get(i);
 					int rows = msaRowList.get(i);
@@ -508,6 +511,7 @@ public class GenMSADriver
 					MSAProfile profile = new MSAProfile(profileGridStr, targetType, group, 0, toks, 0.0, rows);
 					profileList.add(profile);
 				}
+				
 				
 				if (requireTarget) {
 					for (AnnotationSequenceGrid grid : targetProfileGridList) {
@@ -541,6 +545,7 @@ public class GenMSADriver
 			}
 			
 			genMSA.close();
+			db.close();
 		}
 		catch(Exception e)
 		{

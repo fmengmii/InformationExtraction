@@ -1,6 +1,7 @@
 package msa;
 
 import java.sql.*;
+import java.util.*;
 
 import utils.db.DBConnection;
 
@@ -55,7 +56,7 @@ public class PopulateFrame
 			}
 			
 			ResultSet rs = stmt.executeQuery(queryStr);
-			
+			Map<String, Boolean> map = new HashMap<String, Boolean>();
 			
 			while (rs.next()) {
 				int annotID = rs.getInt(1);
@@ -67,16 +68,22 @@ public class PopulateFrame
 				
 				int frameInstanceID = getFrameInstanceID(docID);
 				int[] ans = getElementSlotID(annotType);
+				String key = frameInstanceID + "|" + ans[0] + "|" + ans[1];
 				
-				pstmtInsert.setInt(1, frameInstanceID);
-				pstmtInsert.setInt(2, ans[1]);
-				pstmtInsert.setString(3, value);
-				pstmtInsert.setString(4, docNamespace);
-				pstmtInsert.setString(5, docTable);
-				pstmtInsert.setLong(6, docID);
-				pstmtInsert.setInt(7, annotID);
-				pstmtInsert.setInt(8, ans[0]);
-				pstmtInsert.execute();
+				Boolean flag = map.get(key);
+				if (flag == null) {
+					map.put(key, true);
+				
+					pstmtInsert.setInt(1, frameInstanceID);
+					pstmtInsert.setInt(2, ans[1]);
+					pstmtInsert.setString(3, value);
+					pstmtInsert.setString(4, docNamespace);
+					pstmtInsert.setString(5, docTable);
+					pstmtInsert.setLong(6, docID);
+					pstmtInsert.setInt(7, annotID);
+					pstmtInsert.setInt(8, ans[0]);
+					pstmtInsert.execute();
+				}
 			}
 			
 			

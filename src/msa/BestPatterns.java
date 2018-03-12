@@ -2,6 +2,9 @@ package msa;
 
 import java.sql.*;
 import java.util.*;
+
+import com.google.gson.Gson;
+
 import java.io.*;
 
 import utils.db.DBConnection;
@@ -28,6 +31,9 @@ public class BestPatterns
 	private double posThreshold;
 	private int posMinCount;
 	
+	private List<String> groupList;
+	private List<String> targetGroupList;
+	
 	private List<String> annotTypeList;
 	private List<String> profileTableList;
 	private List<String> indexTableList;
@@ -36,11 +42,15 @@ public class BestPatterns
 	private String rq;
 	
 	private String schema = "";
+	
+	
+	private Gson gson;
 
 	
 	
 	public BestPatterns()
 	{
+		gson = new Gson();
 	}
 	
 	public void init(Properties props)
@@ -60,6 +70,16 @@ public class BestPatterns
 		posThreshold = Double.parseDouble(props.getProperty("posThreshold"));
 		posMinCount = Integer.parseInt(props.getProperty("posMinCount"));
 		schema = props.getProperty("schema") + ".";
+		
+		String groupListStr = props.getProperty("groupList");
+		groupList = new ArrayList<String>();
+		groupList = gson.fromJson(groupListStr, groupList.getClass());
+		
+		String targetGroupListStr = props.getProperty("targetGroupListStr");
+		targetGroupList = new ArrayList<String>();
+		targetGroupList = gson.fromJson(targetGroupListStr, targetGroupList.getClass());
+		
+		
 	}
 	
 	public void close()
@@ -187,6 +207,7 @@ public class BestPatterns
 				
 				Map<String, Integer> posMap = new HashMap<String, Integer>();
 				Map<String, Integer> negMap = new HashMap<String, Integer>();
+				Map<String, Integer> docCountMap = new HashMap<String, Integer>();
 				String targetStr = "";
 				
 				long currProfileID = -1;
@@ -224,18 +245,30 @@ public class BestPatterns
 					
 		
 					String key = profileID + "|" + targetID;
+					String docKey = profileID + "|" + targetID + "|" + docID;
 					Boolean ansFlag = ansMap.get(docID + "|" + start + "|" + end);
 					
 	
 					long profileID2 = profileID;
 					if (ansFlag != null) {
 						//System.out.println(profileID + "|" + targetID + "|" + docID + "|" + start + "|" + end + "|" + targetStr + "|" + ansFlag);
-	
-						Integer count = posMap.get(key);
-						if (count == null)
-							count = 0;
 						
-						posMap.put(key, ++count);
+						boolean inc = true;
+						Integer docCount = docCountMap.get(docKey + "|" + ansFlag);
+						if (docCount == null)
+							docCount = 0;
+						if (docCount == 2)
+							inc = false;
+						else 
+							docCountMap.put(docKey + "|" + ansFlag, ++docCount);
+						
+						if (inc) {
+							Integer count = posMap.get(key);
+							if (count == null)
+								count = 0;
+							
+							posMap.put(key, ++count);
+						}
 						
 						Integer profileCount = profileTotals.get(profileID);
 						if (profileCount == null)
@@ -245,11 +278,23 @@ public class BestPatterns
 						
 					}
 					else {
-						Integer count = negMap.get(key);
-						if (count == null)
-							count = 0;
+						boolean inc = true;
+						ansFlag = false;
+						Integer docCount = docCountMap.get(docKey + "|" + ansFlag);
+						if (docCount == null)
+							docCount = 0;
+						if (docCount == 2)
+							inc = false;
+						else 
+							docCountMap.put(docKey + "|" + ansFlag, ++docCount);
 						
-						negMap.put(key, ++count);
+						if (inc) {
+							Integer count = negMap.get(key);
+							if (count == null)
+								count = 0;
+							
+							negMap.put(key, ++count);
+						}
 						
 						profileID2 = -profileID;
 					}
@@ -547,7 +592,8 @@ public class BestPatterns
 			*/
 		
 		
-		ResultSet rs = stmt.executeQuery("select distinct document_id, start, " + rq + "end" + rq + " from " + schema + "annotation where annotation_type = '" + annotType + "' order by start");
+		ResultSet rs = stmt.executeQuery("select distinct document_id, start, " + rq + "end" + rq + " from " + schema + "annotation where annotation_type = '" + annotType + 
+			"' and provenance = '" + provenance + "' order by document_id, start");
 		
 		while (rs.next()) {
 			long docID = rs.getLong(1);

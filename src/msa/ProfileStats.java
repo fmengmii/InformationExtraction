@@ -367,7 +367,7 @@ public class ProfileStats
 					negMap.put(key, ++count);
 				}
 				
-				if (profileID == 182 && targetID == 318) {
+				if (profileID == 182 && targetID == 321) {
 					System.out.println("here182: " + posMap.get(key) + "," + negMap.get(key));
 				}
 
@@ -458,7 +458,13 @@ public class ProfileStats
 					//Map<AnnotationSequenceGrid, Boolean> targetFilterGrid = profileGrid.getTargetGridMap();
 					//targetFilterGrid.put(targetGrid, true);
 					//targetGridMap.put(targetGrid, false);
+					if (profileID == 182 && targetID== 321)
+						System.out.println("before targetGridMap size: " + targetGridMap.size());
+					
 					iter.remove();
+					
+					if (profileID == 182 && targetID== 321)
+						System.out.println("after targetGridMap size: " + targetGridMap.size());
 					
 					posMap.remove(profileID + "|" + targetID);
 					negMap.remove(profileID + "|" + targetID);
@@ -529,6 +535,9 @@ public class ProfileStats
 		String rq = DBConnection.reservedQuote;
 		
 		Statement stmt = conn.createStatement();
+		
+		
+		/*
 		ResultSet rs = stmt.executeQuery("select a.document_id, a.start, a." + rq + "end" + rq + " from " + schema + "annotation a, " + schema + "annotation b where a.annotation_type = 'Token' and "
 			+ "a.start >= b.start and a." + rq + "end" + rq + " <= b." + rq + "end" + rq + " and b.annotation_type = '" + annotType + "' "
 			+ "and b.provenance = '" + provenance + "' and a.document_id = b.document_id order by start");
@@ -538,6 +547,22 @@ public class ProfileStats
 			long docID = rs.getLong(1);
 			int start = rs.getInt(2);
 			int end = rs.getInt(3);
+			ansMap.put(docID + "|" + start + "|" + end, true);
+		}
+		*/
+		
+		
+		
+		
+		ResultSet rs = stmt.executeQuery("select distinct document_id, start, " + rq + "end" + rq
+			+ "from " + schema + "annotation where annotation_type = '" + annotType
+			+ "' and provenance = '" + provenance + "' order by document_id, start");
+		
+		while (rs.next()) {
+			long docID = rs.getLong(1);
+			int start = rs.getInt(2);
+			int end = rs.getInt(3);
+			
 			ansMap.put(docID + "|" + start + "|" + end, true);
 		}
 		

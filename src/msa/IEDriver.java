@@ -6,7 +6,7 @@ import java.util.*;
 
 import com.google.gson.Gson;
 
-import gate.GateBatch;
+import gate.*;
 import utils.db.DBConnection;
 
 public class IEDriver
@@ -35,6 +35,7 @@ public class IEDriver
 	private String docTable;
 	private String provenance;
 	
+	private int runIterations;
 	private boolean write;
 	private String schema;
 	private String docSchema;
@@ -72,6 +73,7 @@ public class IEDriver
 	private String gateLogFile;
 	private String gateProvenance;
 	private String gateDocQuery;
+	private GateCallback gateCallback;
 	
 	
 	//MSA
@@ -134,7 +136,10 @@ public class IEDriver
 	
 	private Statement stmt;
 	private PreparedStatement pstmtInsertFrameInstanceStatus;
+	private PreparedStatement pstmtCheckFrameInstanceStatus;
+	private PreparedStatement pstmtUpdateFrameInstanceStatus;
 	private PreparedStatement pstmtInsertDocStatus;
+	private PreparedStatement pstmtUpdateDocStatus;
 	private PreparedStatement pstmtGetNewDocs;
 	private PreparedStatement pstmtGetDocsWithStatus;
 	private PreparedStatement pstmtUpdateDocsWithStatus;
@@ -173,6 +178,7 @@ public class IEDriver
 		pop = new PopulateFrame();
 		
 		gson = new Gson();
+		//gate.setCallback(gateCallback);
 	}
 	
 	public void init(String user, String password, String config)
@@ -191,6 +197,7 @@ public class IEDriver
 			docDBHost = props.getProperty("docDBHost");
 			docDBName = props.getProperty("docDBName");
 			docDBType = props.getProperty("docDBType");
+			runIterations = Integer.parseInt(props.getProperty("runIterations"));
 			
 			//keyspace = props.getProperty("keyspace");
 			//msaKeyspace = props.getProperty("msaKeyspace");
@@ -211,7 +218,8 @@ public class IEDriver
 			bestFlag = Boolean.parseBoolean(props.getProperty("bestFlag"));
 			autoFlag = Boolean.parseBoolean(props.getProperty("autoFlag"));
 			
-			newDocQuery = props.getProperty("newDocQuery");
+			//newDocQuery = props.getProperty("newDocQuery");
+			
 			annotTypeQuery = props.getProperty("annotTypeQuery");
 			
 			incrementalFlag = Boolean.parseBoolean(props.getProperty("incrementalFlag"));
@@ -232,6 +240,10 @@ public class IEDriver
 			gateLogFile = props.getProperty("logFile");
 			gateProvenance = props.getProperty("gateProvenance");
 			gateDocQuery = props.getProperty("gateDocQuery");
+			long gateDuration = Long.parseLong(props.getProperty("gateDuration"));
+			gateCallback = new TimeCallback(gateDuration);
+			
+			gate.setCallback(gateCallback);
 			
 			
 			//get MSA properties
@@ -308,9 +320,13 @@ public class IEDriver
 			
 			String schema2 = schema + ".";
 			pstmtInsertFrameInstanceStatus = conn.prepareStatement("insert into " + schema2 + "frame_instance_status (frame_instance_id, status) values (?,0)");
+			pstmtCheckFrameInstanceStatus = conn.prepareStatement("select status from " + schema2 + "frame_instance_status where frame_instance_id = ?");
+			pstmtUpdateFrameInstanceStatus = conn.prepareStatement("update " + schema2 + "frame_instance_status set status = ? where frame_instance_id = ?");
 			pstmtInsertDocStatus = conn.prepareStatement("insert into " + schema2 + "document_status (document_namespace, document_table, document_id, status) "
 				+ "values (?,?,?,0)");
-			pstmtGetNewDocs = conn.prepareStatement("select document_namespace, document_table, document_id from " + schema2 + "frame_instance_document where frame_instance_id = ?");
+			pstmtUpdateDocStatus = conn.prepareStatement("update " + schema2 + "document_status set status = 1 where document_namespace = ? and document_table = ? and document_id = ? and status = -2");
+			pstmtGetNewDocs = conn.prepareStatement("select a.document_namespace, a.document_table, a.document_id from " + schema2 + "frame_instance_document a left join " + schema2 + "document_status b on (a.document_id = b.document_id) "
+				+ "where a.frame_instance_id = ? and b.status is null order by a.frame_instance_id, a.document_id");
 			pstmtGetDocsWithStatus = conn.prepareStatement("select document_namespace, document_table, document_id from " + schema2 + "document_status where status = ?");
 			pstmtUpdateDocsWithStatus = conn.prepareStatement("update " + schema2 + "document_status set status = ? where status = ?");
 			pstmtUpdateDocsWithStatusDocID = conn.prepareStatement("update " + schema2 + "document_status set status = ? where status = ? and document_id = ?");
@@ -332,11 +348,20 @@ public class IEDriver
 			pstmtInsertGenFilterStatus = conn.prepareStatement("insert into " + schema2 + "gen_filter_status (document_id) values (?)");
 			pstmtUpdateGenFilterStatus = conn.prepareStatement("update " + schema2 + "gen_filter_status set document_id = ?");
 			
-			pstmtGetAutoDocIDs = conn.prepareStatement(autoDBQuery);
+			
 			pstmtSetFrameInstanceLocks = conn.prepareStatement("insert into " + schema2 + "frame_instance_lock (frame_instance_id, username) values (?,?)");
 			pstmtDeleteFrameInstanceLocks = conn.prepareStatement("delete from " + schema2 + "frame_instance_lock where username = ?");
 			pstmtSetFrameInstanceLocks.setString(2, "msa-ie");
 			pstmtDeleteFrameInstanceLocks.setString(1, "msa-ie");
+			
+			
+			newDocQuery = "select a.frame_instance_id, b.status from " + schema2 + "frame_instance a left join " + schema2 + "frame_instance_status b on (a.frame_instance_id = b.frame_instance_id) where (b.frame_instance_id is null or b.status = -2) order by frame_instance_id";
+			gateDocQuery = "select document_id from " + schema2 + "document_status where status = 0 or status = -2 order by document_id";
+			msaDocQuery = "select document_id from " + schema2 + "document_status where status = 1 order by document_id";
+			filterDocQuery = "select document_id from " + schema2 + "document_status where status = 1 order by document_id";
+			autoDBQuery = "select document_id from " + schema2 + "document_status where status = 0 order by document_id";
+			
+			pstmtGetAutoDocIDs = conn.prepareStatement(autoDBQuery);
 			
 		}
 		catch(Exception e)
@@ -639,6 +664,7 @@ public class IEDriver
 			}
 			*/
 			
+			int count = 0;
 			
 			while (flag) {
 				//get docs from frameinstances that have been imported but not insert into the frame_instance_status table
@@ -646,18 +672,75 @@ public class IEDriver
 				if (gateFlag) {
 					System.out.println("** GATE **");
 					List<DocBean> docList = checkNewDocuments();
+					List<Long> docIDList = new ArrayList<Long>();
+					for (DocBean doc : docList) {
+						Long docID = doc.getDocID();
+						docIDList.add(docID);
+					}
 					
 					//run GATE pipeline
 					if (docList.size() > 0) {
+						gate.setDocIDList(docIDList);
 						gate.process(user, password, docUser, docPassword);
 						//updateDocsWithStatus(0, 1);
+						long lastDocID = gate.getCurrDoc();
+						
+						pstmtInsertDocStatus.setString(1, docNamespace);
+						pstmtInsertDocStatus.setString(2, docTable);
+						
+						pstmtUpdateDocStatus.setString(1, docNamespace);
+						pstmtUpdateDocStatus.setString(2, docTable);
+						
+						for (int i=0; i<docList.size(); i++) {
+							DocBean doc = docList.get(i);
+							long frameInstanceID = doc.getFrameInstanceID();
+							long nextFrameInstanceID = -1;
+							if (i < docList.size()-1) {
+								DocBean doc2 = docList.get(i+1);
+								nextFrameInstanceID = doc2.getFrameInstanceID();
+							}
+							
+							int status = -1;
+							pstmtCheckFrameInstanceStatus.setLong(1, frameInstanceID);
+							ResultSet rs2 = pstmtCheckFrameInstanceStatus.executeQuery();
+							if (rs2.next()) {
+								status = rs2.getInt(1);
+							}
+							
+							if (nextFrameInstanceID != frameInstanceID) {
+								if (status == -1) {
+									pstmtInsertFrameInstanceStatus.setLong(1, frameInstanceID);
+									pstmtInsertFrameInstanceStatus.execute();
+								}
+								else if (status == -2) {
+									pstmtUpdateFrameInstanceStatus.setInt(1, 1);
+									pstmtUpdateFrameInstanceStatus.setLong(2, frameInstanceID);
+									pstmtUpdateFrameInstanceStatus.execute();
+								}
+							}
+							
+							Integer docStatus = doc.getStatus();
+							long docID = doc.getDocID();
+							if (docStatus == null) {
+								pstmtInsertDocStatus.setLong(3, docID);
+								pstmtInsertDocStatus.execute();
+							}
+							else {
+								pstmtUpdateDocStatus.setLong(3, docID);
+								pstmtUpdateDocStatus.execute();
+							}
+							
+							if (doc.getDocID() == lastDocID) {
+								break;
+							}
+						}
 					}
 				}
 				
 				
 				List<String> activeAnnotTypeList = new ArrayList<String>();
 				List<DocBean> docList = new ArrayList<DocBean>();
-				long minDocID = -1;
+				//long minDocID = -1;
 				
 				//gen MSAs
 				if (msaFlag) {
@@ -693,10 +776,12 @@ public class IEDriver
 							currCount = 0;
 						}
 						
+						/*
 						minDocID = -1;
 						rs = pstmtGetGenFilterStatus.executeQuery();
 						if (rs.next())
 							minDocID = rs.getLong(1);
+							*/
 
 
 						if (annotCount > currCount) {
@@ -724,12 +809,10 @@ public class IEDriver
 					System.out.println("** FILTER **");
 					//run filter patterns
 					
-					//filterPatt.setMinDocIDList(minDocIDList);
 					filterPatt.setAnnotTypeList(activeAnnotTypeList);
 					filterPatt.setProfileTableList(profileTableList);
 					filterPatt.setIndexTableList(indexTableList);
 					filterPatt.filterPatterns(user, password, docUser, docPassword, user, password);
-					//updateDocsWithStatus(2, 3);
 				}
 				
 				if (docList.size() > 0) {
@@ -793,6 +876,11 @@ public class IEDriver
 				}
 				else
 					break;
+				
+				count++;
+				if (runIterations <= 0 || count >= runIterations)
+					break;
+				
 			}
 			
 			close();
@@ -813,9 +901,14 @@ public class IEDriver
 		while (rs.next()) {
 			
 			long frameInstanceID = rs.getLong(1);
+			Integer status = rs.getInt(2);
 			
-			pstmtInsertFrameInstanceStatus.setLong(1, frameInstanceID);
-			pstmtInsertFrameInstanceStatus.execute();
+			if (rs.wasNull())
+				status = null;
+			
+			
+			//pstmtInsertFrameInstanceStatus.setLong(1, frameInstanceID);
+			//pstmtInsertFrameInstanceStatus.execute();
 			
 			pstmtGetNewDocs.setLong(1, frameInstanceID);
 			
@@ -829,19 +922,19 @@ public class IEDriver
 				String docTable = rs2.getString(2);
 				long docID = rs2.getLong(3);
 				
-				pstmtInsertDocStatus.setString(1, docNamespace);
-				pstmtInsertDocStatus.setString(2, docTable);
-				pstmtInsertDocStatus.setLong(3, docID);
+				//pstmtInsertDocStatus.setString(1, docNamespace);
+				//pstmtInsertDocStatus.setString(2, docTable);
+				//pstmtInsertDocStatus.setLong(3, docID);
+				  
+				//try {
+					//pstmtInsertDocStatus.execute();
+				//}
+				//catch(SQLException e)
+				//{
+				//	e.printStackTrace();
+				//}
 				
-				try {
-					pstmtInsertDocStatus.execute();
-				}
-				catch(SQLException e)
-				{
-					e.printStackTrace();
-				}
-				
-				DocBean docBean = new DocBean(docNamespace, docTable, docID);
+				DocBean docBean = new DocBean(docNamespace, docTable, docID, frameInstanceID, status);
 				docList.add(docBean);
 			}
 			

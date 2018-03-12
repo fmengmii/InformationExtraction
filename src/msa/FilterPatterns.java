@@ -152,7 +152,7 @@ public class FilterPatterns
 	public void close()
 	{
 		try {
-			stats.close();
+			//stats.close();
 		}
 		catch(Exception e)
 		{
@@ -509,7 +509,7 @@ public class FilterPatterns
 				//pw.println("\n\nTarget Profiles: " + targetProfileGridList.size());
 				for (AnnotationSequenceGrid profileGrid2 : targetProfileGridList) {
 					String profileStr = gson.toJson(profileGrid2.getSequence().getToks());
-					System.out.println(profileStr);
+					//System.out.println(profileStr);
 					//pw.println(profileStr);
 				}
 				
@@ -591,7 +591,7 @@ public class FilterPatterns
 					//pw.println("\n\nProfiles: " + profileGridList.size());
 					for (ProfileGrid profileGridObj : profileGridList) {
 						String profileStr = gson.toJson(profileGridObj.getGrid().getSequence().getToks());
-						System.out.println(profileStr);
+						//System.out.println(profileStr);
 						//pw.println(profileStr);
 					}
 					
@@ -619,6 +619,7 @@ public class FilterPatterns
 				
 				annotTypeNameList.remove(annotTypeNameList.size()-1);
 			}
+			
 			
 			pw.close();
 			

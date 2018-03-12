@@ -91,7 +91,7 @@ public class ProfileInvertedIndex
 		}
 	}
 	
-	public List<ProfileGrid> getMatchedGridList(AnnotationSequenceGrid grid)
+	public List<ProfileGrid> getMatchedGridList(AnnotationSequenceGrid grid, String annotType)
 	{
 		List<ProfileGrid> profileGridList = new ArrayList<ProfileGrid>();
 		Map<ProfileGrid, Integer> countMap = new HashMap<ProfileGrid, Integer>();
@@ -175,12 +175,14 @@ public class ProfileInvertedIndex
 				
 				//set target grid map for this grid
 				Map<AnnotationSequenceGrid, Boolean> targetGridMap = profileGrid.getTargetGridMap();
+				for (AnnotationSequenceGrid targetGrid : targetGridMap.keySet()) {
+					targetGridMap.put(targetGrid, false);
+				}
+				
 				for (AnnotationSequenceGrid targetGrid : activeTargetMap.keySet()) {
 					Boolean flag = targetGridMap.get(targetGrid);
 					if (flag != null)
 						targetGridMap.put(targetGrid, true);
-					else
-						targetGridMap.put(targetGrid, false);
 				}
 			}
 		}

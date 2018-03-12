@@ -68,7 +68,7 @@ public class GateBatch
 	private com.datastax.driver.core.ResultSet cassRS;
 	private File docFile;
 	private boolean hasText;
-	private int currDoc;
+	private long currDoc;
 	private int docID;
 	
 	private String host;
@@ -108,6 +108,9 @@ public class GateBatch
 	
 	private String schema = "";
 	private String docSchema = "";
+	
+	private GateCallback callBack = null;
+	private List<Long> docIDList;
 	
 	
 	
@@ -215,6 +218,22 @@ public class GateBatch
 	}
 	
 	
+	public void setCallback(GateCallback callBack)
+	{
+		this.callBack = callBack;
+	}
+	
+	public long getCurrDoc()
+	{
+		return currDoc;
+	}
+	
+	public void setDocIDList(List<Long> docIDList)
+	{
+		this.docIDList = docIDList;
+	}
+	
+	
   /**
    * The main entry point.  First we parse the command line options (see
    * usage() method for details), then we take all remaining command line
@@ -237,10 +256,13 @@ public class GateBatch
 			//rs = stmt.executeQuery("select " + docIDCol + ", " + docTextCol + " from " + docTable + " order by " + docIDCol);
 			
 			Statement stmt2 = docConn.createStatement();
-			List<Long> docIDList = new ArrayList<Long>();
-			ResultSet rs2 = stmt.executeQuery(docQuery);
-			while (rs2.next()) {
-				docIDList.add(rs2.getLong(1));
+			
+			if (docIDList == null) {
+				docIDList = new ArrayList<Long>();
+				ResultSet rs2 = stmt.executeQuery(docQuery);
+				while (rs2.next()) {
+					docIDList.add(rs2.getLong(1));
+				}
 			}
 			
 			
@@ -290,7 +312,7 @@ public class GateBatch
 			}
 		  
 			int count = 0;
-			currDoc = 0;
+			currDoc = -1;
 		  
 			for (long docID : docIDList) {
 				
@@ -361,42 +383,68 @@ public class GateBatch
 				}
 		  
 				System.out.println("Finished processing Gate...");
+				
+				Map<String, AnnotationSet> annotSetMap = new HashMap<String, AnnotationSet>();
+				AnnotationSet annotSet = doc.getAnnotations();
+				annotSetMap.put("#default#", annotSet);
+				
+				Set<String> asNames = doc.getAnnotationSetNames();
+				for (String asName : asNames) {
 		  
-				AnnotationSet defaultAnnots = doc.getAnnotations();
-				Iterator iter = defaultAnnots.iterator();
-		  
-				while (iter.hasNext()) {
-					Annotation annot = (Annotation) iter.next();
-					
-					if (annotationTypeMap.get(annot.getType()) != null || allFlag) {
-						//System.out.println("inserting : " + annot.getType());
-						//System.out.println(reportText.substring(annot.getStartNode().getOffset().intValue(), annot.getEndNode().getOffset().intValue()));
-						if (dbWrite)
-							insertIntoDB(annot, docID, docContent);
-						
-						count++;
-					}
-			  
-					if (count % batchSize == 0) {
-						if (!dbType.equals("cassandra")) {
-							pstmt.executeBatch();
-							conn.commit();
-						}
-					}
-			  
+					AnnotationSet oneAnnotSet = doc.getAnnotations(asName);
+					annotSetMap.put(asName, oneAnnotSet);
+					//annotSet.addAll(oneAnnotSet);
+					//Iterator iter = defaultAnnots.iterator();
 				}
-		  
+				
+				
+				for (String asName : annotSetMap.keySet()) {
+					annotSet = annotSetMap.get(asName);
+					String delim = "";
+					
+					if (asName.equals("#default#"))
+						asName = "";
+
+					else
+						asName += "|";
+								  
+					Iterator<Annotation> iter = annotSet.iterator();
+					while (iter.hasNext()) {
+						Annotation annot = (Annotation) iter.next();
+						//System.out.println(annot.toString());
+						
+						if (annotationTypeMap.get(asName + annot.getType()) != null || allFlag) {
+							//System.out.println("inserting : " + annot.getType());
+							//System.out.println(reportText.substring(annot.getStartNode().getOffset().intValue(), annot.getEndNode().getOffset().intValue()));
+							if (dbWrite)
+								insertIntoDB(annot, docID, docContent, asName);
+							
+							count++;
+						}
+				  
+						if (count % batchSize == 0) {
+							if (!dbType.equals("cassandra")) {
+								pstmt.executeBatch();
+								conn.commit();
+							}
+						}
+				  
+					}
+				}
+			  
+				
 				if (!dbType.equals("cassandra")) {
 					pstmt.executeBatch();
 					conn.commit();
 				}
-		  
 				
+				/*
 				long check = checkDocumentAnnotations(docID);
 				if (check != count) {
 					System.out.println("Missing inserts: " + check + ", " + count);
 					System.exit(0);
 				}
+				*/
 				
 				
 				count = 0;
@@ -409,7 +457,14 @@ public class GateBatch
 				// Release the document, as it is no longer needed     
 				Factory.deleteResource(doc);
 			  
-				currDoc++;
+				currDoc = docID;
+				
+				if (callBack != null) {
+					Map<String, Object> retMap = callBack.callBack(docID);
+					Boolean flag = (Boolean) retMap.get("terminate");
+					if (flag)
+						break;
+				}
 			}
 		  
 			logPW.close();
@@ -470,9 +525,9 @@ public class GateBatch
 	  return maxAnnotID;
   }
 
-  private void insertIntoDB(Annotation annot, long docID2, DocumentContent docContent) throws SQLException, InvalidOffsetException
+  private void insertIntoDB(Annotation annot, long docID2, DocumentContent docContent, String asName) throws SQLException, InvalidOffsetException
   {
-	  String annotType = annot.getType();
+	  String annotType = asName + annot.getType();
 	  long start = annot.getStartNode().getOffset();
 	  long end = annot.getEndNode().getOffset();
 	  int id = annot.getId();

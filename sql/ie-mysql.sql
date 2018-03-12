@@ -31,6 +31,36 @@ CREATE TABLE `final` (
 
 
 
+CREATE TABLE `index` (
+  `profile_id` bigint(20) DEFAULT NULL,
+  `target_id` bigint(20) DEFAULT NULL,
+  `document_id` bigint(20) DEFAULT NULL,
+  `start` bigint(20) DEFAULT NULL,
+  `end` bigint(20) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+
+CREATE TABLE `auto_status` (
+  `annotation_type` varchar(500) NOT NULL,
+  `document_id` bigint(20) DEFAULT NULL,
+  `profile_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`annotation_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+CREATE TABLE `gen_filter_status` (
+  `document_id` bigint(20) NOT NULL,
+  PRIMARY KEY (`document_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+CREATE TABLE `gen_msa_status` (
+  `annotation_type` varchar(500) NOT NULL,
+  `profile_count` int(11) DEFAULT NULL,
+  PRIMARY KEY (`annotation_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
 
 
 

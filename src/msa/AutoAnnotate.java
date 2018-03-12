@@ -464,7 +464,7 @@ public class AutoAnnotate
 				
 				System.out.println("reading answers...");
 				for (long docID : docIDList)
-					readAnswers(targetType, negTargetType, docID, negSeqList);
+					readAnswers(targetType, targetProvenance, docID);
 	
 	
 				
@@ -488,7 +488,7 @@ public class AutoAnnotate
 				//read profiles
 				System.out.println("reading profiles...");
 				ProfileReader reader = new ProfileReader();
-				reader.setOrder(Order.DSC);
+				reader.setOrder(Order.ASC);
 				reader.setMinScore(0.0);
 				reader.init(user, password, host, dbType, dbName);
 	
@@ -599,8 +599,8 @@ public class AutoAnnotate
 					if (value.length() > 1 && !Character.isLetter(value.charAt(value.length()-1)))
 						value = value.substring(0, value.length()-1);
 					
-					if (StringUtils.isAllUpperCase(value))
-						continue;
+					//if (StringUtils.isAllUpperCase(value))
+					//	continue;
 					
 					if (value.length() == 0)
 						continue;
@@ -805,7 +805,8 @@ public class AutoAnnotate
 			
 			
 			
-			fn = totalTP - tp;
+			//fn = totalTP - tp;
+			fn = ansMap.size() - tp;
 			for (String key : ansMap.keySet()) {
 				if (matchMap.get(key) == null) {
 					String ansStr = ansMap.get(key);
@@ -1026,9 +1027,11 @@ public class AutoAnnotate
 		return id;
 	}
 	
-	private void readAnswers(String annotType, String negAnnotType, long docID, List<AnnotationSequence> seqList) throws SQLException
+	private void readAnswers(String annotType, String provenance, long docID) throws SQLException
 	{
 		Statement stmt = conn.createStatement();
+		
+		/*
 		PreparedStatement pstmt = conn.prepareStatement("select start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = 'Token' and start >= ? and " + rq + "end" + rq + " <= ? order by start");
 		
 		String annotType2 = "B" + annotType.substring(1);
@@ -1036,8 +1039,6 @@ public class AutoAnnotate
 			+ "where document_id = " + docID + " and ";
 		
 		String annotClause = "(provenance = '" + targetProvenance + "' and (annotation_type = '" + annotType + "' or annotation_type = '" + annotType2 + "')";
-		if (negAnnotType != null)
-			annotClause = annotClause + " or (provenance = '" + negTargetProvenance + "' and annotation_type = '" + negAnnotType + "')";
 		
 		annotClause = annotClause + ")";
 		
@@ -1072,21 +1073,10 @@ public class AutoAnnotate
 				ansMap.put(docID + "|" + start2 + "|" + end2, mapStr);
 				//System.out.println(docID + "|" + start2 + "|" + end2 + ", " + value);
 			
-				/*
-				for (AnnotationSequence seq : seqList) {
-					long docID2 = seq.getDocID();
-					long start3 = seq.getStart();
-					long end3 = seq.getEnd();
-					
-					if (docID2 == docID && start3 <= start && end3 >= end) {
-						ansSeqMap.put(docID + "|" + start2 + "|" + end2, seq);
-						break;
-					}
-				}
-				*/
 			}
 		}
-		
+		 */			
+
 		
 		/*
 		List<int[]> rangeList = new ArrayList<int[]>();
@@ -1102,8 +1092,27 @@ public class AutoAnnotate
 		*/
 		
 		
+		ResultSet rs = stmt.executeQuery("select distinct start, " + rq + "end" + rq + ", annotation_type, value "
+			+ "from " + schema + "annotation where document_id = " + docID + " and annotation_type = '" + annotType
+			+ "' and provenance = '" + provenance + "' order by start");
+		
+		while (rs.next()) {
+			int start = rs.getInt(1);
+			int end = rs.getInt(2);
+			String aType = rs.getString(3);
+			String value = rs.getString(4);
+			
+			Map<String, String> map = new HashMap<String, String>();
+			map.put("annotType", aType);
+			map.put("value", value);
+			
+			String mapStr = gson.toJson(map);
+			ansMap.put(docID + "|" + start + "|" + end, mapStr);
+		}
+		
+		
 		stmt.close();
-		pstmt.close();
+		//pstmt.close();
 	}
 	
 	private double[] getPrec(String value, String annotType2, String annotType3) throws SQLException
