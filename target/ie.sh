@@ -1,0 +1,1 @@
+java -Xmx2g -cp ie.jar:./lib/* msa.IEDriver $1 $2 $3 $4 $5

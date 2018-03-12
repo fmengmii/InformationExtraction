@@ -203,13 +203,14 @@ public class IEDriver
 			//msaKeyspace = props.getProperty("msaKeyspace");
 			
 			write = Boolean.parseBoolean(props.getProperty("write"));
-			docNamespace = props.getProperty("docNamespace");
+			//docNamespace = props.getProperty("docNamespace");
 			docTable = props.getProperty("docTable");
 			
 			verbose = Boolean.parseBoolean(props.getProperty("verbose"));
 
 			schema = props.getProperty("schema");
 			docSchema = props.getProperty("docSchema");
+			docNamespace = docSchema;
 			sleep = Long.parseLong(props.getProperty("sleep"));
 			
 			gateFlag = Boolean.parseBoolean(props.getProperty("gateFlag"));
