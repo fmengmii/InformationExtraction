@@ -1,1 +1,1 @@
-java -Xmx2g -cp ie.jar:./lib/* msa.IEDriver %1 %2 %3 %4 %5
+java -Xmx2g -Djava.library.path="location of sqljdbc_auth.dll" -cp ie.jar:./lib/* msa.IEDriver %1 %2 %3 %4 %5
