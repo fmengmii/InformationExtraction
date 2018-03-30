@@ -5,41 +5,41 @@ CREATE TABLE SCHEMA."profile" (
   "name" varchar(500) DEFAULT NULL,
   "profile_type" int DEFAULT NULL,
   "annotation_type" varchar(500) DEFAULT NULL,
-  "score" double DEFAULT NULL,
-  "true_pos" double DEFAULT NULL,
-  "false_pos" double DEFAULT NULL,
+  "score" float DEFAULT NULL,
+  "true_pos" float DEFAULT NULL,
+  "false_pos" float DEFAULT NULL,
   "rows" int DEFAULT NULL,
   PRIMARY KEY ("profile_id")
 )
 
 
 CREATE TABLE SCHEMA."filter" (
-  "profile_id" bigint(20) NOT NULL,
-  "target_id" bigint(20) DEFAULT NULL,
+  "profile_id" bigint NOT NULL,
+  "target_id" bigint DEFAULT NULL,
   PRIMARY KEY ("profile_id")
 )
 
 
 
 CREATE TABLE SCHEMA."final" (
-  "profile_id" bigint(20) DEFAULT NULL,
-  "target_id" bigint(20) DEFAULT NULL,
+  "profile_id" bigint DEFAULT NULL,
+  "target_id" bigint DEFAULT NULL,
   "total" int DEFAULT NULL,
-  "prec" double DEFAULT NULL,
+  "prec" float DEFAULT NULL,
   "valence" tinyint(4) DEFAULT NULL
 )
 
 
 CREATE TABLE SCHEMA."auto_status" (
   "annotation_type" varchar(500) NOT NULL,
-  "document_id" bigint(20) DEFAULT NULL,
+  "document_id" bigint DEFAULT NULL,
   "profile_id" int DEFAULT NULL,
   PRIMARY KEY ("annotation_type")
 )
 
 
 CREATE TABLE SCHEMA."gen_filter_status" (
-  "document_id" bigint(20) NOT NULL,
+  "document_id" bigint NOT NULL,
   PRIMARY KEY ("document_id")
 )
 
