@@ -48,7 +48,8 @@ public class PopulateFrame
 			
 			Statement stmt = conn.createStatement();
 			
-			String queryStr = "delete from " + schema + "frame_instance_data where (document_id, annotation_id) in (select distinct document_id, id from " + schema + "annotation where provenance like '" + provenance + "')";
+			String queryStr = "delete from " + schema + "frame_instance_data where (document_id, annotation_id) in (select distinct a.document_id, a.id from " + schema + "annotation a," + schema + "document_status b where a.provenance = '" + provenance + "'"
+				+ "and )";
 			if (DBConnection.dbType.startsWith("sqlserver")) {
 				queryStr = "delete from " + schema + "frame_instance_data where exists "
 					+ "(select b.* from " + schema + "annotation b where b.provenance = '" + provenance + "' and " + schema + "frame_instance_data.document_id = b.document_id and "
