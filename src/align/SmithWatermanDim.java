@@ -253,8 +253,8 @@ public class SmithWatermanDim
 						score = targetMatchScore;
 					
 					GridScore gridScore = new GridScore(i, j, tok1, tok2, elem1.getRow(), elem2.getRow());
-					//gridScore.setScore((score * step) + gridScoreDiag.getScore());
-					gridScore.setScore(score + gridScoreDiag.getScore());
+					gridScore.setScore((score * step) + gridScoreDiag.getScore());
+					//gridScore.setScore(score + gridScoreDiag.getScore());
 					
 					if (multiMatch) {
 						//System.out.println("col: " + tok1 + ", " + tok2);

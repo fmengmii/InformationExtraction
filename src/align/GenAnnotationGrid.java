@@ -40,8 +40,10 @@ public class GenAnnotationGrid
 		
 		int tokIndex = 0;
 		if (startEnd) {
-			toks2.add(0, ":start|start");
-			toks2.add(":end|end");
+			//toks2.add(0, ":start|start");
+			toks2.add(0, ":start");
+			//toks2.add(":end|end");
+			toks2.add(":end");
 		}
 		for (String tok : toks2) {
 			
@@ -166,15 +168,19 @@ public class GenAnnotationGrid
 				if (startEnd) {
 					Annotation annotFirst = annotList.get(0);
 					long start = annotFirst.getStart()-1;
-					Annotation annot = new Annotation(-1, ":start|start", start, start+1, ":start|start", null);
+					//Annotation annot = new Annotation(-1, ":start|start", start, start+1, ":start|start", null);
+					Annotation annot = new Annotation(-1, ":start", start, start+1, ":start", null);
 					annotList.add(0, annot);
 					Annotation annotLast = annotList.get(annotList.size()-1);
 					start = annotLast.getEnd();
-					annot = new Annotation(-1, ":end|end", start, start+1, ":end|end", null);
+					//annot = new Annotation(-1, ":end|end", start, start+1, ":end|end", null);
+					annot = new Annotation(-1, ":end", start, start+1, ":end", null);
 					annotList.add(annot);
 					
-					seq.getToks().add(0, ":start|start");
-					seq.getToks().add(":end|end");
+					//seq.getToks().add(0, ":start|start");
+					seq.getToks().add(0, ":start");
+					//seq.getToks().add(":end|end");
+					seq.getToks().add(":end");
 				}
 			}
 			

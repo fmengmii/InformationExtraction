@@ -161,6 +161,26 @@ public class AutoAnnotate
 		this.finalTableList = finalTableList;
 	}
 	
+	public void setDocDBQuery(String docDBQuery)
+	{
+		this.docDBQuery = docDBQuery;
+	}
+	
+	public void setProfileMinTotal(int profileMinTotal)
+	{
+		this.profileMinTotal = profileMinTotal;
+	}
+	
+	public void setProfileMinPrec(double profileMinPrec)
+	{
+		this.profileMinPrec = profileMinPrec;
+	}
+	
+	public void setAutoProvenance(String autoProvenance)
+	{
+		this.autoProvenance = autoProvenance;
+	}
+	
 	public void init(String config)
 	{
 		try {
@@ -187,7 +207,6 @@ public class AutoAnnotate
 			docDBType = props.getProperty("docDBType");
 			docNamespace = props.getProperty("docNamespace");
 			docTable = props.getProperty("docTable");
-			targetType = props.getProperty("targetAnnotType");
 			schema = props.getProperty("schema");
 			
 			
@@ -400,7 +419,7 @@ public class AutoAnnotate
 				ansRangeMap = new HashMap<Long, List<int[]>>();
 				ansSeqMap = new HashMap<String, AnnotationSequence>();
 				
-				List<String> annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType);
+				List<String> annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType, scoreList);
 				annotTypeNameList.add(":" + targetType.toLowerCase());
 				scoreList.add(10.0);
 				
@@ -543,9 +562,10 @@ public class AutoAnnotate
 				pw.println("\n\nProfiles: " + profileGridList.size());
 				for (ProfileGrid profileGrid : profileGridList) {
 					String profileStr = gson.toJson(profileGrid.getGrid().getSequence().getToks());
+					MSAProfile profile = msaProfileMap.get(profileGrid.getGrid());
 	
-					System.out.println(profileStr);
-					pw.println(profileStr);
+					System.out.println(profile.getProfileID() + "|" + profileStr);
+					pw.println(profile.getProfileID() + "|" + profileStr);
 					
 					System.out.println("Targets: ");
 					pw.println("Targets:");
@@ -623,6 +643,15 @@ public class AutoAnnotate
 					Annotation annot = new Annotation(docID, docNamespace, docTable, -1, targetType, 
 						start, end, match.getTargetStr(), null);
 					annot.setProvenance(autoProvenance);
+					Map<String, Object> featureMap = new HashMap<String, Object>();
+					featureMap.put("profileID", match.getProfile().getProfileID());
+					featureMap.put("targetID", match.getTargetList().get(0).getProfileID());
+					List<int[]> matchCoords = match.getMatchCoords2();
+					int seqStart = match.getSequence().getStart();
+					featureMap.put("start", matchCoords.get(0)[0] + seqStart);
+					featureMap.put("end", matchCoords.get(matchCoords.size()-1)[0] + seqStart);
+					String featuresStr = gson.toJson(featureMap);
+					annot.setFeatures(featuresStr);
 					finalAnnotList.add(annot);
 					finalMatchList.add(match);
 					
@@ -848,7 +877,7 @@ public class AutoAnnotate
 	public void writeAnnotations(String annotType)
 	{
 		try {
-			/*
+			
 			if (finalAnnotList.size() > 0) {
 				pstmtDeleteAnnots.setString(1, annotType);
 				for (long docID : docIDList) {
@@ -861,7 +890,7 @@ public class AutoAnnotate
 					pstmtDeleteAnnots.execute();
 				}
 			}
-			*/
+			
 			
 			for (Annotation annot : finalAnnotList) {
 					

@@ -30,6 +30,7 @@ public class BestPatterns
 	private int negMinCount;
 	private double posThreshold;
 	private int posMinCount;
+	private boolean cleanTables = false;
 	
 	private List<String> groupList;
 	private List<String> targetGroupList;
@@ -39,10 +40,17 @@ public class BestPatterns
 	private List<String> indexTableList;
 	private List<String> finalTableList;
 	
+	private Map<String, Integer> posMap;
+	private Map<String, Integer> negMap;
+	
 	private String rq;
 	
 	private String schema = "";
 	
+	private boolean filterFlag;
+	private Map<String, Boolean> profileFilterMap;
+	
+	private int minCount;
 	
 	private Gson gson;
 
@@ -71,6 +79,7 @@ public class BestPatterns
 		posMinCount = Integer.parseInt(props.getProperty("posMinCount"));
 		schema = props.getProperty("schema") + ".";
 		
+		
 		String groupListStr = props.getProperty("groupList");
 		groupList = new ArrayList<String>();
 		groupList = gson.fromJson(groupListStr, groupList.getClass());
@@ -79,7 +88,16 @@ public class BestPatterns
 		targetGroupList = new ArrayList<String>();
 		targetGroupList = gson.fromJson(targetGroupListStr, targetGroupList.getClass());
 		
+		String cleanTablesStr = props.getProperty("cleanTables");
+		if (cleanTablesStr != null)
+			cleanTables = Boolean.parseBoolean(cleanTablesStr);
 		
+		filterFlag = false;
+		String filterFlagStr = props.getProperty("filterFlag");
+		if (filterFlagStr != null)
+			filterFlag = Boolean.parseBoolean(filterFlagStr);
+		
+		//minCount = Integer.parseInt(props.getProperty("minCount"));
 	}
 	
 	public void close()
@@ -150,22 +168,20 @@ public class BestPatterns
 				finalTable = finalTableList.get(index);
 				
 				
-				PreparedStatement pstmt = conn.prepareStatement("insert into " + finalTable + " (profile_id, target_id, total, prec, valence) values (?,?,?,?,?)");
-				PreparedStatement pstmtUpdateProfile = conn.prepareStatement("update " + profileTable + " set score = ? where profile_id = ?");
+				PreparedStatement pstmt = conn.prepareStatement("insert into " + schema + finalTable + " (profile_id, target_id, total, prec, valence, true_pos, false_pos) values (?,?,?,?,?,?,?)");
+				PreparedStatement pstmtUpdateProfile = conn.prepareStatement("update " + schema + profileTable + " set score = ? where profile_id = ?");
+				PreparedStatement pstmtUpdateProfileCounts = conn.prepareStatement("update " + schema + profileTable + " set true_pos = ?, false_pos = ? where profile_id = ?");
+				PreparedStatement pstmtGetIndexCounts = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", count(*) from " + rq + schema + indexTable + rq + " a, " + schema + profileTable + " b "
+						+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.document_id = ? group by a.profile_id, a.target_id, a.start, a." + rq + "end" + rq);
 				
 				Statement stmt = conn.createStatement();
 				
-				Boolean flag = finalTableMap.get(finalTable);
-				if (flag == null) {
-					System.out.println("deleting...");
-					stmt.execute("delete from " + finalTable);
-					finalTableMap.put(finalTable, true);
-				}
 
 			
 				System.out.println("getting doc IDs...");
 				docIDList = new ArrayList<Long>();
-				ResultSet rs = stmt.executeQuery("select distinct document_id from " + rq + indexTable + rq + " order by document_id");
+				//ResultSet rs = stmt.executeQuery("select distinct document_id from " + rq + indexTable + rq + " order by document_id");
+				ResultSet rs = stmt.executeQuery("select  document_id from " + schema + "document_status" + " where status = 1 order by document_id");
 				while (rs.next()) {
 					docIDList.add(rs.getLong(1));
 				}
@@ -202,125 +218,179 @@ public class BestPatterns
 				//	+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.target_id = c.profile_id "
 				//	+ "order by a.profile_id");
 				
-				rs = stmt.executeQuery("select distinct a.profile_id, a.target_id, a.document_id, a.start, a." + rq + "end" + rq + " from " + rq + indexTable + rq + " a, " + profileTable + " b "
-					+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id");
 				
-				Map<String, Integer> posMap = new HashMap<String, Integer>();
-				Map<String, Integer> negMap = new HashMap<String, Integer>();
+				
+				posMap = new HashMap<String, Integer>();
+				negMap = new HashMap<String, Integer>();
 				Map<String, Integer> docCountMap = new HashMap<String, Integer>();
+				Map<String, Boolean> inactiveMap = new HashMap<String, Boolean>();
 				String targetStr = "";
+				
+				
+				//preload pos and neg counts
+				//preload inactive profile/target pairs
+				
+				rs = stmt.executeQuery("select profile_id, target_id, true_pos, false_pos, prec from " + schema + finalTable);
+				while (rs.next()) {
+					long profileID = rs.getLong(1);
+					long targetID = rs.getLong(2);
+					int posCount = rs.getInt(3);
+					int negCount = rs.getInt(4);
+					double prec = rs.getLong(5);
+					
+					if (posCount > 0)
+						posMap.put(profileID + "|" + targetID, posCount);
+					
+					if (negCount > 0)
+						negMap.put(profileID + "|" + targetID, negCount);
+					
+					if (prec < 0.0) {
+						inactiveMap.put(profileID + "|" + targetID, true);
+					}
+				}
+				
+				
+				/*
+				Boolean flag = finalTableMap.get(finalTable);
+				if (flag == null) {
+					System.out.println("deleting...");
+					stmt.execute("delete from " + finalTable);
+					finalTableMap.put(finalTable, true);
+				}
+				*/
+				
 				
 				long currProfileID = -1;
 				
 				Map<Long, List<Long>> docMap = new HashMap<Long, List<Long>>();
 				Map<Long, List<Long>> invDocMap = new HashMap<Long, List<Long>>();
 				Map<Long, Integer> profileTotals = new HashMap<Long, Integer>();
-				while (rs.next()) {
-					/*
-					long profileID = rs.getLong(1);
-					Long targetID = rs.getLong(2);
-					long docID = rs.getLong(3);
-					long start = rs.getLong(4);
-					long end = rs.getLong(5);
-					String profileStr = rs.getString(6);
-					String targetProfileStr = rs.getString(7);
-					*/
+				
+				//rs = stmt.executeQuery("select distinct a.profile_id, a.target_id, a.document_id, a.start, a." + rq + "end" + rq + " from " + rq + schema + indexTable + rq + " a, " + schema + profileTable + " b "
+				//		+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id");
+				
+				for (long docID : docIDList) {
 					
-					long profileID = rs.getLong(1);
-					long targetID = rs.getLong(2);
-					long docID = rs.getLong(3);
-					long start = rs.getLong(4);
-					long end = rs.getLong(5);
+					pstmtGetIndexCounts.setLong(1, docID);
+					rs = pstmtGetIndexCounts.executeQuery();
 					
-					
-					
-					/*
-					int index = profileStr.indexOf(":target");
-					if (index < 0) {
-						System.out.println("ERROR: " + profileID + ", " + profileStr);
-					}
-					*/
-					
-					
-					
+					while (rs.next()) {
+						/*
+						long profileID = rs.getLong(1);
+						Long targetID = rs.getLong(2);
+						long docID = rs.getLong(3);
+						long start = rs.getLong(4);
+						long end = rs.getLong(5);
+						String profileStr = rs.getString(6);
+						String targetProfileStr = rs.getString(7);
+						*/
+						
+						long profileID = rs.getLong(1);
+						long targetID = rs.getLong(2);
+						//long docID = rs.getLong(3);
+						long start = rs.getLong(3);
+						long end = rs.getLong(4);
+						int matchCount = rs.getInt(5);
+						
+						
+						if (matchCount > 1)
+							continue;
+						
+						
+						/*
+						int index = profileStr.indexOf(":target");
+						if (index < 0) {
+							System.out.println("ERROR: " + profileID + ", " + profileStr);
+						}
+						*/
+						
+						
+						
+			
+						String key = profileID + "|" + targetID;
+						String docKey = profileID + "|" + targetID + "|" + docID;
+						Boolean ansFlag = ansMap.get(docID + "|" + start + "|" + end);
+						
+						if (inactiveMap.get(key) != null)
+							continue;
+						
 		
-					String key = profileID + "|" + targetID;
-					String docKey = profileID + "|" + targetID + "|" + docID;
-					Boolean ansFlag = ansMap.get(docID + "|" + start + "|" + end);
-					
-	
-					long profileID2 = profileID;
-					if (ansFlag != null) {
-						//System.out.println(profileID + "|" + targetID + "|" + docID + "|" + start + "|" + end + "|" + targetStr + "|" + ansFlag);
-						
-						boolean inc = true;
-						Integer docCount = docCountMap.get(docKey + "|" + ansFlag);
-						if (docCount == null)
-							docCount = 0;
-						if (docCount == 2)
-							inc = false;
-						else 
-							docCountMap.put(docKey + "|" + ansFlag, ++docCount);
-						
-						if (inc) {
-							Integer count = posMap.get(key);
-							if (count == null)
-								count = 0;
+						long profileID2 = profileID;
+						if (ansFlag != null) {
+							//System.out.println(profileID + "|" + targetID + "|" + docID + "|" + start + "|" + end + "|" + targetStr + "|" + ansFlag);
 							
-							posMap.put(key, ++count);
+							boolean inc = true;
+							Integer docCount = docCountMap.get(docKey + "|" + ansFlag);
+							if (docCount == null)
+								docCount = 0;
+							if (docCount == 50)
+								inc = false;
+							else 
+								docCountMap.put(docKey + "|" + ansFlag, ++docCount);
+							
+							if (inc) {
+								Integer count = posMap.get(key);
+								if (count == null)
+									count = 0;
+								
+								posMap.put(key, ++count);
+							}
+							
+							Integer profileCount = profileTotals.get(profileID);
+							if (profileCount == null)
+								profileCount = 0;
+							profileTotals.put(profileID, ++profileCount);
+							
+							
+						}
+						else {
+							if (profileID == 26 && targetID == 64)
+								System.out.println(profileID + "|" + targetID + "|" + docID + "|" + start + "|" + end + "|" + targetStr + "|" + ansFlag);
+							
+							boolean inc = true;
+							ansFlag = false;
+							Integer docCount = docCountMap.get(docKey + "|" + ansFlag);
+							if (docCount == null)
+								docCount = 0;
+							if (docCount == 50)
+								inc = false;
+							else 
+								docCountMap.put(docKey + "|" + ansFlag, ++docCount);
+							
+							if (inc) {
+								Integer count = negMap.get(key);
+								if (count == null)
+									count = 0;
+								
+								negMap.put(key, ++count);
+							}
+							
+							profileID2 = -profileID;
 						}
 						
-						Integer profileCount = profileTotals.get(profileID);
-						if (profileCount == null)
-							profileCount = 0;
-						profileTotals.put(profileID, ++profileCount);
 						
 						
-					}
-					else {
-						boolean inc = true;
-						ansFlag = false;
-						Integer docCount = docCountMap.get(docKey + "|" + ansFlag);
-						if (docCount == null)
-							docCount = 0;
-						if (docCount == 2)
-							inc = false;
-						else 
-							docCountMap.put(docKey + "|" + ansFlag, ++docCount);
-						
-						if (inc) {
-							Integer count = negMap.get(key);
-							if (count == null)
-								count = 0;
-							
-							negMap.put(key, ++count);
+						//profile conditionals
+						List<Long> docList = docMap.get(profileID2);
+						if (docList == null) {
+							docList = new ArrayList<Long>();
+							docMap.put(profileID2, docList);
 						}
 						
-						profileID2 = -profileID;
+						docList.add(docID);
+						
+						List<Long> profileList = invDocMap.get(docID);
+						if (profileList == null) {
+							profileList = new ArrayList<Long>();
+							invDocMap.put(docID, profileList);
+						}
+						
+						profileList.add(profileID);
+						
+						
+						
+						
 					}
-					
-					
-					
-					//profile conditionals
-					List<Long> docList = docMap.get(profileID2);
-					if (docList == null) {
-						docList = new ArrayList<Long>();
-						docMap.put(profileID2, docList);
-					}
-					
-					docList.add(docID);
-					
-					List<Long> profileList = invDocMap.get(docID);
-					if (profileList == null) {
-						profileList = new ArrayList<Long>();
-						invDocMap.put(docID, profileList);
-					}
-					
-					profileList.add(profileID);
-					
-					
-					
-					
 				}
 				
 				
@@ -335,13 +405,13 @@ public class BestPatterns
 					
 					double prec = ((double) posCount) / ((double) (posCount + negCount));
 	
-					boolean write = false;
+					boolean write = true;
 					int valence = 0;
 					
 					double score = 0.0;
 					
 					if (prec >= posThreshold && (posCount + negCount) >= posMinCount) {
-						write = true;
+						//write = true;
 						score = 1.0;
 					}
 					
@@ -355,9 +425,9 @@ public class BestPatterns
 					long profileID = Long.parseLong(parts[0]);
 					long targetID = Long.parseLong(parts[1]);
 					
-					pstmtUpdateProfile.setDouble(1, score);					
-					pstmtUpdateProfile.setLong(2, profileID);
-					pstmtUpdateProfile.execute();
+					//pstmtUpdateProfile.setDouble(1, score);					
+					//pstmtUpdateProfile.setLong(2, profileID);
+					//pstmtUpdateProfile.execute();
 					
 					if (write) {
 						pstmt.setLong(1, profileID);
@@ -365,7 +435,10 @@ public class BestPatterns
 						pstmt.setInt(3, posCount+negCount);
 						pstmt.setDouble(4, prec);
 						pstmt.setInt(5, valence);
+						pstmt.setInt(6, posCount);
+						pstmt.setInt(7, negCount);
 						pstmt.addBatch();
+						
 						count++;
 						
 						if (count % 1000 == 0) {
@@ -384,68 +457,40 @@ public class BestPatterns
 			}
 			
 		
-			
-			System.out.println("filter overlap...");
-			//filterOverlapping(annotType);
-			//filterOverlapping(annotType, group, false);
-			
-			
-			/*
-			//check conditionals
-			Iterator<Long> iter = profileTotals.keySet().iterator();
-			for (;iter.hasNext();) {
-				Long profileID = iter.next();
-				//int total = profileTotals.get(profileID);
+			if (filterFlag) {
+				System.out.println("filter overlap...");
+				filterOverlapping(annotType);
 				
-				Map<Long, Integer> posProfileMap = new HashMap<Long, Integer>();
-				Map<Long, Integer> negProfileMap = new HashMap<Long, Integer>();
-				List<Long> docList = docMap.get(profileID);
-				
-				if (docList == null)
-					continue;
-				
-				for (long docID : docList) {
-					List<Long> profileList = invDocMap.get(docID);
-					
-					for (long profileID2 : profileList) {
-						Integer count = posProfileMap.get(profileID2);
-						if (count == null)
-							count = 0;
-						posProfileMap.put(profileID2, ++count);
-					}
-				}
-				
-				docList = docMap.get(-profileID);
-				
-				if (docList != null) {
-					for (long docID : docList) {
-						List<Long> profileList = invDocMap.get(docID);
+				int count = 0;
+				PreparedStatement pstmt = conn.prepareStatement("update " + schema + finalTable + " set prec = -1.0, true_pos = 0, false_pos = 0, total = 0 where profile_id = ? and target_id = ?");
+				for (String key : posMap.keySet()) {
+					Boolean flag = profileFilterMap.get(key);
+					if (flag == null) {
+						String[] parts = key.split("\\|");
+						int profileID = Integer.parseInt(parts[0]);
+						int targetID = Integer.parseInt(parts[1]);
 						
-						for (long profileID2 : profileList) {
-							Integer count = negProfileMap.get(profileID2);
-							if (count == null)
-								count = 0;
-							negProfileMap.put(profileID2, ++count);
+						System.out.println("filtered: " + profileID + "|" + targetID);
+						
+						pstmt.setInt(1, profileID);
+						pstmt.setInt(2, targetID);
+						pstmt.addBatch();
+						//conn.commit();
+						
+						count++;
+						if (count % 1000 == 0) {
+							pstmt.executeBatch();
+							conn.commit();
 						}
 					}
 				}
 				
-				Iterator<Long> iter2 = posProfileMap.keySet().iterator();
-				for (;iter2.hasNext();) {
-					long profileID2 = iter2.next();
-					int pos = posProfileMap.get(profileID2);
-					Integer neg = negProfileMap.get(profileID2);
-					if (neg == null)
-						neg = 0;
-					
-					if (pos + neg > 20) {
-						double condProb = pos / (pos + neg);
-						if (condProb > 0.9)
-							System.out.println(profileID + ", " + profileID2 + ", pos:" + pos + ", neg:" + neg + ", prob:" + condProb);
-					}
-				}
+				pstmt.executeBatch();
+				conn.commit();
 			}
-			*/
+
+			
+			//cleanIndexTable();
 			
 			
 			conn.close();
@@ -459,92 +504,241 @@ public class BestPatterns
 	
 	public void filterOverlapping(String annotType) throws SQLException, ClassNotFoundException
 	{
-		PreparedStatement pstmt = conn.prepareStatement("delete from msa_profile_target_final where profile_id = ? and target_id = ?");
-		
-		String queryStr = "select distinct a.profile_id, a.target_id, a.document_id, a.start, a." + rq + "end" + rq + " from msa_profile_match_index a, msa_profile b, msa_profile_target_final c "
-			+ "where a.profile_id = b.profile_id and a.profile_id = c.profile_id and b.annotation_type = '" + annotType + "'";
-		filterLoop(queryStr, pstmt);
-		pstmt.close();
-	}
-	
-	private void filterLoop(String queryStr, PreparedStatement pstmt) throws SQLException
-	{
-		Map<String, List<String>> profileMap = new HashMap<String, List<String>>();
-		Map<String, List<String>> profileIDMap = new HashMap<String, List<String>>();
-		
+		System.out.println("get profile lengths...");
+		Map<Integer, Integer> profileLengthMap = new HashMap<Integer, Integer>();
+		Map<Integer, String> profileStringMap = new HashMap<Integer, String>();
+		Map<Integer, Integer> profileSkewMap = new HashMap<Integer, Integer>();
+		Map<Integer, Integer> profileTypeMap = new HashMap<Integer, Integer>();
 		Statement stmt = conn.createStatement();
-		ResultSet rs = stmt.executeQuery(queryStr);
-			
+		
+		int maxTargetLen = 0;
+		
+		ResultSet rs = stmt.executeQuery("select distinct b.profile_id, b.profile, b.profile_type from " + schema + finalTable + " a, " + schema + profileTable + " b where a.profile_id = b.profile_id or a.target_id = b.profile_id");
 		while (rs.next()) {
-			long profileID = rs.getLong(1);
-			long targetID = rs.getLong(2);
-			long docID = rs.getLong(3);
-			int start = rs.getInt(4);
-			int end = rs.getInt(5);
+			int profileID = rs.getInt(1);
+			String profileStr = rs.getString(2);
+			int profileType = rs.getInt(3);
 			
-			List<String> profileIndexList = profileMap.get(profileID + "|" + targetID);
-			if (profileIndexList == null) {
-				profileIndexList = new ArrayList<String>();
-				profileMap.put(profileID + "|" + targetID, profileIndexList);
-			}
+			List<String> profileToks = new ArrayList<String>();
+			profileToks = gson.fromJson(profileStr, profileToks.getClass());
+			int len = profileToks.size();
+			profileLengthMap.put(profileID, len);
 			
-			String index = docID + "|" + start + "|" + end;
-			profileIndexList.add(index);
+			if (profileStr.indexOf(":i-per") >= 0)
+				profileTypeMap.put(profileID, 1);
+			else profileTypeMap.put(profileID, 0);
 			
-			List<String> profileIDList = profileIDMap.get(index);
-			if (profileIDList == null) {
-				profileIDList = new ArrayList<String>();
-				profileIDMap.put(index, profileIDList);
-			}
+			if (profileType == 1 && len > maxTargetLen)
+				maxTargetLen = len;
 			
-			profileIDList.add(profileID + "|" + targetID);
+			profileStringMap.put(profileID, profileStr);
+			int index = profileStr.indexOf("[\":target");
+			int skew = 0;
+			if (profileStr.endsWith(":target\"]"))
+				skew = 2;
+			else if (profileStr.startsWith("[\":target"))
+				skew = 1;
+			
+			profileSkewMap.put(profileID, skew);
+			
+			
+		}
+
+		
+		//System.out.println("original size: " + profileLengthMap.size());
+		
+		System.out.println("get profile frequencies...");
+		double maxFreq = 0.0;
+		Map<Integer, Double> profileScoreMap = new HashMap<Integer, Double>();
+		
+		/*
+		rs = stmt.executeQuery("select a.profile_id, a.target_id, count(*) from " + schema + indexTable + " a, " + schema + finalTable + " b where a.profile_id = b.profile_id and a.target_id = b.target_id group by a.profile_id, a.target_id");
+		while (rs.next()) {
+			int profileID = rs.getInt(1);
+			int targetID = rs.getInt(2);
+			double freq = rs.getDouble(3);
+			
+			profileScoreMap.put(profileID + "|" + targetID, freq);
+			
+			if (freq > maxFreq)
+				maxFreq = freq;
+		}
+		*/
+		
+		double targetBase = Math.floor(Math.log10(maxTargetLen)) + 1.0;
+		targetBase = Math.pow(10.0, targetBase);
+		
+		
+		for (String key : posMap.keySet()) {
+			String[] parts = key.split("\\|");
+			int profileID = Integer.parseInt(parts[0]);
+			int targetID = Integer.parseInt(parts[1]);
+			Integer len = profileLengthMap.get(profileID);
+			if (len == null)
+				continue;
+			
+			int count = posMap.get(key);
+			String targetStr = profileStringMap.get(targetID);
+			if (targetStr == null)
+				continue;
+			
+			double targetLen = ((double) targetStr.length()) / targetBase;
+			profileScoreMap.put(profileID, ((double) count + targetLen));
+			
+			if (count > maxFreq)
+				maxFreq = count;
 		}
 		
-		int count = 0;
-		for (String profileTargetID : profileMap.keySet()) {
-			List<String> profileIndexList = profileMap.get(profileTargetID);
-			int size = profileIndexList.size();
+		
+		/*
+		for (String key : negMap.keySet()) {
+			String[] parts = key.split("\\|");
+			int profileID = Integer.parseInt(parts[0]);
+			int targetID = Integer.parseInt(parts[1]);
+			Integer len = profileLengthMap.get(profileID);
+			if (len == null)
+				continue;
 			
-			for (int i=0; i<profileIndexList.size(); i++) {
-				String index = profileIndexList.get(i);
-				List<String> profileIDList = profileIDMap.get(index);
-				
-				for (String profileID2 : profileIDList) {
-					if (!profileID2.equals(profileTargetID)) {
-						List<String> profileIndexList2 = profileMap.get(profileID2);
-						if (profileIndexList2.size() > size) {
-							profileIndexList.remove(i);
-							i--;
-							break;
-						}
-					}
-				}
+			int count = negMap.get(key);
+			String targetStr = profileStringMap.get(targetID);
+			if (targetStr == null)
+				continue;
+			
+			int targetLen = targetStr.length();
+			Double score = profileScoreMap.get(key);
+			
+			if (score == null) {
+				score = 0.0;
+				profileScoreMap.put(profileID, ((double) count + targetLen));
 			}
+			else
+				profileScoreMap.put(profileID, score + count);
 			
-			if (profileIndexList.size() == 0) {
-				System.out.println("overlapped: " + profileTargetID);
-				String[] parts = profileTargetID.split("\\|");
-				long profileID = Long.parseLong(parts[0]);
-				long targetID = Long.parseLong(parts[1]);
+			if (score + count > maxFreq)
+				maxFreq = score + count;
+		}
+		*/
+		
+		
+		double exp = Math.floor(Math.log10(maxFreq)) + 1.0;
+		double base = Math.pow(10.0, exp);
+		
+		for (int profileID : profileScoreMap.keySet()) {
+			
+			Integer len = profileLengthMap.get(profileID);
+			if (len == null)
+				continue;
+			
+			double score = profileScoreMap.get(profileID);
+			score = ((double) len) - (score / base);
+			profileScoreMap.put(profileID, score);
+			System.out.println(profileID + " score: " + score);
+		}
+		
+		
+		System.out.println("get overlapping profiles...");
+		Map<String, String> profileUseMap = new HashMap<String, String>();
+		Map<String, Double> profileUseScoreMap = new HashMap<String, Double>();
+		profileFilterMap = new HashMap<String, Boolean>();
+		rs = stmt.executeQuery("select b.document_id, b.start, a.profile_id, a.target_id from " + schema + finalTable + " a, " + schema + rq + indexTable + rq + " b "
+			+ "where a.profile_id = b.profile_id and a.target_id = b.target_id and a.prec >= " + posThreshold + " and total >= " + posMinCount +
+			" order by b.profile_id, b.target_id");
+		while (rs.next()) {
+			long docID = rs.getLong(1);
+			long start = rs.getLong(2);
+			int profileID = rs.getInt(3);
+			int targetID = rs.getInt(4);
+			int skew = profileSkewMap.get(profileID);
+			int profileType = profileTypeMap.get(profileID);
+			
+
+			
+			double score = profileScoreMap.get(profileID);
+			//String key = docID + "|" + start + "|" + skew;
+			String key = docID + "|" + start + "|" + profileType;
+			Double useScore = profileUseScoreMap.get(key);
+
+			String oldProfile = profileUseMap.get(key);
+			if (oldProfile == null)
+				oldProfile = "";
+			
+			if (profileID == 931 || oldProfile.startsWith("931")) {
+				System.out.println(profileID + "|" + targetID + "|" + docID + "|" + start + "|" + score + "|" + useScore + "|" + oldProfile);
+			}
+
+			if (useScore == null) 
+				useScore = 1000000.0;
+
+			if (score < useScore) {
+				//String oldProfile = profileUseMap.get(key);
+				if (oldProfile == null)
+					oldProfile = "";
 				
-				//stmt.execute("update msa_profile set score = 0.0 where profile_id = " + profileID);
-				pstmt.setLong(1, profileID);
-				pstmt.setLong(2, targetID);
-				pstmt.addBatch();
-				count++;
-				
-				if (count % 1000 == 0) {
-					pstmt.executeBatch();
-					conn.commit();
-				}
+				profileUseScoreMap.put(key, score);
+				profileUseMap.put(key, profileID + "|" + targetID);
+				if (profileID == 162 || oldProfile.startsWith("162") || profileID == 26 || oldProfile.startsWith("26"))
+					System.out.println(key + ": " + profileID + "|" + targetID + " replaces " + oldProfile + " old score:" + useScore + " new score:" + score);
+
+				//profileFilterMap.put(profileID + "|" + targetID, true);
 			}
 		}
 		
-		pstmt.executeBatch();
-		conn.commit();
+		for (String key : profileUseMap.keySet()) {
+			String pKey = profileUseMap.get(key);
+			profileFilterMap.put(pKey, true);
+		}
+		
+		System.out.println("filtered size: " + profileFilterMap.size());
+		
+		//filter
+		
+		for (String key : profileFilterMap.keySet()) {
+			String[] parts = key.split("\\|");
+			int profileID = Integer.parseInt(parts[0]);
+			String profileStr = profileStringMap.get(profileID);
+			//System.out.println(key + ": " + profileStr);
+		}
+
+		//pstmt.close();
+		stmt.close();
+		
+	}
+
+	
+	
+	private void realignAnnotations() throws SQLException
+	{
+		Statement stmt = conn.createStatement();
+		ResultSet rs = stmt.executeQuery("select b.profile from " + schema + finalTable + " b, " + schema + profileTable + " b where a.prec > " + posThreshold + " and a.target_id = b.profile_id");
+		
+		List<String> annotTypeList = new ArrayList<String>();
+		while (rs.next()) {
+			String profileStr = rs.getString(1);
+			String[] parts = profileStr.split("\\!");
+			
+			for (int i=0; i<parts.length; i++) {
+				String parts2[] = parts[i].split("\\|");
+				
+				//filter out syntax level annotations
+				if (!parts2[0].equals("token") && !parts2[0].equals("syntaxtreenode"))
+					annotTypeList.add(parts2[0]);
+			}
+			
+		}
+		
+		StringBuilder strBlder = new StringBuilder();
+		for (String annotType : annotTypeList) {
+			if (strBlder.length() > 0)
+				strBlder.append(" or ");
+			strBlder.append("annotation_type = '" + annotType + "'");
+		}
+		
+		
 		
 		stmt.close();
 	}
+	
+
 	
 	private Map<String, Boolean> readAnswers(String annotType, String provenance) throws SQLException
 	{

@@ -105,9 +105,10 @@ public class MSAUtils
 		return goldAnnotTypeList;
 	}
 	
-	public static List<String> getAnnotationTypeNameList(List<Map<String, Object>> annotFilterList, String tokType)
+	public static List<String> getAnnotationTypeNameList(List<Map<String, Object>> annotFilterList, String tokType, List<Double> scoreList)
 	{
 		List<String> annotTypeNameList = new ArrayList<String>();
+		
 		
 		for (Map<String, Object> map : annotFilterList) {
 			String annotType = (String) map.get("annotType");
@@ -118,19 +119,32 @@ public class MSAUtils
 				continue;
 			}
 
-			
+			boolean annotTypeNameFlag = false;
 			for (String feature : features) {
 				String featureName = ":" + annotType;
-				if (!feature.equals("$annotTypeName")) {
-					featureName += "|" + feature;
+				if (feature.equals("$annotTypeName")) {
+					annotTypeNameFlag = true;
+					feature = "";
 				}
+				else
+					feature = "|" + feature;
 				
+				featureName += feature;
 				featureName = featureName.toLowerCase();
+				
 				if (featureName.equals(tokType))
 					annotTypeNameList.add(0, featureName);
 				else
 					annotTypeNameList.add(featureName);
 			}
+			
+			/*
+			if (!annotTypeNameFlag) {
+				annotTypeNameList.add(":" + annotType);
+				scoreList.add(.001);
+			}
+			*/
+			
 		}
 		
 		return annotTypeNameList;
@@ -256,8 +270,7 @@ public class MSAUtils
 					System.out.println("coords2: " + gson.toJson(matchCoords2));
 					System.out.println("gaps1: " + gaps1 + ", gaps2: " + gaps2 + ", syntax1: " + syntax1 + ", syntax2: " + syntax2 + "\n\n");
 				//}
-				*/
-				 
+				*/ 
 				
 					
 				
@@ -328,10 +341,10 @@ public class MSAUtils
 				
 				int gaps1 = countGaps(align1, "|||");
 				int gaps2 = countGaps(align2, "|||");
-				syntax1 += countSyntax(align1);
-				syntax2 += countSyntax(align2);
-				phrase1 += countPhrase(align1);
-				phrase2 += countPhrase(align2);
+				syntax1 = countSyntax(align1);
+				syntax2 = countSyntax(align2);
+				phrase1 = countPhrase(align1);
+				phrase2 = countPhrase(align2);
 				
 				int targetStart = 0;
 				int targetEnd = 0;
@@ -343,7 +356,7 @@ public class MSAUtils
 				//if (profileStr.equals("[\":token|orth|lowercase\",\":token|orth|lowercase\",\":lookup|majortype|jobtitle\",\":target\",\":i-per\"]")) {
 				//	System.out.println("HERE");
 				//if (profileStr.equals("[\":start|start\",\":target\",\":token|category|cd!:number|number!:syntaxtreenode|cat|cd\",\":number|number\",\":token|category|cd!:number|number\"]")) {
-				//if (gaps1 == 0 && gaps2 == 0) {
+				//if (gaps1 == 1 && gaps2 == 1) {
 					System.out.println("profile: " + profileStr);
 					System.out.println("grid2: " + grid2.toString());
 					System.out.println("right: " + right.toString());
@@ -353,9 +366,9 @@ public class MSAUtils
 				System.out.println("right matchindexes2: " + gson.toJson(matchIndexes2));
 				System.out.println("right coords1: " + gson.toJson(matchCoords1));
 				System.out.println("right coords2: " + gson.toJson(matchCoords2));
-				System.out.println("gaps1: " + gaps1 + ", gaps2: " + gaps2 + ", syntax1: " + syntax1 + ", syntax2: " + syntax2 + "\n\n");
+				System.out.println("gaps1: " + gaps1 + ", gaps2: " + gaps2 + ", syntax1: " + syntax1 + ", syntax2: " + syntax2 + " maxGaps: " + maxGaps + "\n\n");
 				//}
-				*/
+				 */	
 				
 				
 
@@ -426,7 +439,8 @@ public class MSAUtils
 						matchCoords2.addAll(matchCoords2List1.get(i));
 						matchCoords2.addAll(matchCoords2List2.get(j));
 						
-						if (matchCoords1.size() != gridSize || matchCoords1.size() < minSize || matchCoords2.size() < minSize)
+						//System.out.println("matchCoords1: " + gson.toJson(matchCoords1) + " matchCoords2: " + gson.toJson(matchCoords2) + " gridSize: " + gridSize + " maxGaps: " + maxGaps + " minSize: " + minSize);
+						if (matchCoords1.size() < (gridSize - maxGaps) || matchCoords1.size() < minSize || matchCoords2.size() < minSize)
 							continue;
 
 						indexList.add(indexes);

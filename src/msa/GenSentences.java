@@ -111,6 +111,7 @@ public class GenSentences
 		
 		for (Map<String, Object> map : annotFilterList) {
 			String annotType = (String) map.get("annotType");
+			System.out.println("annotType: " + annotType);
 			List<String> features = (List<String>) map.get("features");
 			annotFilterMap.put(annotType, map);
 			annotFeatureMap.put(annotType, features);
@@ -185,17 +186,16 @@ public class GenSentences
 
 						
 						Map<String, Object> annotFilter = annotFilterMap.get(annotType);
-						if (annotType.equals("lungrads-age"))
-							System.out.println("annotType: " + annotType + ", annotFilter: " + gson.toJson(annotFilter));
 						
 						if (annotFilter == null)
 							continue;
 						
 						String prov = (String) annotFilter.get("provenance");
 						
-						if (prov != null && !annot.getProvenance().equals(prov))
+						if (prov != null && annot.getProvenance() != null && !annot.getProvenance().equals(prov))
 							continue;
 						
+
 						List<String> featureList = annotFeatureMap.get(annotType);
 						
 						String targetStr = ":target";
@@ -259,7 +259,12 @@ public class GenSentences
 		for (int i=0; i<seqList.size(); i++) {
 			//AnnotationSequence seq = new AnnotationSequence();
 			
+			
 			AnnotationSequence currSeq = seqList.get(i).clone();
+			
+			String annotListStr = SequenceUtilities.getStrFromToks(currSeq.getToks());
+			//System.out.println(annotListStr);
+
 			
 			
 			long start = currSeq.getStart();

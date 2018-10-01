@@ -300,11 +300,13 @@ public class AnnotationSequence
 				if (feature.equals("$literal"))
 					label = ":" + annotType.toLowerCase();
 				else {
-					label = annot.getAnnotationType().toLowerCase();
+					//label = annot.getAnnotationType().toLowerCase();
+					label = featureName;
 					if (!feature.equals("$annotTypeName"))
-						label = ((String) featureValue).toLowerCase();
+						label += "|" + ((String) featureValue).toLowerCase();
+
 					
-					label = featureName + "|" + label;
+					//label = featureName + "|" + label;
 				}
 				
 				

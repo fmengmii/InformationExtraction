@@ -269,7 +269,7 @@ public class GenMSA
 				annotFilterList.add(targetMap);
 			}
 			
-			List<String> annotTypeNameList = MSAUtils.getAnnotationTypeNameList(annotFilterList, tokType);
+			List<String> annotTypeNameList = MSAUtils.getAnnotationTypeNameList(annotFilterList, tokType, scoreList);
 			
 			genGrid = new GenAnnotationGrid();
 			genGrid.setAnnotTypeNameList(annotTypeNameList);

@@ -23,9 +23,11 @@ public class TimeCallback implements GateCallback
 
 	public Map<String, Object> callBack(long docID)
 	{
-		long currTime = System.currentTimeMillis();
-		if (currTime - startTime > duration)
-			retMap.put("terminate", new Boolean(true));
+		if (duration > 0) {
+			long currTime = System.currentTimeMillis();
+			if (currTime - startTime > duration)
+				retMap.put("terminate", new Boolean(true));
+		}
 		
 		return retMap;
 	}

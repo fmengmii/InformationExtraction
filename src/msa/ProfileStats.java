@@ -48,6 +48,10 @@ public class ProfileStats
 	
 	private PreparedStatement pstmt;
 	private PreparedStatement pstmt2;
+	private PreparedStatement pstmt3;
+	private PreparedStatement pstmt4;
+	private PreparedStatement pstmt5;
+	private PreparedStatement pstmt6;
 	
 	private Map<String, Integer> posMap;
 	private Map<String, Integer> negMap;
@@ -62,6 +66,9 @@ public class ProfileStats
 	private String schema;
 	
 	private PrintWriter pw;
+	private String finalTable;
+	
+	private String provenance;
 	
 	public ProfileStats()
 	{
@@ -152,11 +159,17 @@ public class ProfileStats
 		this.pw = pw;
 	}
 	
+	public void setAnnotType(String annotType)
+	{
+		this.annotType = annotType;
+	}
+	
 	public void init(String annotUser, String annotPassword, String msaUser, String msaPassword, String host, String keyspace, String msaKeyspace, String dbType,
-		String indexTable, String annotType, String provenance)
+		String indexTable, String finalTable, String annotType, String provenance)
 	{
 		try {
-			this.annotType = annotType;
+			//this.annotType = annotType;
+			this.provenance = provenance;
 			
 			conn = DBConnection.dbConnection(annotUser, annotPassword, host, keyspace, dbType);
 			//conn = DBConnection.dbConnection("fmeng", "fmeng", "localhost", keyspace, "mysql");
@@ -164,16 +177,19 @@ public class ProfileStats
 			
 			pstmt = msaConn.prepareStatement("select document_id, start, end from msa_profile_match_index where profile_id = ? and target_id = ?");
 			//pstmt2 = msaConn.prepareStatement("select count(*) from msa_profile_match_index where profile_id = ?");
-			pstmt2 = msaConn.prepareStatement("insert into " + schema + "filter (profile_id, target_id) values (?,?)");
+			pstmt2 = msaConn.prepareStatement("insert into " + schema + "final (profile_id, target_id, prec) values (?,?,?)");
+			pstmt3 = msaConn.prepareStatement("update " + schema + "final set prec = ? where profile_id = ? and target_id = ?");
+			pstmt4 = msaConn.prepareStatement("select count(*) from " + schema + "final where profile_id = ? and target_id = ?");
+			pstmt5 = msaConn.prepareStatement("select target_id from " + schema + "final where profile_id = ? and prec < 0.0");
+			pstmt6 = msaConn.prepareStatement("update " + schema + "final set true_pos = 0, false_pos = 0, total = 0 where profile_id = ? and target_id = ?");
 			
 			matchWriter = new MatchWriter();
 			matchWriter.init(msaUser, msaPassword, host, msaKeyspace, dbType, indexTable);
 			
-			System.out.println("reading answers...");
-			ansMap = readAnswers(annotType, provenance);
-			
 			profileMatcher.setAligner(sw);
 			profileMatcher.setProfileMatch(true);
+			
+			this.finalTable = finalTable;
 		}
 		catch(Exception e)
 		{
@@ -197,13 +213,34 @@ public class ProfileStats
 		}
 	}
 	
+	
 	public void getProfileStats(List<AnnotationSequenceGrid> gridList, List<ProfileGrid> profileGridList, List<AnnotationSequenceGrid> targetGridList, int profileType, 
-		Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap, Map<AnnotationSequenceGrid, MSAProfile> msaTargetProfileMap, ProfileInvertedIndex invertedIndex)
+		Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap, Map<AnnotationSequenceGrid, MSAProfile> msaTargetProfileMap, ProfileInvertedIndex invertedIndex, Map<Long, AnnotationSequenceGrid> targetIDMap)
 	{		
 
 		try {
 			posMap = new HashMap<String, Integer>();
 			negMap = new HashMap<String, Integer>();
+			
+			System.out.println("reading answers...");
+			ansMap = readAnswers(annotType, provenance);
+			
+			//preload pos and neg maps
+			Statement stmt = conn.createStatement();
+			ResultSet rs = stmt.executeQuery("select profile_id, target_id, true_pos, false_pos from " + schema + finalTable);
+			while (rs.next()) {
+				long profileID = rs.getLong(1);
+				long targetID = rs.getLong(2);
+				int posCount = rs.getInt(3);
+				int negCount = rs.getInt(4);
+				posMap.put(profileID + "|" + targetID, posCount);
+				negMap.put(profileID + "|" + targetID, negCount);
+			}
+			
+			
+			//remove known inactive pattern/target combinations
+			removeInactivePatterns(profileGridList, msaProfileMap, targetIDMap);
+			
 			
 			int maxGridSize = 0;
 			for (AnnotationSequenceGrid grid  : gridList) {
@@ -319,6 +356,29 @@ public class ProfileStats
 		}
 	}
 	
+	
+	private void removeInactivePatterns(List<ProfileGrid> profileGridList, Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap, Map<Long, AnnotationSequenceGrid> targetIDMap) throws SQLException
+	{
+		for (ProfileGrid profileGrid : profileGridList) {
+			MSAProfile msaProfile = msaProfileMap.get(profileGrid.getGrid());
+			long profileID = msaProfile.getProfileID();
+			pstmt5.setLong(1, profileID);
+			pstmt6.setLong(1, profileID);
+			
+			Map<AnnotationSequenceGrid, Boolean> targetGridMap = profileGrid.getTargetGridMap();
+			
+			ResultSet rs = pstmt5.executeQuery();
+			while (rs.next()) {
+				long targetID = rs.getLong(1);
+				AnnotationSequenceGrid targetGrid = targetIDMap.get(targetID);
+				targetGridMap.remove(targetGrid);
+				pstmt6.setLong(2, targetID);
+				pstmt6.execute();
+			}
+		}
+	}
+	
+	
 	private void removePatterns(List<ProfileMatch> matchList, List<ProfileGrid> profileGridList, List<AnnotationSequenceGrid> targetGridList, Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap, 
 		Map<AnnotationSequenceGrid, MSAProfile> msaTargetProfileMap) throws SQLException
 	{
@@ -366,10 +426,6 @@ public class ProfileStats
 						count = 0;
 					negMap.put(key, ++count);
 				}
-				
-				if (profileID == 182 && targetID == 321) {
-					System.out.println("here182: " + posMap.get(key) + "," + negMap.get(key));
-				}
 
 			}
 		}
@@ -381,28 +437,7 @@ public class ProfileStats
 			long profileID = profile.getProfileID();
 			
 			Map<AnnotationSequenceGrid, Boolean> targetGridMap = profileGrid.getTargetGridMap();
-				
-			/*
-			Integer tp = posMap.get(profileID);
-			if (tp == null)
-				tp = 0;
-			Integer fp = negMap.get(profileID);
-			if (fp == null)
-				fp = 0;
-			
-			
-			double prec = ((double) tp) / ((double) (tp + fp));
-			if (((tp + fp) >= negFilterMinCount && prec < negFilterThreshold) || 
-				((tp + fp)  >= posFilterMinCount && prec >= posFilterThreshold)) {
-				//remove profile
-				System.out.println("Removing: " + profile.getProfileStr());
-				System.out.println(tp + ", " + fp + ", " + prec);
-				profileGridList.remove(i);
-				posMap.remove(profileID);
-				negMap.remove(profileID);
-				i--;
-			}
-			*/
+
 			
 			Iterator<AnnotationSequenceGrid> iter = targetGridMap.keySet().iterator();
 			for (;iter.hasNext();) {
@@ -458,13 +493,8 @@ public class ProfileStats
 					//Map<AnnotationSequenceGrid, Boolean> targetFilterGrid = profileGrid.getTargetGridMap();
 					//targetFilterGrid.put(targetGrid, true);
 					//targetGridMap.put(targetGrid, false);
-					if (profileID == 182 && targetID== 321)
-						System.out.println("before targetGridMap size: " + targetGridMap.size());
 					
 					iter.remove();
-					
-					if (profileID == 182 && targetID== 321)
-						System.out.println("after targetGridMap size: " + targetGridMap.size());
 					
 					posMap.remove(profileID + "|" + targetID);
 					negMap.remove(profileID + "|" + targetID);
@@ -472,9 +502,28 @@ public class ProfileStats
 					
 					if (write) {
 						try {
-							pstmt2.setLong(1, profileID);
-							pstmt2.setLong(2, targetID);
-							pstmt2.execute();
+							pstmt4.setLong(1, profileID);
+							pstmt4.setLong(2, targetID);
+							ResultSet rs = pstmt4.executeQuery();
+							boolean insert =true;
+							if (rs.next()) {
+								int count = rs.getInt(1);
+								if (count > 0) 
+									insert = false;
+							}
+							
+							if (insert) {
+								pstmt2.setLong(1, profileID);
+								pstmt2.setLong(2, targetID);
+								pstmt2.setDouble(3, -1.0);
+								pstmt2.execute();
+							}
+							else {
+								pstmt3.setDouble(1, -1.0);
+								pstmt3.setLong(2, profileID);
+								pstmt3.setLong(3, targetID);
+								pstmt3.executeQuery();
+							}
 						}
 						catch(SQLException e)
 						{

@@ -41,6 +41,7 @@ public class GenMSADriver
 	private String docDBType;
 	
 	private List<Long> docIDList;
+	private int lastDocIndex;
 	private boolean requireTarget;
 	private boolean punct;
 	private boolean write;
@@ -105,9 +106,19 @@ public class GenMSADriver
 		return totalDocList;
 	}
 	
+	public int getLastDocIndex()
+	{
+		return lastDocIndex;
+	}
+	
 	public void setRequireTarget(boolean requireTarget)
 	{
 		this.requireTarget = requireTarget;
+	}
+	
+	public void setGroup(String group)
+	{
+		this.group = group;
 	}
 	
 	public void init(String config)
@@ -155,7 +166,7 @@ public class GenMSADriver
 			targetType2 = props.getProperty("targetType2");
 			
 			if (targetType != null)
-				profileTable = props.getProperty("profileTable");
+				profileTable = props.getProperty("profileTableName");
 
 			
 			targetProvenance = props.getProperty("targetProvenance");
@@ -238,7 +249,7 @@ public class GenMSADriver
 			}
 			
 			
-			annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType);
+			annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType, scoreList);
 			annotTypeNameList.add(":" + targetType.toLowerCase());
 			scoreList.add(10.0);
 			
@@ -258,6 +269,14 @@ public class GenMSADriver
 				
 				conn.close();
 			}
+			
+			/*
+			Statement stmt = conn.createStatement();
+			ResultSet rs = stmt.executeQuery("select max(cluster) from " + schema + "document_status");
+			int maxCluster = -1;
+			if (rs.next())
+				maxCluster = rs.getInt(1) + 1;
+			*/
 			
 			db.init(user, password, host, dbName, dbName);
 			
@@ -294,29 +313,44 @@ public class GenMSADriver
 			
 			totalDocList = new ArrayList<DocBean>();
 			List<DocBean> docList = new ArrayList<DocBean>();
+			
+			int cluster = 0;
 
 			for (int blockNum=0; blockNum<numBlocks; blockNum++) {
 				System.out.println("blockNum: " + blockNum);
 				System.out.println("currStartIndex: " + currStartIndex);
+				System.out.println("cluster: " + cluster);
 
 				//remove the last docID because it may not have been fully used
+				/*
 				if (docList.size() > 0)
 					docList.remove(docList.size()-1);
 				
 				if (blockNum > 0) {
 					totalDocList.addAll(docList);
 				}
+				*/
+				
+				//totalDocList.addAll(docList);
 				
 				docList = new ArrayList<DocBean>();
-				
 
-				
 				
 				List<AnnotationSequence> seqList2 = new ArrayList<AnnotationSequence>();
 				Map<Long, Boolean> docIDMap = new HashMap<Long, Boolean>();
+				long lastDocID = -1;
 				for (int i=currStartIndex; i<seqList.size(); i++) {
-					seqList2.add(seqList.get(i));
 					long docID = seqList.get(i).getDocID();
+					
+					seqList2.add(seqList.get(i));
+
+					if (seqList2.size() > msaBlockSize && docID != lastDocID) {
+						for (DocBean docBean : docList) {
+							docBean.setCluster(cluster);
+						}
+						break;
+					}
+
 					Boolean flag = docIDMap.get(docID);
 					if (flag == null) {
 						docIDMap.put(docID,  true);
@@ -325,8 +359,10 @@ public class GenMSADriver
 						docList.add(docBean);
 					}
 					
-					if (seqList2.size() >= msaBlockSize)
-						break;
+					//set the lastDocID to be the doc when seqList2's size is at msaBlockSize
+					//this prevents the blocks from dividing up a document
+					if (seqList2.size() == msaBlockSize)
+						lastDocID = docID;
 				}
 				
 				System.out.println("pos seq list2 size: " + seqList2.size());
@@ -542,7 +578,13 @@ public class GenMSADriver
 					System.out.println("wrote " + targetProfileList.size() + " targets");
 					writer.close();
 				}
+				
+				cluster++;
+				
+				lastDocIndex = totalDocList.size();
+				totalDocList.addAll(docList);
 			}
+			
 			
 			genMSA.close();
 			db.close();

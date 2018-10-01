@@ -17,6 +17,7 @@ public class IEDriver
 	private BestPatterns bestPatt;
 	private AutoAnnotate autoAnnot;
 	private PopulateFrame pop;
+	private Cleanup cleanup;
 	
 	private Gson gson;
 	
@@ -38,6 +39,7 @@ public class IEDriver
 	private int runIterations;
 	private boolean write;
 	private String schema;
+	private String schema2;
 	private String docSchema;
 	private boolean verbose;
 	
@@ -101,6 +103,7 @@ public class IEDriver
 	private int posFilterMinCount;
 	private int blockSize;
 	private int clusterSize;
+	private int docBlockSize;
 	
 	
 	//Best
@@ -122,6 +125,12 @@ public class IEDriver
 	private String autoMatchTable;
 	private boolean evalFlag;
 	private String autoProvenance;
+	private boolean autoRecheck;
+	
+	
+	//Cleanup
+	private int minFreqCount;
+	private int lowFreqDocCount;
 	
 	
 	//Global flags
@@ -132,6 +141,7 @@ public class IEDriver
 	private boolean autoFlag;
 	private boolean populateFlag;
 	private boolean incrementalFlag;
+	private boolean cleanupFlag;
 	
 	
 	private Statement stmt;
@@ -160,6 +170,7 @@ public class IEDriver
 	private PreparedStatement pstmtInsertGenFilterStatus;
 	private PreparedStatement pstmtUpdateGenFilterStatus;
 	private PreparedStatement pstmtGetAutoDocIDs;
+	private PreparedStatement pstmtGetAutoRecheckDocIDs;
 	private PreparedStatement pstmtSetFrameInstanceLocks;
 	private PreparedStatement pstmtDeleteFrameInstanceLocks;
 	
@@ -176,6 +187,7 @@ public class IEDriver
 		bestPatt = new BestPatterns();
 		autoAnnot = new AutoAnnotate();
 		pop = new PopulateFrame();
+		cleanup = new Cleanup();
 		
 		gson = new Gson();
 		//gate.setCallback(gateCallback);
@@ -288,6 +300,7 @@ public class IEDriver
 			posFilterThreshold = Double.parseDouble(props.getProperty("posFilterThreshold"));
 			posFilterMinCount = Integer.parseInt(props.getProperty("posFilterMinCount"));
 			clusterSize = Integer.parseInt(props.getProperty("clusterSize"));
+			docBlockSize = Integer.parseInt(props.getProperty("docBlockSize"));
 			
 			
 			
@@ -310,16 +323,22 @@ public class IEDriver
 			autoMatchTable = props.getProperty("autoMatchTable");
 			evalFlag = Boolean.parseBoolean(props.getProperty("evalFlag"));
 			autoProvenance = props.getProperty("autoProvenance");
+			autoRecheck = Boolean.parseBoolean(props.getProperty("autoRecheck"));
 			
 			//get Populate properties
 			populateFlag = Boolean.parseBoolean(props.getProperty("populateFlag"));
+			
+			
+			//get CLeanup properties
+			minFreqCount = Integer.parseInt(props.getProperty("minFreqCount"));
+			lowFreqDocCount = Integer.parseInt(props.getProperty("lowFreqDocCount"));
 			
 			
 			
 			
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			
-			String schema2 = schema + ".";
+			schema2 = schema + ".";
 			pstmtInsertFrameInstanceStatus = conn.prepareStatement("insert into " + schema2 + "frame_instance_status (frame_instance_id, status) values (?,0)");
 			pstmtCheckFrameInstanceStatus = conn.prepareStatement("select status from " + schema2 + "frame_instance_status where frame_instance_id = ?");
 			pstmtUpdateFrameInstanceStatus = conn.prepareStatement("update " + schema2 + "frame_instance_status set status = ? where frame_instance_id = ?");
@@ -327,7 +346,7 @@ public class IEDriver
 				+ "values (?,?,?,0)");
 			pstmtUpdateDocStatus = conn.prepareStatement("update " + schema2 + "document_status set status = 1 where document_namespace = ? and document_table = ? and document_id = ? and status = -2");
 			pstmtGetNewDocs = conn.prepareStatement("select a.document_namespace, a.document_table, a.document_id from " + schema2 + "frame_instance_document a left join " + schema2 + "document_status b on (a.document_id = b.document_id) "
-				+ "where a.frame_instance_id = ? and b.status is null order by a.frame_instance_id, a.document_id");
+				+ "where a.frame_instance_id = ? and (b.status is null or b.status = -2) order by a.frame_instance_id, a.document_id");
 			pstmtGetDocsWithStatus = conn.prepareStatement("select document_namespace, document_table, document_id from " + schema2 + "document_status where status = ?");
 			pstmtUpdateDocsWithStatus = conn.prepareStatement("update " + schema2 + "document_status set status = ? where status = ?");
 			pstmtUpdateDocsWithStatusDocID = conn.prepareStatement("update " + schema2 + "document_status set status = ? where status = ? and document_id = ?");
@@ -352,8 +371,8 @@ public class IEDriver
 			
 			pstmtSetFrameInstanceLocks = conn.prepareStatement("insert into " + schema2 + "frame_instance_lock (frame_instance_id, username) values (?,?)");
 			pstmtDeleteFrameInstanceLocks = conn.prepareStatement("delete from " + schema2 + "frame_instance_lock where username = ?");
-			pstmtSetFrameInstanceLocks.setString(2, "msa-ie");
-			pstmtDeleteFrameInstanceLocks.setString(1, "msa-ie");
+			pstmtSetFrameInstanceLocks.setString(2, "##auto");
+			pstmtDeleteFrameInstanceLocks.setString(1, "##auto");
 			
 			
 			newDocQuery = "select a.frame_instance_id, b.status from " + schema2 + "frame_instance a left join " + schema2 + "frame_instance_status b on (a.frame_instance_id = b.frame_instance_id) where (b.frame_instance_id is null or b.status = -2) order by frame_instance_id";
@@ -363,6 +382,7 @@ public class IEDriver
 			autoDBQuery = "select document_id from " + schema2 + "document_status where status = 0 order by document_id";
 			
 			pstmtGetAutoDocIDs = conn.prepareStatement(autoDBQuery);
+			pstmtGetAutoRecheckDocIDs = conn.prepareStatement("select document_id from " + schema2 + "document_status where status = 1 order by document_id");
 			
 		}
 		catch(Exception e)
@@ -490,8 +510,7 @@ public class IEDriver
 			//pattProps.setProperty("msaKeyspace", msaKeyspace);
 			pattProps.setProperty("docNamespace", docNamespace);
 			pattProps.setProperty("docTable", docTable);
-			//pattProps.setProperty("profileTable", msaTable);
-			pattProps.setProperty("schema", schema);
+						pattProps.setProperty("schema", schema);
 			
 			pattProps.setProperty("group", group);
 			pattProps.setProperty("targetGroup", targetGroup);
@@ -509,7 +528,9 @@ public class IEDriver
 
 			pattProps.setProperty("limit", Integer.toString(limit));
 			
-			pattProps.setProperty("indexTableName", indexTableName);
+			pattProps.setProperty("profileTable", profileTableName);
+			pattProps.setProperty("indexTable", indexTableName);
+			pattProps.setProperty("finalTable", finalTableName);
 
 			
 			pattProps.setProperty("msaAnnotFilterList", gson.toJson(msaAnnotFilterList));
@@ -522,6 +543,7 @@ public class IEDriver
 			
 			pattProps.setProperty("blockSize", Integer.toString(blockSize));
 			pattProps.setProperty("write", Boolean.toString(write));
+			pattProps.setProperty("docBlockSize", Integer.toString(docBlockSize));
 			
 			filterPatt.init(pattProps);
 			
@@ -599,8 +621,24 @@ public class IEDriver
 			autoAnnot.init(autoProps);
 
 			
-			pop.init(conn, schema);
+			pop.init(conn, schema, autoProvenance, DBConnection.reservedQuote);
 			
+			
+			//Cleanup
+			Properties cleanupProps = new Properties();
+			cleanupProps.setProperty("host", host);
+			cleanupProps.setProperty("dbName", dbName);
+			cleanupProps.setProperty("dbType", dbType);
+			cleanupProps.setProperty("schema", schema);
+			
+			cleanupProps.setProperty("profileTable", profileTableName);
+			cleanupProps.setProperty("indexTable", indexTableName);
+			cleanupProps.setProperty("finalTable", finalTableName);
+			
+			cleanupProps.setProperty("minFreqCount", Integer.toString(minFreqCount));
+			cleanupProps.setProperty("lowFreqDocCount", Integer.toString(lowFreqDocCount));
+			
+			cleanup.init(cleanupProps);
 			
 
 			stmt = conn.createStatement();
@@ -692,6 +730,7 @@ public class IEDriver
 						pstmtUpdateDocStatus.setString(1, docNamespace);
 						pstmtUpdateDocStatus.setString(2, docTable);
 						
+						
 						for (int i=0; i<docList.size(); i++) {
 							DocBean doc = docList.get(i);
 							long frameInstanceID = doc.getFrameInstanceID();
@@ -736,12 +775,34 @@ public class IEDriver
 							}
 						}
 					}
+					
+					
+					//derived annotations
+					stmt.execute("delete from " + schema2 + "annotation2");
+					PreparedStatement pstmtDerived = conn.prepareStatement("insert into " + schema2 + "annotation2 select * from " + schema2 + "annotation where annotation_type = 'MetaMap' and "
+						+ "(features like '%acab%' or features like '%anab%' or features like '%biof%' or features like '%cgab%' or "
+						+ "features like '%comd%' or features like '%dsyn%' or features like '%emod%' or features like '%fndg%' or "
+						+ "features like '%inpo%' or features like '%lbtr%' or features like '%menp%' or features like '%mobd%' or "
+						+ "features like '%neop%' or features like '%patf%' or features like '%phsf%' or features like '%sosy%') and document_id = ?");
+
+					for (DocBean doc : docList) {
+						long docID = doc.getDocID();
+						pstmtDerived.setLong(1, docID);
+						pstmtDerived.execute();
+					}
+					
+					stmt.execute("update " + schema2 + "annotation2 set annotation_type = 'metamap-finding'");
+
+					stmt.execute("insert into " + schema2 + "annotation select * from annotation2");
 				}
+				
+				
 				
 				
 				List<String> activeAnnotTypeList = new ArrayList<String>();
 				List<DocBean> docList = new ArrayList<DocBean>();
 				//long minDocID = -1;
+				int lastDocIndex = -1;
 				
 				//gen MSAs
 				if (msaFlag) {
@@ -755,6 +816,8 @@ public class IEDriver
 						String annotType = annotTypeList.get(i);
 						String profileTable = profileTableList.get(i);
 						
+						
+						/*
 						int annotCount = 0;
 						pstmtGetAnnotCount.setString(1, annotType);
 						rs = pstmtGetAnnotCount.executeQuery();
@@ -776,6 +839,7 @@ public class IEDriver
 							pstmtInsertGenMSAStatus.execute();
 							currCount = 0;
 						}
+						*/
 						
 						/*
 						minDocID = -1;
@@ -785,19 +849,35 @@ public class IEDriver
 							*/
 
 
-						if (annotCount > currCount) {
-							activeAnnotTypeList.add(annotType);
-							genMSADriver.setTargetType(annotType);
-							genMSADriver.setProfileTable(profileTable);
-							//genMSADriver.setRequireTarget(requireTargetMap.get(annotType));
-							genMSADriver.run(user, password, docUser, docPassword);
-							
-							pstmtUpdateGenMSAStatus.setInt(1, annotCount);
-							pstmtUpdateGenMSAStatus.setString(2, annotType);
-							pstmtUpdateGenMSAStatus.execute();
-							
-							docList = genMSADriver.getDocList();
+						//if (annotCount > currCount) {
+						activeAnnotTypeList.add(annotType);
+						genMSADriver.setTargetType(annotType);
+						genMSADriver.setProfileTable(profileTable);
+						//genMSADriver.setRequireTarget(requireTargetMap.get(annotType));
+						//genMSADriver.setGroup(Integer.toString(count));
+						genMSADriver.run(user, password, docUser, docPassword);
+						
+						
+						/*
+						pstmtUpdateGenMSAStatus.setInt(1, annotCount);
+						pstmtUpdateGenMSAStatus.setString(2, annotType);
+						pstmtUpdateGenMSAStatus.execute();
+						*/
+						
+						
+						
+						docList = genMSADriver.getDocList();
+						lastDocIndex = genMSADriver.getLastDocIndex();
+						
+						
+						/*
+						if (docList.size() > msaBlockSize) {
+							updateDocsWithStatusDocID(1, 2, docList);
+							pstmtResetGenMSAStatus.execute();
 						}
+						*/
+							
+						//}
 					}
 					
 					//gen relation patterns
@@ -816,10 +896,6 @@ public class IEDriver
 					filterPatt.filterPatterns(user, password, docUser, docPassword, user, password);
 				}
 				
-				if (docList.size() > 0) {
-					updateDocsWithStatusDocID(1, 2, docList);
-					pstmtResetGenMSAStatus.execute();
-				}
 
 				
 				//best patterns
@@ -854,6 +930,43 @@ public class IEDriver
 					autoAnnot.setAnnotTypeList(activeAnnotTypeList);
 					autoAnnot.setProfileTableList(profileTableList);
 					autoAnnot.setFinalTableList(finalTableList);
+					autoAnnot.setAutoProvenance("##auto");
+					autoAnnot.setDocDBQuery(autoDBQuery);
+					autoAnnot.setProfileMinPrec(profileMinPrec);
+					
+					autoAnnot.annotate(user, password, docUser, docPassword);
+					
+					pstmtDeleteFrameInstanceLocks.execute();
+					
+					autoAnnot.close();
+				}
+				
+				//auto recheck
+				if (autoRecheck) {
+					System.out.println("** AUTO RECHECK **");
+					
+					//set frame instance locks
+					ResultSet rs2 = pstmtGetAutoRecheckDocIDs.executeQuery();
+					while (rs2.next()) {
+						long docID = rs2.getLong(1);
+						pstmtSetFrameInstanceLocks.setLong(1, docID);
+						
+						try {
+							pstmtSetFrameInstanceLocks.execute();
+						}
+						catch(SQLException e)
+						{
+							//there is already a lock on this document
+						}
+					}
+					
+					autoAnnot.setAnnotTypeList(activeAnnotTypeList);
+					autoAnnot.setProfileTableList(profileTableList);
+					autoAnnot.setFinalTableList(finalTableList);
+					autoAnnot.setAutoProvenance("##auto-recheck");
+					autoAnnot.setDocDBQuery("select document_id from " + schema2 + "document_status where status = 1 order by document_id");
+					autoAnnot.setProfileMinPrec(0.8);
+					
 					autoAnnot.annotate(user, password, docUser, docPassword);
 					
 					pstmtDeleteFrameInstanceLocks.execute();
@@ -866,6 +979,31 @@ public class IEDriver
 				if (populateFlag) {
 					System.out.println("*** POPULATE ***");
 					pop.populate();
+				}
+				
+				
+				//cleanup
+				if (cleanupFlag) {
+					System.out.println("*** CLEANUP ***");
+					cleanup.cleanup();
+				}
+				
+				
+				//set document status
+				if (docList.size() > 0) {
+					List<DocBean> docListSmall = docList.subList(0, lastDocIndex);
+					updateDocsWithStatusDocID(1, 2, docListSmall);
+					//updateDocsWithStatusDocID(3, 2, docListSmall);
+					//docListSmall = docList.subList(lastDocIndex, docList.size());
+					//updateDocsWithStatusDocID(1, 3, docListSmall);
+					//pstmtResetGenMSAStatus.execute();
+					
+					for (DocBean doc : docListSmall) {
+						long frameInstanceID = doc.getFrameInstanceID();
+						pstmtUpdateFrameInstanceStatus.setInt(1, 2);
+						pstmtUpdateFrameInstanceStatus.setLong(2, frameInstanceID);
+						pstmtUpdateFrameInstanceStatus.execute();
+					}
 				}
 				
 				
@@ -971,9 +1109,10 @@ public class IEDriver
 	
 	private void updateDocsWithStatusDocID(int oldStatus, int newStatus, List<DocBean> docList) throws SQLException
 	{
+		pstmtUpdateDocsWithStatusDocID.setInt(1, newStatus);
+		pstmtUpdateDocsWithStatusDocID.setInt(2, oldStatus);
+
 		for (DocBean docBean : docList) {
-			pstmtUpdateDocsWithStatusDocID.setInt(1, newStatus);
-			pstmtUpdateDocsWithStatusDocID.setInt(2, oldStatus);
 			pstmtUpdateDocsWithStatusDocID.setLong(3, docBean.getDocID());
 			pstmtUpdateDocsWithStatusDocID.execute();
 		}

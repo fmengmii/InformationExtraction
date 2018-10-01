@@ -13,6 +13,7 @@ public class ProfileInvertedIndex
 	private Map<AnnotationSequenceGrid, Integer> profileMaxMap;
 	private Map<String, List<AnnotationSequenceGrid>> targetMap;
 	private boolean targetFlag = false;
+	private int maxGaps = 0;
 	
 	public ProfileInvertedIndex()
 	{
@@ -21,6 +22,11 @@ public class ProfileInvertedIndex
 	public void setTargetFlag(boolean targetFlag)
 	{
 		this.targetFlag = targetFlag;
+	}
+	
+	public void setMaxGaps(int maxGaps)
+	{
+		this.maxGaps = maxGaps;
 	}
 	
 	public void genIndex(List<ProfileGrid> profileGridList, List<AnnotationSequenceGrid> targetGridList, Map<Long, ProfileGrid> profileIDMap, Map<Long, AnnotationSequenceGrid> targetIDMap) throws SQLException
@@ -169,7 +175,7 @@ public class ProfileInvertedIndex
 			//System.out.println("count: " + count + " count2: " + count2);
 			
 			//found a matching profile grid
-			if (count >= count2) {
+			if (count >= (count2 - maxGaps)) {
 				//System.out.println("Inverted Index: " + SequenceUtilities.getStrFromToks(profileGrid.getGrid().getSequence().getToks()));
 				profileGridList.add(profileGrid);
 				

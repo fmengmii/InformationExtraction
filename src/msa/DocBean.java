@@ -7,6 +7,7 @@ public class DocBean
 	private long docID;
 	private long frameInstanceID = -1;
 	private Integer status;
+	private int cluster = -1;
 	
 	public DocBean()
 	{
@@ -66,5 +67,13 @@ public class DocBean
 
 	public void setStatus(int status) {
 		this.status = status;
+	}
+
+	public int getCluster() {
+		return cluster;
+	}
+
+	public void setCluster(int cluster) {
+		this.cluster = cluster;
 	}
 }

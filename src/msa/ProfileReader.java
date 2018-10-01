@@ -131,11 +131,13 @@ public class ProfileReader
 				limitStr.append("offset " + start + " rows fetch next " + clusterSize + " rows only");
 
 			ResultSet rs = stmt.executeQuery("select profile_id, profile, profile_type, score, true_pos, false_pos, " + rq + "group" + rq + " from " + msaTable
-				+ " where annotation_type = '" + annotType + "' and profile_type = " + profileType + strBlder.toString() + " order by profile_id "
+				+ " where annotation_type = '" + annotType + "' and score >= 0.0 and profile_type = " + profileType + strBlder.toString() + " order by profile_id "
 				+ limitStr.toString());
 
 			while (rs.next()) {
 				long profileID = rs.getLong(1);
+				if (profileID == 76)
+					System.out.println("here!");
 				
 				String profileStr = rs.getString(2);
 				int type = rs.getInt(3);	
@@ -186,7 +188,7 @@ public class ProfileReader
 		
 		ResultSet rs = stmt.executeQuery("select a.profile_id, a.target_id, b.profile, b." + rq + "group" + rq + ", c.profile "
 			+ "from " + finalProfileTable + " a, " + profileTable + " b, " + profileTable + " c "
-			+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.target_id = c.profile_id and "
+			+ "where b.annotation_type = '" + annotType + "' and b.score >= 0.0 and a.profile_id = b.profile_id and a.target_id = c.profile_id and "
 			+ "a.total >= " + total + " and a.prec >= " + prec);
 		
 		Map<Long, MSAProfile> profileMap2 = new HashMap<Long, MSAProfile>();
