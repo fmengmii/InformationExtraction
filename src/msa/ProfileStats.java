@@ -177,11 +177,11 @@ public class ProfileStats
 			
 			pstmt = msaConn.prepareStatement("select document_id, start, end from msa_profile_match_index where profile_id = ? and target_id = ?");
 			//pstmt2 = msaConn.prepareStatement("select count(*) from msa_profile_match_index where profile_id = ?");
-			pstmt2 = msaConn.prepareStatement("insert into " + schema + "final (profile_id, target_id, prec) values (?,?,?)");
-			pstmt3 = msaConn.prepareStatement("update " + schema + "final set prec = ? where profile_id = ? and target_id = ?");
-			pstmt4 = msaConn.prepareStatement("select count(*) from " + schema + "final where profile_id = ? and target_id = ?");
-			pstmt5 = msaConn.prepareStatement("select target_id from " + schema + "final where profile_id = ? and prec < 0.0");
-			pstmt6 = msaConn.prepareStatement("update " + schema + "final set true_pos = 0, false_pos = 0, total = 0 where profile_id = ? and target_id = ?");
+			pstmt2 = msaConn.prepareStatement("insert into " + schema + finalTable + " (profile_id, target_id, prec) values (?,?,?)");
+			pstmt3 = msaConn.prepareStatement("update " + schema + finalTable + " set prec = ? where profile_id = ? and target_id = ?");
+			pstmt4 = msaConn.prepareStatement("select count(*) from " + schema + finalTable + " where profile_id = ? and target_id = ?");
+			pstmt5 = msaConn.prepareStatement("select target_id from " + schema + finalTable + " where profile_id = ? and prec < 0.0");
+			pstmt6 = msaConn.prepareStatement("update " + schema + finalTable + " set true_pos = 0, false_pos = 0, total = 0 where profile_id = ? and target_id = ?");
 			
 			matchWriter = new MatchWriter();
 			matchWriter.init(msaUser, msaPassword, host, msaKeyspace, dbType, indexTable);

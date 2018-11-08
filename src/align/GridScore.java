@@ -142,7 +142,9 @@ public class GridScore
 	public void addTok(String tok)
 	{
 		//System.out.println("tok: " + tok + ", tokMulti: " + tokMulti.toString());
-		if (tok.indexOf("|") < 0) {
+		//this is the target
+		//if (tok.indexOf("|") < 0) {
+		if (tok.equals(":target")) {
 			//System.out.println("here1");
 			tokList = new ArrayList<String>();
 			tokList.add(tok);

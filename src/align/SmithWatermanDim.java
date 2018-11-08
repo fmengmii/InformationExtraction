@@ -33,6 +33,11 @@ public class SmithWatermanDim
 	private boolean profileMatch = false;
 	private boolean multiMatch = false;
 	
+	private Map<Integer, Boolean> targetRelationMap;
+	
+	private Map<Integer, Integer> relationIndexMap;
+	
+
 
 	public SmithWatermanDim()
 	{
@@ -147,8 +152,18 @@ public class SmithWatermanDim
 	
 	public double align(AnnotationSequenceGrid annotSeqGrid1, AnnotationSequenceGrid annotSeqGrid2)
 	{
+		return align(annotSeqGrid1, annotSeqGrid2, null);
+	}
+	
+	public double align(AnnotationSequenceGrid annotSeqGrid1, AnnotationSequenceGrid annotSeqGrid2, Map<Integer, Integer> relationIndexMap)
+	{
 		if (annotSeqGrid1.size() == 0 || annotSeqGrid2.size() == 0)
 			return -1.0;
+		
+		if (relationIndexMap == null)
+			this.relationIndexMap = new HashMap<Integer, Integer>();
+		else
+			this.relationIndexMap = relationIndexMap;
 		
 		//create align matrix
 		
@@ -498,9 +513,18 @@ public class SmithWatermanDim
 		
 		Map<String, List<AnnotationGridElement>> elemMap = new HashMap<String, List<AnnotationGridElement>>();
 		
+		//Map<Integer, Integer> relationIndexMap = new HashMap<Integer, Integer>();
+		
 		for (AnnotationGridElement elem : annotGridCol2) {
-				
+			
 			String tok = elem.getTok();
+				
+			//if (elem.getAnnot().getAnnotationType().startsWith("Relation.")) {
+			if (tok.indexOf(":relation.") >= 0) {
+				int index = tok.lastIndexOf("|");
+				tok = tok.substring(0, index);
+			}
+			
 			List<AnnotationGridElement> elemList = elemMap.get(tok);
 			if (elemList == null) {
 				elemList = new ArrayList<AnnotationGridElement>();
@@ -513,15 +537,45 @@ public class SmithWatermanDim
 		for (AnnotationGridElement elem : annotGridCol1) {
 
 			String tok = elem.getTok();
+			int relationIndex1 = 0;
+			
+			//if (elem.getAnnot().getAnnotationType().startsWith("Relation.")) {
+			if (tok.indexOf(":relation.") >= 0) {
+				int index = tok.lastIndexOf("|");
+				relationIndex1 = Integer.parseInt(tok.substring(index+1));
+				tok = tok.substring(0, index);
+			}
+			
 			List<AnnotationGridElement> elemList = elemMap.get(tok);
 			if (elemList != null) {
-				for (AnnotationGridElement elem2 : elemList) {
+				for (AnnotationGridElement elem2 : elemList) {	
+					String tok2 = elem2.getTok();
+					int relationIndex2 = -1;
+					
+					//if (elem2.getAnnot().getAnnotationType().startsWith("Relation.")) {
+					if (tok.indexOf(":relation.") >= 0) {
+						int index = tok2.lastIndexOf("|");
+						relationIndex2 = Integer.parseInt(tok2.substring(index+1));
+						tok2 = tok2.substring(0, index);
+					}
+					
+					if (relationIndex1 != 0) {
+						Integer indexMapping = relationIndexMap.get(relationIndex1);
+						if (indexMapping == null) {
+							relationIndexMap.put(relationIndex1, relationIndex2);
+						}
+						else if (relationIndex2 != indexMapping) {
+							continue;
+						}
+					}
+					
 					AnnotationGridElement[] elemAry = new AnnotationGridElement[2];
 					elemAry[0] = elem;
 					elemAry[1] = elem2;
 					elemMatchList.add(elemAry);
 					
 					if (verbose)
+					//if (elem.getAnnot().getAnnotationType().startsWith("Relation."))
 						System.out.println("matched: " + elem.getTok());
 				}
 			}

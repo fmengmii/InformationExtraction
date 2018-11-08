@@ -43,7 +43,7 @@ public class MSAUtils
 			String[] parts = tok.split("\\!");
 			boolean isSyntax = true;
 			for (int i=0; i<parts.length; i++) {
-				if (!(parts[i].startsWith(":token|category") || parts[i].startsWith(":token|orth") || parts[i].startsWith(":syntaxtreenode")))
+				if (!(parts[i].startsWith(":token|category") || parts[i].startsWith(":token|orth") || parts[i].startsWith(":syntaxtreenode") || parts[i].startsWith(":relation.dependency")))
 					isSyntax = false;
 			}
 
@@ -217,7 +217,7 @@ public class MSAUtils
 		Gson gson = new Gson();
 		
 		String profileStr = gson.toJson(profileGrid.getSequence().getToks());
-
+		//System.out.println("profile str: " + profileStr);
 		
 		
 		//match the left
@@ -225,6 +225,8 @@ public class MSAUtils
 		boolean match = false;
 		List<Integer> targetStartList = new ArrayList<Integer>();
 		boolean startMatch = false;
+		
+		Map<Integer, Integer> relationIndexMap = new HashMap<Integer, Integer>();
 		
 		int syntax1 = 0;
 		int syntax2 = 0;
@@ -235,7 +237,7 @@ public class MSAUtils
 			do {
 				match = true;
 				
-				double score = sw.align(left, grid2);
+				double score = sw.align(left, grid2, relationIndexMap);
 				
 				List<Integer> matchIndexes1 = sw.getMatchIndexes1();
 				List<Integer> matchIndexes2 = sw.getMatchIndexes2();
@@ -259,6 +261,7 @@ public class MSAUtils
 				//if (profileStr.equals("[\":i-per\",\":target\",\":token|string|(\",\":lookup|majortype|location\",\":token|string|)\",\":number|number\"]")) {
 				//if (profileStr.equals("[\":start|start\",\":target\",\":token|category|cd!:number|number!:syntaxtreenode|cat|cd\",\":number|number\",\":token|category|cd!:number|number\"]")) {
 				//if (gaps1 == 0 && gaps2 == 0) {
+				 
 					System.out.println("profile: " + profileStr);
 					System.out.println("grid2: " + grid2.toString());
 					System.out.println("left: " + left.toString());
@@ -269,8 +272,9 @@ public class MSAUtils
 					System.out.println("coords1: " + gson.toJson(matchCoords1));
 					System.out.println("coords2: " + gson.toJson(matchCoords2));
 					System.out.println("gaps1: " + gaps1 + ", gaps2: " + gaps2 + ", syntax1: " + syntax1 + ", syntax2: " + syntax2 + "\n\n");
+					
 				//}
-				*/ 
+				*/
 				
 					
 				
@@ -322,7 +326,7 @@ public class MSAUtils
 			do {
 				match = true;
 				
-				double score = sw.align(right, grid2);
+				double score = sw.align(right, grid2, relationIndexMap);
 				
 				List<Integer> matchIndexes1 = sw.getMatchIndexes1();
 				List<Integer> matchIndexes2 = sw.getMatchIndexes2();
@@ -368,7 +372,7 @@ public class MSAUtils
 				System.out.println("right coords2: " + gson.toJson(matchCoords2));
 				System.out.println("gaps1: " + gaps1 + ", gaps2: " + gaps2 + ", syntax1: " + syntax1 + ", syntax2: " + syntax2 + " maxGaps: " + maxGaps + "\n\n");
 				//}
-				 */	
+				*/	
 				
 				
 
@@ -430,6 +434,13 @@ public class MSAUtils
 						indexes[0] = start;
 						indexes[1] = end;
 						
+						//check that target-based relations are all included in the alignment
+						boolean flag = checkTargetRelations(grid, start, end, relationIndexMap);
+						if (!flag) {
+							//System.out.println("check target relations false!");
+							continue;
+						}
+						
 						
 						List<int[]> matchCoords1 = new ArrayList<int[]>();
 						matchCoords1.addAll(matchCoords1List1.get(i));
@@ -470,6 +481,41 @@ public class MSAUtils
 		return map;
 	}
 	
+	private static boolean checkTargetRelations(AnnotationSequenceGrid grid, int start, int end, Map<Integer, Integer> relationIndexMap)
+	{
+		int count = 0;
+		Map<Integer, Integer> inverseMap = new HashMap<Integer, Integer>();
+		for (int id : relationIndexMap.keySet()) {
+			int mappedID = relationIndexMap.get(id);
+			inverseMap.put(mappedID, id);
+			//System.out.println("id: " + id + " mappedID: " + mappedID);
+			if (id < 0)
+				count++;
+		}
+		
+		for (int i=start; i<end; i++) {
+			List<AnnotationGridElement> col = grid.get(i);
+			
+			for (AnnotationGridElement elem : col) {
+				String tok = elem.getTok();
+				if (tok.startsWith(":relation.")) {
+					int index = tok.lastIndexOf("|");
+					int id = Integer.parseInt(tok.substring(index+1));
+					Integer mappedID = inverseMap.get(id);
+					
+					if (mappedID != null && mappedID < 0) {
+						count--;
+					}
+				}
+			}
+		}
+		
+		if (count <= 0)
+			return true;
+		
+		return false;
+	}
+	
 	public static int[] matchProfile(AnnotationSequenceGrid grid1, AnnotationSequenceGrid grid2, SmithWatermanDim sw, int maxGaps, int syntax, int phrase, int minSize)
 	{
 		int[] indexes = new int[2];
@@ -481,6 +527,7 @@ public class MSAUtils
 		
 		Gson gson = new Gson();
 		
+
 		int[] targetCoords = grid1.getTargetCoords();
 		//Annotation targetAnnot = grid1.get(targetCoords[0]).get(targetCoords[1]).getAnnot();
 		int targetIndex = targetCoords[0];

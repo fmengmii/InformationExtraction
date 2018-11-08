@@ -108,6 +108,11 @@ public class ProfileMatcher
 				List<AnnotationGridElement> col = grid.get(j);
 				for (AnnotationGridElement elem : col) {
 					String tok = elem.getTok();
+					if (tok.startsWith(":relation.")) {
+						int index = tok.lastIndexOf("|");
+						tok = tok.substring(0, index);
+					}
+					
 					gridMap.put(tok, true);					
 				}
 
@@ -175,7 +180,13 @@ public class ProfileMatcher
 					for (int j=0; j<profileGrid.size(); j++) {
 						List<AnnotationGridElement> col = profileGrid.get(j);
 						for (AnnotationGridElement elem : col) {
-							profileElemToks.add(elem.getTok());
+							String tok = elem.getTok();
+							if (tok.startsWith(":relation.")) {
+								int index = tok.lastIndexOf("|");
+								tok = tok.substring(0, index);
+							}
+							
+							profileElemToks.add(tok);
 						}
 					}
 					

@@ -31,6 +31,7 @@ public class BestPatterns
 	private double posThreshold;
 	private int posMinCount;
 	private boolean cleanTables = false;
+	private String docQuery;
 	
 	private List<String> groupList;
 	private List<String> targetGroupList;
@@ -96,6 +97,8 @@ public class BestPatterns
 		String filterFlagStr = props.getProperty("filterFlag");
 		if (filterFlagStr != null)
 			filterFlag = Boolean.parseBoolean(filterFlagStr);
+		
+		docQuery = props.getProperty("docQuery");
 		
 		//minCount = Integer.parseInt(props.getProperty("minCount"));
 	}
@@ -171,7 +174,7 @@ public class BestPatterns
 				PreparedStatement pstmt = conn.prepareStatement("insert into " + schema + finalTable + " (profile_id, target_id, total, prec, valence, true_pos, false_pos) values (?,?,?,?,?,?,?)");
 				PreparedStatement pstmtUpdateProfile = conn.prepareStatement("update " + schema + profileTable + " set score = ? where profile_id = ?");
 				PreparedStatement pstmtUpdateProfileCounts = conn.prepareStatement("update " + schema + profileTable + " set true_pos = ?, false_pos = ? where profile_id = ?");
-				PreparedStatement pstmtGetIndexCounts = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", count(*) from " + rq + schema + indexTable + rq + " a, " + schema + profileTable + " b "
+				PreparedStatement pstmtGetIndexCounts = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", count(*) from " + schema + rq + indexTable + rq + " a, " + schema + profileTable + " b "
 						+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.document_id = ? group by a.profile_id, a.target_id, a.start, a." + rq + "end" + rq);
 				
 				Statement stmt = conn.createStatement();
@@ -181,7 +184,11 @@ public class BestPatterns
 				System.out.println("getting doc IDs...");
 				docIDList = new ArrayList<Long>();
 				//ResultSet rs = stmt.executeQuery("select distinct document_id from " + rq + indexTable + rq + " order by document_id");
-				ResultSet rs = stmt.executeQuery("select  document_id from " + schema + "document_status" + " where status = 1 order by document_id");
+				if (docQuery == null) {
+					docQuery = "select document_id from " + schema + "document_status" + " where status = 1 order by document_id";
+				}
+				
+				ResultSet rs = stmt.executeQuery(docQuery);
 				while (rs.next()) {
 					docIDList.add(rs.getLong(1));
 				}
@@ -266,8 +273,8 @@ public class BestPatterns
 				Map<Long, List<Long>> invDocMap = new HashMap<Long, List<Long>>();
 				Map<Long, Integer> profileTotals = new HashMap<Long, Integer>();
 				
-				//rs = stmt.executeQuery("select distinct a.profile_id, a.target_id, a.document_id, a.start, a." + rq + "end" + rq + " from " + rq + schema + indexTable + rq + " a, " + schema + profileTable + " b "
-				//		+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id");
+				//rs = stmt.executeQuery("select distinct a.profile_id, a.target_id, a.document_id, a.start, a." + rq + "end" + rq + " from " + schema + rq + indexTable + rq + " a, " + schema + profileTable + " b "
+				//	+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id");
 				
 				for (long docID : docIDList) {
 					
@@ -655,14 +662,14 @@ public class BestPatterns
 			
 			double score = profileScoreMap.get(profileID);
 			//String key = docID + "|" + start + "|" + skew;
-			String key = docID + "|" + start + "|" + profileType;
+			String key = docID + "|" + start + "|" + targetID + "|" + profileType;
 			Double useScore = profileUseScoreMap.get(key);
 
 			String oldProfile = profileUseMap.get(key);
 			if (oldProfile == null)
 				oldProfile = "";
 			
-			if (profileID == 931 || oldProfile.startsWith("931")) {
+			if (profileID == 7514 || oldProfile.startsWith("7514")) {
 				System.out.println(profileID + "|" + targetID + "|" + docID + "|" + start + "|" + score + "|" + useScore + "|" + oldProfile);
 			}
 
@@ -676,8 +683,8 @@ public class BestPatterns
 				
 				profileUseScoreMap.put(key, score);
 				profileUseMap.put(key, profileID + "|" + targetID);
-				if (profileID == 162 || oldProfile.startsWith("162") || profileID == 26 || oldProfile.startsWith("26"))
-					System.out.println(key + ": " + profileID + "|" + targetID + " replaces " + oldProfile + " old score:" + useScore + " new score:" + score);
+				//if (profileID == 162 || oldProfile.startsWith("162") || profileID == 26 || oldProfile.startsWith("26"))
+				//	System.out.println(key + ": " + profileID + "|" + targetID + " replaces " + oldProfile + " old score:" + useScore + " new score:" + score);
 
 				//profileFilterMap.put(profileID + "|" + targetID, true);
 			}

@@ -38,12 +38,17 @@ public class ProfileInvertedIndex
 		
 		for (ProfileGrid profileGrid : profileGridList) {
 			AnnotationSequenceGrid grid = profileGrid.getGrid();
-			System.out.println(grid.toString());
+			//System.out.println(grid.toString());
 			
 			for (int i=0; i<grid.size(); i++) {
 				List<AnnotationGridElement> col = grid.get(i);
 				//for (AnnotationGridElement elem : col) {
 					String tok = col.get(0).getTok();
+					if (tok.startsWith(":relation.")) {
+						int index = tok.lastIndexOf("|");
+						tok = tok.substring(0, index);
+					}
+					
 					Map<ProfileGrid, Integer> gridMap = wordMap.get(tok);
 					if (gridMap == null) {
 						gridMap = new HashMap<ProfileGrid, Integer>();
@@ -111,6 +116,11 @@ public class ProfileInvertedIndex
 			List<AnnotationGridElement> col = grid.get(i);
 			for (AnnotationGridElement elem : col) {
 				String tok = elem.getTok();
+				
+				if (tok.startsWith(":relation.")) {
+					int index = tok.lastIndexOf("|");
+					tok = tok.substring(0, index);
+				}
 				
 				if (matchMap.get(tok) == null) {
 					matchMap.put(tok, true);

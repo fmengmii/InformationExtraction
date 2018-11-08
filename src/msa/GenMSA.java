@@ -357,6 +357,17 @@ public class GenMSA
 			//sw.setVerbose(verbose);
 			sw.setScoreMap(annotTypeNameList, scoreList);
 			
+			if (requireTarget) {
+				for (AnnotationSequenceGrid grid : gridList) {
+					reindexRelationsTarget(grid);
+				}
+			}
+			else {
+				for (AnnotationSequenceGrid grid : gridList) {
+					removeRelations(grid);
+				}
+			}
+			
 			for (int i=0; i<gridList.size()-1; i++) {
 				AnnotationSequenceGrid grid1 = gridList.get(i);
 				AnnotationSequence seq1 = grid1.getSequence();
@@ -459,12 +470,12 @@ public class GenMSA
 					
 					SentenceInfo sentInfo2 = new SentenceInfo(docNamespace, docTable, docID2, sentID2);
 					
-					/*
-					System.out.println("\n\ntoks1: " + toks1Str);
-					System.out.println("toks2: " + toks2Str);
-					System.out.println("grid1: " + grid1.toString());
-					System.out.println("grid2: " + grid2.toString());
-					*/
+					
+					//System.out.println("\n\ntoks1: " + toks1Str);
+					//System.out.println("toks2: " + toks2Str);
+					//System.out.println("grid1: " + grid1.toString());
+					//System.out.println("grid2: " + grid2.toString());
+					
 					
 					
 					sw.align(grid1, grid2);
@@ -547,11 +558,16 @@ public class GenMSA
 								continue;
 						}
 						
+						
+						reindexRelations(alignToks1, matchIndexes1);
+						reindexRelations(alignToks2, matchIndexes2);
+						
 						List<String> matchTokens = new ArrayList<String>();
 						for (int matchIndex : matchIndexes1) {
-							matchTokens.add(alignToks1.get(matchIndex));
+							String tok = alignToks1.get(matchIndex);
+							matchTokens.add(tok);
 						}
-						
+								
 						String matchTokensStr = gson.toJson(matchTokens);
 						
 						//System.out.println("matchTokensStr: " + matchTokensStr);
@@ -635,6 +651,111 @@ public class GenMSA
 		
 		return msaList;
 	}
+	
+	private void reindexRelations(List<String> alignToks, List<Integer> matchIndexes)
+	{
+		int currPosIndex = 1;
+		int currNegIndex = -1;
+
+		Map<Integer, Integer> indexMap = new HashMap<Integer, Integer>();
+		for (int matchIndex : matchIndexes) {
+			String tok = alignToks.get(matchIndex);
+				
+			String[] parts = tok.split("!");
+			boolean found = false;
+			for (int i=0; i<parts.length; i++) {
+				
+				//System.out.println(parts[i]);
+				
+				if (parts[i].startsWith(":relation.")) {
+					int index = parts[i].lastIndexOf("|");
+					int relationIndex = Integer.parseInt(parts[i].substring(index+1));
+					
+					int currIndex = currPosIndex;
+					if (relationIndex < 0)
+						currIndex = currNegIndex;
+					
+					Integer relationIndex2 = indexMap.get(relationIndex);
+					if (relationIndex2 == null) {
+						indexMap.put(relationIndex, currIndex);
+						relationIndex2 = currIndex;
+					}
+					
+					if (relationIndex > 0)
+						currPosIndex++;
+					else
+						currNegIndex--;
+					
+					parts[i] = parts[i].substring(0, index) + "|" + relationIndex2;
+					
+					found = true;
+				}
+			}
+			
+			
+			if (found) {
+				StringBuilder strBlder =  new StringBuilder();
+				for (int i=0; i<parts.length; i++) {
+					if (strBlder.length() > 0)
+						strBlder.append("!");
+					strBlder.append(parts[i]);
+				}
+				
+				alignToks.set(matchIndex, strBlder.toString());
+			}
+		}
+	}
+	
+	private void reindexRelationsTarget(AnnotationSequenceGrid grid)
+	{
+		int[] targetCoords = grid.getTargetCoords();
+		List<AnnotationGridElement> targetCol = grid.get(targetCoords[0]);
+		Map<Integer, Boolean> map = new HashMap<Integer, Boolean>();
+		
+		for (AnnotationGridElement elem : targetCol) {
+			if (elem.getAnnot().getAnnotationType().startsWith("Relation.")) {
+				String tok = elem.getTok();
+				int index = tok.lastIndexOf("|");
+				int id = Integer.parseInt(tok.substring(index+1));
+				map.put(id,  true);
+			}
+		}
+		
+		
+		int currIndex = -1;
+		for (int i=0; i<grid.size(); i++) {
+			if (i == targetCoords[0])
+				continue;
+			
+			List<AnnotationGridElement> col = grid.get(i);
+			for (AnnotationGridElement elem : col) {
+				if (elem.getAnnot().getAnnotationType().startsWith("Relation.")) {
+					String tok = elem.getTok();
+					int index = tok.lastIndexOf("|");
+					int id = Integer.parseInt(tok.substring(index+1));
+					Boolean flag = map.get(id);
+					if (flag != null)
+						elem.setTok(tok.substring(0, index+1) + currIndex--);
+				}
+			}
+			
+		}
+	}
+	
+	private void removeRelations(AnnotationSequenceGrid grid)
+	{
+		for (int i=0; i<grid.size(); i++) {
+			List<AnnotationGridElement> col = grid.get(i);
+			for (int j=0; j<col.size(); j++) {
+				AnnotationGridElement elem = col.get(j);
+				if (elem.getAnnot().getAnnotationType().startsWith("Relation.")) {
+					col.remove(j);
+					j--;
+				}
+			}
+		}
+	}
+	
 	
 	/*
 	private Map<String, List<NGram>> genGlobalContextVectors(Map<String, List<List<NGram>>> globalVecMap)
