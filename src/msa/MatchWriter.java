@@ -50,6 +50,7 @@ public class MatchWriter
 			
 			if (count == batchSize) {
 				pstmtTarget.executeBatch();
+				conn.commit();
 				count = 0;
 			}
 		}

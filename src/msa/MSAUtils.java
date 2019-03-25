@@ -772,7 +772,11 @@ public class MSAUtils
 			
 			
 			AnnotationSequenceGrid targetGrid = grid.subGrid(start, end);
-			targetGrid.removeElement(targetCoords[0]-start, targetGrid.get(targetCoords[0]-start).size()-1);
+			
+			if (targetGrid.size() > 0)
+				targetGrid.removeElement(targetCoords[0]-start, targetGrid.get(targetCoords[0]-start).size()-1);
+			
+			
 			targetGridList.add(targetGrid);
 		}
 		

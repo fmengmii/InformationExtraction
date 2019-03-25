@@ -545,17 +545,24 @@ public class GenMSA
 						//}
 						
 						
-						if (matchSize) {							
-							int[] coords1 = matchCoords1.get(matchCoords1.size()-1);
-							int start1 = matchCoords1.get(0)[0];
-							int end1 = grid1.get(coords1[0]).get(coords1[1]).getEndIndex();
-							
-							int[] coords2 = matchCoords2.get(matchCoords2.size()-1);
-							int start2 = matchCoords2.get(0)[0];
-							int end2 = grid2.get(coords2[0]).get(coords2[1]).getEndIndex();
-							
-							if (!(start1 == 0 && end1 == grid1.size()) && !(start2 == 0 && end2 == grid2.size()))
-								continue;
+						try {
+							if (matchSize) {							
+								int[] coords1 = matchCoords1.get(matchCoords1.size()-1);
+								int start1 = matchCoords1.get(0)[0];
+								int end1 = grid1.get(coords1[0]).get(coords1[1]).getEndIndex();
+								
+								int[] coords2 = matchCoords2.get(matchCoords2.size()-1);
+								int start2 = matchCoords2.get(0)[0];
+								int end2 = grid2.get(coords2[0]).get(coords2[1]).getEndIndex();
+								
+								if (!(start1 == 0 && end1 == grid1.size()) && !(start2 == 0 && end2 == grid2.size()))
+									continue;
+							}
+						}
+						catch(IndexOutOfBoundsException e)
+						{
+							e.printStackTrace();
+							System.out.println(grid2.toString());
 						}
 						
 						
@@ -679,12 +686,12 @@ public class GenMSA
 					if (relationIndex2 == null) {
 						indexMap.put(relationIndex, currIndex);
 						relationIndex2 = currIndex;
+						
+						if (relationIndex > 0)
+							currPosIndex++;
+						else
+							currNegIndex--;
 					}
-					
-					if (relationIndex > 0)
-						currPosIndex++;
-					else
-						currNegIndex--;
 					
 					parts[i] = parts[i].substring(0, index) + "|" + relationIndex2;
 					
@@ -749,7 +756,7 @@ public class GenMSA
 			for (int j=0; j<col.size(); j++) {
 				AnnotationGridElement elem = col.get(j);
 				if (elem.getAnnot().getAnnotationType().startsWith("Relation.")) {
-					col.remove(j);
+					grid.removeElement(i, j);
 					j--;
 				}
 			}

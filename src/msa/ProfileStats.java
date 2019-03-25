@@ -164,6 +164,11 @@ public class ProfileStats
 		this.annotType = annotType;
 	}
 	
+	public void setAnsMap(Map<String, Boolean> ansMap)
+	{
+		this.ansMap = ansMap;
+	}
+	
 	public void init(String annotUser, String annotPassword, String msaUser, String msaPassword, String host, String keyspace, String msaKeyspace, String dbType,
 		String indexTable, String finalTable, String annotType, String provenance)
 	{
@@ -222,8 +227,8 @@ public class ProfileStats
 			posMap = new HashMap<String, Integer>();
 			negMap = new HashMap<String, Integer>();
 			
-			System.out.println("reading answers...");
-			ansMap = readAnswers(annotType, provenance);
+			//System.out.println("reading answers...");
+			//ansMap = readAnswers(annotType, provenance);
 			
 			//preload pos and neg maps
 			Statement stmt = conn.createStatement();
@@ -547,78 +552,5 @@ public class ProfileStats
 
 	}
 	
-	private Map<String, Boolean> readAnswers(String annotType, String provenance) throws SQLException
-	{
-		Map<String, Boolean> ansMap = new HashMap<String, Boolean>();
-		
-		/*
-		PreparedStatement pstmt = conn.prepareStatement("select a.start, a.end from annotation a, annotation b where a.document_id = ? and a.annotation_type = 'Token' and "
-			+ "a.start >= b.start and a.end <= b.end and b.annotation_type = '" + annotType + "' and a.document_id = b.document_id order by start");
 
-		if (docIDList == null) {
-			docIDList = new ArrayList<Long>();
-			Statement stmt = conn.createStatement();
-			ResultSet rs = stmt.executeQuery("select distinct document_id from annotation where provenance = '" + provenance + " and annotation_type = '" + annotType + " order by document_id");
-			while (rs.next()) {
-				docIDList.add(rs.getLong(1));
-			}
-			
-			stmt.close();
-		}
-		
-		for (long docID : docIDList) {
-			pstmt.setLong(1, docID);
-			
-			ResultSet rs = pstmt.executeQuery();
-			while (rs.next()) {
-				int start = rs.getInt(1);
-				int end = rs.getInt(2);
-				//String value = rs.getString(3);
-				ansMap.put(docID + "|" + start + "|" + end, true);
-				//System.out.println(docID + "|" + start2 + "|" + end2 + ", value: " + value);
-			}
-			
-		}
-		*/
-		
-		String rq = DBConnection.reservedQuote;
-		
-		Statement stmt = conn.createStatement();
-		
-		
-		/*
-		ResultSet rs = stmt.executeQuery("select a.document_id, a.start, a." + rq + "end" + rq + " from " + schema + "annotation a, " + schema + "annotation b where a.annotation_type = 'Token' and "
-			+ "a.start >= b.start and a." + rq + "end" + rq + " <= b." + rq + "end" + rq + " and b.annotation_type = '" + annotType + "' "
-			+ "and b.provenance = '" + provenance + "' and a.document_id = b.document_id order by start");
-			//and a.document_id < 1163 order by start");
-		
-		while (rs.next()) {
-			long docID = rs.getLong(1);
-			int start = rs.getInt(2);
-			int end = rs.getInt(3);
-			ansMap.put(docID + "|" + start + "|" + end, true);
-		}
-		*/
-		
-		
-		
-		
-		ResultSet rs = stmt.executeQuery("select distinct document_id, start, " + rq + "end" + rq
-			+ "from " + schema + "annotation where annotation_type = '" + annotType
-			+ "' and provenance = '" + provenance + "' order by document_id, start");
-		
-		while (rs.next()) {
-			long docID = rs.getLong(1);
-			int start = rs.getInt(2);
-			int end = rs.getInt(3);
-			
-			ansMap.put(docID + "|" + start + "|" + end, true);
-		}
-		
-		
-		//pstmt.close();
-		stmt.close();
-		
-		return ansMap;
-	}
 }

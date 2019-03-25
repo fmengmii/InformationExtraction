@@ -587,7 +587,7 @@ public class ProfileMatcher
 									matchCount++;
 									
 									if (verbose) {
-										System.out.println("MATCHED!: " + annotType + ", " + ", " + gson.toJson(matchCoords1) + ", " + gson.toJson(matchCoords2) + ", " + targetMatchIndexes[0] + ":" + targetMatchIndexes[1]);
+										System.out.println("MATCHED!: " + annotType + ", " + ", " + gson.toJson(matchCoords1) + ", " + gson.toJson(matchCoords2) + ", " + grid.getSequence().getDocID() + ":" + targetMatchIndexes[0] + ":" + targetMatchIndexes[1]);
 										System.out.println("MATCHED PROFILE: " + profile.getProfileID() + "|" + profileStr);
 										
 										for (int k=0; k<targetList.size(); k++) {
@@ -598,7 +598,7 @@ public class ProfileMatcher
 										}
 										
 										if (pw != null) {
-											pw.println("MATCHED!: " + annotType + ", " + ", " + gson.toJson(matchCoords1) + ", " + gson.toJson(matchCoords2) + ", " + targetMatchIndexes[0] + ":" + targetMatchIndexes[1]);
+											pw.println("MATCHED!: " + annotType + ", " + ", " + gson.toJson(matchCoords1) + ", " + gson.toJson(matchCoords2) + ", " + grid.getSequence().getDocID() + ":" + targetMatchIndexes[0] + ":" + targetMatchIndexes[1]);
 											pw.println("MATCHED PROFILE: " + profile.getProfileID() + "|" + profileStr);
 											
 											for (int k=0; k<targetList.size(); k++) {

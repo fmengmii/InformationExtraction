@@ -43,6 +43,8 @@ public class BestPatterns
 	
 	private Map<String, Integer> posMap;
 	private Map<String, Integer> negMap;
+	private Map<String, Boolean> inactiveMap;
+	
 	
 	private String rq;
 	
@@ -62,8 +64,9 @@ public class BestPatterns
 		gson = new Gson();
 	}
 	
-	public void init(Properties props)
+	public void init(Properties props) throws ClassNotFoundException, SQLException
 	{
+		
 		host = props.getProperty("host");
 		dbName = props.getProperty("dbName");
 		//msaKeyspace = props.getProperty("msaKeyspace");
@@ -101,10 +104,15 @@ public class BestPatterns
 		docQuery = props.getProperty("docQuery");
 		
 		//minCount = Integer.parseInt(props.getProperty("minCount"));
+		
+		
+
 	}
 	
-	public void close()
+	public void close() throws SQLException
 	{
+		conn.close();
+		annotConn.close();
 	}
 	
 	public List<String> getAnnotTypeList() {
@@ -142,9 +150,10 @@ public class BestPatterns
 	public void getBestPatterns(String msaUser, String msaPassword, String annotUser, String annotPassword)
 	{
 		try {			
+			//conn = DBConnection.dbConnection(msaUser, msaPassword, host, dbName, dbType);
+			//annotConn = DBConnection.dbConnection(annotUser, annotPassword, host, dbName, dbType);
 			conn = DBConnection.dbConnection(msaUser, msaPassword, host, dbName, dbType);
 			annotConn = DBConnection.dbConnection(annotUser, annotPassword, host, dbName, dbType);
-			
 			rq = DBConnection.reservedQuote;
 			
 			
@@ -171,7 +180,7 @@ public class BestPatterns
 				finalTable = finalTableList.get(index);
 				
 				
-				PreparedStatement pstmt = conn.prepareStatement("insert into " + schema + finalTable + " (profile_id, target_id, total, prec, valence, true_pos, false_pos) values (?,?,?,?,?,?,?)");
+				PreparedStatement pstmt = conn.prepareStatement("insert into " + schema + finalTable + " (profile_id, target_id, total, prec, true_pos, false_pos) values (?,?,?,?,?,?)");
 				PreparedStatement pstmtUpdateProfile = conn.prepareStatement("update " + schema + profileTable + " set score = ? where profile_id = ?");
 				PreparedStatement pstmtUpdateProfileCounts = conn.prepareStatement("update " + schema + profileTable + " set true_pos = ?, false_pos = ? where profile_id = ?");
 				PreparedStatement pstmtGetIndexCounts = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", count(*) from " + schema + rq + indexTable + rq + " a, " + schema + profileTable + " b "
@@ -230,13 +239,14 @@ public class BestPatterns
 				posMap = new HashMap<String, Integer>();
 				negMap = new HashMap<String, Integer>();
 				Map<String, Integer> docCountMap = new HashMap<String, Integer>();
-				Map<String, Boolean> inactiveMap = new HashMap<String, Boolean>();
+				inactiveMap = new HashMap<String, Boolean>();
 				String targetStr = "";
 				
-				
+				preloadCounts();
 				//preload pos and neg counts
 				//preload inactive profile/target pairs
 				
+				/*
 				rs = stmt.executeQuery("select profile_id, target_id, true_pos, false_pos, prec from " + schema + finalTable);
 				while (rs.next()) {
 					long profileID = rs.getLong(1);
@@ -255,6 +265,7 @@ public class BestPatterns
 						inactiveMap.put(profileID + "|" + targetID, true);
 					}
 				}
+				*/
 				
 				
 				/*
@@ -441,9 +452,9 @@ public class BestPatterns
 						pstmt.setLong(2, targetID);
 						pstmt.setInt(3, posCount+negCount);
 						pstmt.setDouble(4, prec);
-						pstmt.setInt(5, valence);
-						pstmt.setInt(6, posCount);
-						pstmt.setInt(7, negCount);
+						//pstmt.setInt(5, valence);
+						pstmt.setInt(5, posCount);
+						pstmt.setInt(6, negCount);
 						pstmt.addBatch();
 						
 						count++;
@@ -468,6 +479,7 @@ public class BestPatterns
 				System.out.println("filter overlap...");
 				filterOverlapping(annotType);
 				
+				/*
 				int count = 0;
 				PreparedStatement pstmt = conn.prepareStatement("update " + schema + finalTable + " set prec = -1.0, true_pos = 0, false_pos = 0, total = 0 where profile_id = ? and target_id = ?");
 				for (String key : posMap.keySet()) {
@@ -494,6 +506,7 @@ public class BestPatterns
 				
 				pstmt.executeBatch();
 				conn.commit();
+				*/
 			}
 
 			
@@ -509,8 +522,27 @@ public class BestPatterns
 		}
 	}
 	
+	public void filterOverlapping(String msaUser, String msaPassword, String annotUser, String annotPassword) throws SQLException, ClassNotFoundException
+	{
+		conn = DBConnection.dbConnection(msaUser, msaPassword, host, dbName, dbType);
+		annotConn = DBConnection.dbConnection(annotUser, annotPassword, host, dbName, dbType);
+		rq = DBConnection.reservedQuote;
+		
+		filterOverlapping(annotType);
+	}
+	
 	public void filterOverlapping(String annotType) throws SQLException, ClassNotFoundException
 	{
+		conn.setAutoCommit(false);
+		
+		if (posMap == null) {
+			posMap = new HashMap<String, Integer>();
+			negMap = new HashMap<String, Integer>();
+			inactiveMap = new HashMap<String, Boolean>();
+		}
+		
+		preloadCounts();
+		
 		System.out.println("get profile lengths...");
 		Map<Integer, Integer> profileLengthMap = new HashMap<Integer, Integer>();
 		Map<Integer, String> profileStringMap = new HashMap<Integer, String>();
@@ -531,7 +563,7 @@ public class BestPatterns
 			int len = profileToks.size();
 			profileLengthMap.put(profileID, len);
 			
-			if (profileStr.indexOf(":i-per") >= 0)
+			if (profileStr.indexOf(":" + annotType.toLowerCase()) >= 0)
 				profileTypeMap.put(profileID, 1);
 			else profileTypeMap.put(profileID, 0);
 			
@@ -658,7 +690,6 @@ public class BestPatterns
 			int skew = profileSkewMap.get(profileID);
 			int profileType = profileTypeMap.get(profileID);
 			
-
 			
 			double score = profileScoreMap.get(profileID);
 			//String key = docID + "|" + start + "|" + skew;
@@ -668,10 +699,6 @@ public class BestPatterns
 			String oldProfile = profileUseMap.get(key);
 			if (oldProfile == null)
 				oldProfile = "";
-			
-			if (profileID == 7514 || oldProfile.startsWith("7514")) {
-				System.out.println(profileID + "|" + targetID + "|" + docID + "|" + start + "|" + score + "|" + useScore + "|" + oldProfile);
-			}
 
 			if (useScore == null) 
 				useScore = 1000000.0;
@@ -705,10 +732,62 @@ public class BestPatterns
 			String profileStr = profileStringMap.get(profileID);
 			//System.out.println(key + ": " + profileStr);
 		}
+		
+		
+		int count = 0;
+		stmt.execute("update " + schema + finalTable + " set disabled = 1");
+		PreparedStatement pstmt = conn.prepareStatement("update " + schema + finalTable + " set disabled = 0 where profile_id = ? and target_id = ?");
+		for (String key : profileFilterMap.keySet()) {
+			String[] parts = key.split("\\|");
+			int profileID = Integer.parseInt(parts[0]);
+			int targetID = Integer.parseInt(parts[1]);
+			
+			//System.out.println("filtered: " + profileID + "|" + targetID);
+			
+			pstmt.setInt(1, profileID);
+			pstmt.setInt(2, targetID);
+			pstmt.addBatch();
+			//conn.commit();
+			
+			count++;
+			if (count % 1000 == 0) {
+				pstmt.executeBatch();
+				conn.commit();
+			}
+		}
+		
+		pstmt.executeBatch();
+		conn.commit();
 
 		//pstmt.close();
 		stmt.close();
 		
+	}
+	
+	private void preloadCounts() throws SQLException
+	{
+		//preload pos and neg counts
+		//preload inactive profile/target pairs
+		
+		Statement stmt = conn.createStatement();
+		ResultSet rs = stmt.executeQuery("select profile_id, target_id, true_pos, false_pos, prec from " + schema + finalTable);
+		while (rs.next()) {
+			long profileID = rs.getLong(1);
+			long targetID = rs.getLong(2);
+			int posCount = rs.getInt(3);
+			int negCount = rs.getInt(4);
+			double prec = rs.getLong(5);
+			
+			if (posCount > 0)
+				posMap.put(profileID + "|" + targetID, posCount);
+			
+			if (negCount > 0)
+				negMap.put(profileID + "|" + targetID, negCount);
+			
+			if (prec < 0.0) {
+				inactiveMap.put(profileID + "|" + targetID, true);
+			}
+		}
 	}
 
 	
@@ -845,8 +924,8 @@ public class BestPatterns
 	public static void main(String[] args)
 	{
 		
-		if (args.length != 5) {
-			System.out.println("usage: msaUser msaPassword annotUser annotPassword config");
+		if (args.length != 6) {
+			System.out.println("usage: msaUser msaPassword annotUser annotPassword config [best/filter]");
 			System.exit(0);
 		}
 		
@@ -862,7 +941,13 @@ public class BestPatterns
 			Properties props = new Properties();
 			props.load(new FileReader(args[4]));
 			best.init(props);
-			best.getBestPatterns(args[0], args[1], args[2], args[3]);
+			
+			if (args[5].equals("best"))
+				best.getBestPatterns(args[0], args[1], args[2], args[3]);
+			else if (args[5].equals("filter"))
+				best.filterOverlapping(args[0], args[1], args[2], args[3]);
+			
+			best.close();
 		}
 		catch(Exception e)
 		{

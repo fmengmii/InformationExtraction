@@ -123,6 +123,9 @@ public class AutoAnnotate
 	
 	private String rq;
 	
+	
+	
+	
 	public AutoAnnotate()
 	{
 		gson = new Gson();
@@ -878,17 +881,23 @@ public class AutoAnnotate
 	{
 		try {
 			
-			if (finalAnnotList.size() > 0) {
-				pstmtDeleteAnnots.setString(1, annotType);
-				for (long docID : docIDList) {
-					pstmtDeleteFrameData.setLong(1, docID);
-					pstmtDeleteFrameData.setLong(2, docID);
-					pstmtDeleteFrameData.setString(3, annotType);
-					pstmtDeleteFrameData.execute();
-					
-					pstmtDeleteAnnots.setLong(2, docID);
-					pstmtDeleteAnnots.execute();
+			try {
+				if (finalAnnotList.size() > 0) {
+					pstmtDeleteAnnots.setString(1, annotType);
+					for (long docID : docIDList) {
+						pstmtDeleteFrameData.setLong(1, docID);
+						pstmtDeleteFrameData.setLong(2, docID);
+						pstmtDeleteFrameData.setString(3, annotType);
+						pstmtDeleteFrameData.execute();
+						
+						pstmtDeleteAnnots.setLong(2, docID);
+						pstmtDeleteAnnots.execute();
+					}
 				}
+			}
+			catch(SQLException e)
+			{
+				e.printStackTrace();
 			}
 			
 			

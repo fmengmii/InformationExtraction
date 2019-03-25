@@ -92,6 +92,9 @@ public class FilterPatterns
 	private PreparedStatement pstmtGetFilterStatus;
 	private PreparedStatement pstmtInsertFilterStatus;
 	private PreparedStatement pstmtUpdateFilterStatus;
+	private PreparedStatement pstmtGetAnswers;
+	
+	Map<String, Boolean> ansMap;
 	
 	private long minDocID;
 	
@@ -293,6 +296,7 @@ public class FilterPatterns
 			docDBName = props.getProperty("docDBName");
 			docDBType = props.getProperty("docDBType");
 			
+			
 		}
 		catch(Exception e)
 		{
@@ -319,14 +323,20 @@ public class FilterPatterns
 			
 			db.init(annotUser, annotPassword, host, dbName, dbName);
 			
+			
 			conn = DBConnection.dbConnection(msaUser, msaPassword, host, dbName, dbType);
 			conn2 = DBConnection.dbConnection(annotUser, annotPassword, host, dbName, dbType);
-			pstmtGetFilterStatus = conn.prepareStatement("select document_id from filter_status where annotation_type = ?");
-			pstmtInsertFilterStatus = conn.prepareStatement("insert into filter_status (annotation_type, document_id) values (?,?)");
-			pstmtUpdateFilterStatus = conn.prepareStatement("update filter_status set document_id = ? where annotation_type = ?");
+			pstmtGetFilterStatus = conn.prepareStatement("select document_id from filter_status where " + schema + ".annotation_type = ?");
+			pstmtInsertFilterStatus = conn.prepareStatement("insert into " + schema + ".filter_status (annotation_type, document_id) values (?,?)");
+			pstmtUpdateFilterStatus = conn.prepareStatement("update " + schema + ".filter_status set document_id = ? where annotation_type = ?");
+			String rq = DBConnection.reservedQuote;
+			pstmtGetAnswers = conn.prepareStatement("select distinct document_id, start, " + rq + "end" + rq
+					+ "from " + schema + ".annotation where document_id = ? and annotation_type = ?"
+					+ " and provenance = ? order by document_id, start");
+
 			
 			if (docDBQuery == null)
-				docDBQuery = "select distinct document_id from " + schema + "document_status where annotation_type = ? and status = 1 order by document_id";
+				docDBQuery = "select distinct document_id from " + schema + ".document_status where annotation_type = ? and status = 1 order by document_id";
 			PreparedStatement pstmtGetDocIDs = conn2.prepareStatement(docDBQuery);
 			
 			//Statement stmt = conn.createStatement();
@@ -495,6 +505,18 @@ public class FilterPatterns
 					
 					stats.setDocIDList(docIDList);
 					
+				
+					//read answers
+					System.out.println("reading answers...");
+					ansMap = new HashMap<String, Boolean>();
+					for (long docID : docIDList)
+						readAnswers(targetType, targetProvenance, docID);
+					
+					stats.setAnsMap(ansMap);
+					
+					
+					
+					
 					//generate the sentences
 					genSentences(docIDList, docNamespace, docTable, requireTarget, punct, limit);
 					//List<AnnotationSequence> posSeqList = genSent.getPosSeqList();
@@ -553,7 +575,7 @@ public class FilterPatterns
 						
 						msaProfileMap = new HashMap<AnnotationSequenceGrid, MSAProfile>();
 						for (MSAProfile msaProfile : profileList) {
-							System.out.println(msaProfile.getProfileID() + "|" + msaProfile.getProfileStr());
+							//System.out.println(msaProfile.getProfileID() + "|" + msaProfile.getProfileStr());
 							
 							//AnnotationSequenceGrid profileGrid = genGrid.toAnnotSeqGrid(annotTypeProfile.getToks(), false);
 							AnnotationSequenceGrid profileGrid = genGrid.toAnnotSeqGrid(msaProfile.getToks(), false);
@@ -601,7 +623,7 @@ public class FilterPatterns
 						//pw.println("\n\nProfiles: " + profileGridList.size());
 						for (ProfileGrid profileGridObj : profileGridList) {
 							String profileStr = gson.toJson(profileGridObj.getGrid().getSequence().getToks());
-							System.out.println(profileStr);
+							//System.out.println(profileStr);
 							//pw.println(profileStr);
 						}
 						
@@ -736,6 +758,26 @@ public class FilterPatterns
 		}
 		
 		return score;
+	}
+	
+	private Map<String, Boolean> readAnswers(String annotType, String provenance, long docID) throws SQLException
+	{
+		
+		pstmtGetAnswers.setLong(1, docID);
+		pstmtGetAnswers.setString(2, annotType);
+		pstmtGetAnswers.setString(3, provenance);
+
+		ResultSet rs = pstmtGetAnswers.executeQuery();
+		
+		while (rs.next()) {
+			int start = rs.getInt(2);
+			int end = rs.getInt(3);
+			
+			ansMap.put(docID + "|" + start + "|" + end, true);
+		}
+		
+		
+		return ansMap;
 	}
 	
 	public static void main(String[] args)

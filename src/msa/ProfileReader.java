@@ -104,8 +104,8 @@ public class ProfileReader
 	
 	public List<MSAProfile> read(String annotType, List<String> groupList, int start, int clusterSize, int profileType, String msaTable) throws SQLException, ClassNotFoundException
 	{
-		List<MSAProfile> profileList= new ArrayList<MSAProfile>();
-		//profileIDMap = new HashMap<Long, MSAProfile>();
+		List<MSAProfile> profileList = new ArrayList<MSAProfile>();
+		profileIDMap = new HashMap<Long, MSAProfile>();
 
 		//if (dbType.equals("mysql")) {
 			
@@ -136,8 +136,6 @@ public class ProfileReader
 
 			while (rs.next()) {
 				long profileID = rs.getLong(1);
-				if (profileID == 76)
-					System.out.println("here!");
 				
 				String profileStr = rs.getString(2);
 				int type = rs.getInt(3);	
@@ -189,7 +187,7 @@ public class ProfileReader
 		ResultSet rs = stmt.executeQuery("select a.profile_id, a.target_id, b.profile, b." + rq + "group" + rq + ", c.profile "
 			+ "from " + finalProfileTable + " a, " + profileTable + " b, " + profileTable + " c "
 			+ "where b.annotation_type = '" + annotType + "' and b.score >= 0.0 and a.profile_id = b.profile_id and a.target_id = c.profile_id and "
-			+ "a.total >= " + total + " and a.prec >= " + prec);
+			+ "a.disabled = 0");
 		
 		Map<Long, MSAProfile> profileMap2 = new HashMap<Long, MSAProfile>();
 		

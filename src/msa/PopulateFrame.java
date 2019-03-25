@@ -49,7 +49,7 @@ public class PopulateFrame
 			Statement stmt = conn.createStatement();
 			
 			String queryStr = "delete from " + schema + "frame_instance_data where (document_id, annotation_id) in (select distinct a.document_id, a.id from " + schema + "annotation a," + schema + "document_status b where a.provenance = '" + provenance + "'"
-				+ "and )";
+				+ " and b.status = 0 and a.document_id = b.document_id)";
 			if (DBConnection.dbType.startsWith("sqlserver")) {
 				queryStr = "delete from " + schema + "frame_instance_data where exists "
 					+ "(select b.* from " + schema + "annotation b where b.provenance = '" + provenance + "' and " + schema + "frame_instance_data.document_id = b.document_id and "
@@ -58,8 +58,8 @@ public class PopulateFrame
 			
 			stmt.execute(queryStr);
 			
-			queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type from " + schema + "annotation where provenance = '" + provenance + "' and (document_namespace, document_table, document_id, start, annotation_type) not in "
-					+ "(select distinct a.document_namespace, a.document_table, a.document_id, a.start, a.annotation_type from frame_instance_data a)";
+			queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type from " + schema + "annotation where provenance = '" + provenance + "' and (document_namespace, document_table, document_id, id) not in "
+					+ "(select distinct a.document_namespace, a.document_table, a.document_id, a.annotation_id from frame_instance_data a)";
 			
 			//queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type from " + schema + "annotation where provenance = '" + provenance + "' order by document_id, start";
 			
