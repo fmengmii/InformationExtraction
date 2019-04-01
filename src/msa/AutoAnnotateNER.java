@@ -1433,28 +1433,37 @@ public class AutoAnnotateNER
 				flag = true;
 			
 			for (String value2 : valList) {
-				pstmt.setString(1, value2 + "%");
+				pstmt.setString(1, "%" + value2 + "%");
 				ResultSet rs2 = pstmt.executeQuery();
 				while (rs2.next()) {
 					String value3 = rs2.getString(4);
-					if (value2.indexOf(" " + value3 + " ") > 0 || value2.indexOf(value3 + " ") == 0 || 
-						value2.indexOf(" " + value3) == (value2.length() - value3.length()-1) && value3.length() < value2.length()) {
+					if (value3.indexOf(" " + value2 + " ") > 0 || value3.indexOf(value2 + " ") == 0 || 
+						value3.indexOf(" " + value2) == (value3.length() - value2.length()-1) && value2.length() < value3.length()) {
 						long docID = rs2.getLong(1);
 						long start = rs2.getLong(2);
-						long end = rs2.getLong(3);
+						//long end = rs2.getLong(3);
 						
-						String key = docID + "|" + start + "|" + end;
+						int step = 0;
+						step = value3.indexOf(value2, step);
 						
-						//System.out.println("entity map: " + value + "|" + docID + "|" + start + "|" + end + "|" + flag);
-						entityMap.put(key, flag);
-						
-						if (entity && flag != null && flag && valMap.get(key) == null) {
-							println("entity adding: " + value2 + "|" + value3 + "|" + key);
-							valMap.put(key, true);
-							matchMap.put(key, true);
-							Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, targetType, start, end, value.toLowerCase(), null);
-							annot2.setProvenance(autoProvenance);
-							finalAnnotList.add(annot2);
+						while (step >= 0) {	
+							String key = docID + "|" + (start + step) + "|" + (start + step + value2.length());
+							
+							//System.out.println("entity map: " + value + "|" + docID + "|" + start + "|" + end + "|" + flag);
+							entityMap.put(key, flag);
+							
+							if (entity && flag != null && flag && valMap.get(key) == null) {
+								println("entity adding: " + value2 + "|" + value3 + "|" + key);
+								valMap.put(key, true);
+								matchMap.put(key, true);
+								Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, targetType, (start + step), 
+									(start + step + value2.length()), value.toLowerCase(), null);
+								annot2.setProvenance(autoProvenance);
+								finalAnnotList.add(annot2);
+							}
+							
+							step++;
+							step = value3.indexOf(value2, step);
 						}
 					}
 				}
