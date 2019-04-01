@@ -1458,7 +1458,7 @@ public class AutoAnnotateNER
 					//System.out.println("entity map: " + value + "|" + docID + "|" + start + "|" + end + "|" + flag);
 					entityMap.put(key, flag);
 					
-					if (entity && flag != null && flag && valMap.get(key) == null) {
+					if (entity && flag != null && flag) {
 						println("entity adding: " + value + "|" + value3 + "|" + key);
 						
 						ResultSet rs3 = pstmt3.executeQuery();
@@ -1469,12 +1469,15 @@ public class AutoAnnotateNER
 							
 							String key2 = docID + "|" + start2 + "|" + end2;
 							
-							valMap.put(key2, true);
-							matchMap.put(key2, true);
-							Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, targetType, start2, 
-								end2, value4.toLowerCase(), null);
-							annot2.setProvenance(autoProvenance);
-							finalAnnotList.add(annot2);
+							if (valMap.get(key2) == null) {
+								println("adding entity token: " + key2 + "|" + value4);
+								valMap.put(key2, true);
+								matchMap.put(key2, true);
+								Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, targetType, start2, 
+									end2, value4.toLowerCase(), null);
+								annot2.setProvenance(autoProvenance);
+								finalAnnotList.add(annot2);
+							}
 						}
 					}
 				}
