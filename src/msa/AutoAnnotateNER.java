@@ -1391,8 +1391,9 @@ public class AutoAnnotateNER
 		
 		//check multi word terms
 		Map<String, Boolean> entityMap = new HashMap<String, Boolean>();
-		PreparedStatement pstmt = conn.prepareStatement("select distinct a.document_id, a.start, a.end, a.value from annotation a, annotation b where b.value like ? and b.provenance = 'gate8.0' and "
-			+ "a.annotation_type = 'Token' and a.start >= b.start and a.end <= b.end and a.document_id = b.document_id and a.document_id >= 1163");
+		//PreparedStatement pstmt = conn.prepareStatement("select distinct a.document_id, a.start, a.end, a.value from annotation a, annotation b where b.value like ? and b.provenance = 'gate8.0' and "
+		//	+ "a.annotation_type = 'Sentence' and a.start >= b.start and a.end <= b.end and a.document_id = b.document_id and a.document_id >= 1163");
+		PreparedStatement pstmt = conn.prepareStatement("select distinct document_id, start, end, value from annotation where value like ? and annotation_type = 'Sentence' and document_id >= 1163");
 		//Statement stmt = conn.createStatement();
 		rs = stmt.executeQuery("select value, pos, total, prob from " + probEntityTable);
 		while (rs.next()) {
@@ -1438,32 +1439,26 @@ public class AutoAnnotateNER
 				while (rs2.next()) {
 					String value3 = rs2.getString(4);
 					if (value3.indexOf(" " + value2 + " ") > 0 || value3.indexOf(value2 + " ") == 0 || 
-						value3.indexOf(" " + value2) == (value3.length() - value2.length()-1) && value2.length() < value3.length()) {
+						(value3.indexOf(" " + value2) == (value3.length() - value2.length()-1) && value2.length() < value3.length())) {
 						long docID = rs2.getLong(1);
 						long start = rs2.getLong(2);
 						//long end = rs2.getLong(3);
 						
-						int step = 0;
-						step = value3.indexOf(value2, step);
+						int step = value3.indexOf(value2);
 						
-						while (step >= 0) {	
-							String key = docID + "|" + (start + step) + "|" + (start + step + value2.length());
-							
-							//System.out.println("entity map: " + value + "|" + docID + "|" + start + "|" + end + "|" + flag);
-							entityMap.put(key, flag);
-							
-							if (entity && flag != null && flag && valMap.get(key) == null) {
-								println("entity adding: " + value2 + "|" + value3 + "|" + key);
-								valMap.put(key, true);
-								matchMap.put(key, true);
-								Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, targetType, (start + step), 
-									(start + step + value2.length()), value.toLowerCase(), null);
-								annot2.setProvenance(autoProvenance);
-								finalAnnotList.add(annot2);
-							}
-							
-							step++;
-							step = value3.indexOf(value2, step);
+						String key = docID + "|" + (start + step) + "|" + (start + step + value2.length());
+						
+						//System.out.println("entity map: " + value + "|" + docID + "|" + start + "|" + end + "|" + flag);
+						entityMap.put(key, flag);
+						
+						if (entity && flag != null && flag && valMap.get(key) == null) {
+							println("entity adding: " + value2 + "|" + value3 + "|" + key);
+							valMap.put(key, true);
+							matchMap.put(key, true);
+							Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, targetType, (start + step), 
+								(start + step + value2.length()), value.toLowerCase(), null);
+							annot2.setProvenance(autoProvenance);
+							finalAnnotList.add(annot2);
 						}
 					}
 				}
@@ -1667,6 +1662,94 @@ public class AutoAnnotateNER
 			}
 		}
 	}
+	
+	
+	private void addSingleEntities(String provenance, String annotType, String probTable) throws SQLException
+	{
+		Statement stmt = conn.createStatement();
+		PreparedStatement pstmt = conn.prepareStatement("select document_id, start, end, features from annotation where value = ? and annotation_type = 'Token' and document_id >= 1163 order by document_id, start");
+		PreparedStatement pstmt2 = conn.prepareStatement("insert into annotation (id, document_namespace, document_table, document_id, annotation_type, start, end, value, features, provenance, score) "
+				+ "values (?, 'ner', 'conll2003_document',?,?,?,?,?,?,?,?)");
+		PreparedStatement pstmt3 = conn.prepareStatement("select features from annotation where document_id = ? and end >= ? and end < ? and annotation_type = 'Token'");
+		PreparedStatement pstmt4 = conn.prepareStatement("select features from annotation where document_id = ? and start <= ? and start > ? and annotation_type = 'Token'");
+		PreparedStatement pstmt5 = conn.prepareStatement("select count(*) from annotation where document_id = ? and start = ? and provenance = '" + provenance + "'");
+		
+		
+		List<String> valList = new ArrayList<String>();
+		ResultSet rs = stmt.executeQuery("select distinct value from " + probTable + " where value not like '% %' and prob = 1.0");
+		while (rs.next()) {
+			String value = rs.getString(1);
+			valList.add(value);
+		}
+		
+		for (String val : valList) {
+			pstmt.setString(1, val);
+			rs = pstmt.executeQuery();
+			while (rs.next()) {
+				long docID = rs.getLong(1);
+				long start = rs.getLong(2);
+				long end = rs.getLong(3);
+				String features = rs.getString(4);
+				if (features.indexOf("upper") >= 0) {
+					System.out.println("checking: " + val + " " + docID + "|" + start + "|" + annotType);
+					
+					boolean flag1 = false;
+					boolean flag2 = false;
+					
+					pstmt3.setLong(1, docID);
+					pstmt3.setLong(2, start-1);
+					pstmt3.setLong(3, start+1);
+					ResultSet rs2 = pstmt3.executeQuery();
+					if (rs2.next()) {
+						String features2 = rs2.getString(1);
+						if (features2.indexOf("upper") < 0)
+							flag1 = true;
+					}
+					
+					pstmt4.setLong(1, docID);
+					pstmt4.setLong(2, end+1);
+					pstmt4.setLong(3, end-1);
+					rs2 = pstmt4.executeQuery();
+					if (rs2.next()) {
+						String features2 = rs2.getString(1);
+						if (features2.indexOf("upper") < 0)
+							flag2 = true;
+					}
+					
+					int count = -1;
+					if (flag1 && flag2) {
+						pstmt5.setLong(1, docID);
+						pstmt5.setLong(2, start);
+						rs2 = pstmt5.executeQuery();
+						if (rs2.next()) {
+							count = rs2.getInt(1);
+						}
+					}
+					
+					if (count == 0) {
+						int id = getNextAnnotID(docID);
+						pstmt2.setInt(1, id);
+						pstmt2.setLong(2, docID);
+						pstmt2.setString(3, annotType);
+						pstmt2.setLong(4, start);
+						pstmt2.setLong(5, end);
+						pstmt2.setString(6, val);
+						pstmt2.setString(7, null);
+						pstmt2.setString(8, provenance);
+						pstmt2.setDouble(9, 1);
+						
+						System.out.println("adding: " + val + " " + docID + "|" + start);
+						pstmt2.execute();
+					}
+				}
+				
+			}
+		}
+		
+		
+		
+		stmt.close();
+	} 
 	
 	
 	private List<AnnotationSequence> getAnnotationSequencesForDoc(long docID)
