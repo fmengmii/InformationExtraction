@@ -1463,8 +1463,8 @@ public class AutoAnnotateNER
 					if (entity && flag != null && flag) {
 						println("entity adding: " + value + "|" + value3 + "|" + key);
 						
-						pstmt2.setLong(1, entityStart);
-						pstmt2.setLong(2, entityEnd);
+						pstmt2.setLong(1, start + step);
+						pstmt2.setLong(2, start + step + value.length());
 						pstmt2.setLong(3, docID);
 						
 						ResultSet rs3 = pstmt2.executeQuery();
