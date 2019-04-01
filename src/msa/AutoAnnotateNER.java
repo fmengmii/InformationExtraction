@@ -1404,8 +1404,8 @@ public class AutoAnnotateNER
 				continue;
 				
 			
-			List<String> valList = new ArrayList<String>();
-			valList.add(value);
+			//List<String> valList = new ArrayList<String>();
+			//valList.add(value);
 			
 			//get ngrams
 			/*
@@ -1432,39 +1432,45 @@ public class AutoAnnotateNER
 				flag = false;
 			else if (prob > minGlobalPrec)
 				flag = true;
+			else
+				continue;
 			
-			for (String value2 : valList) {
-				pstmt.setString(1, "%" + value2 + "%");
-				ResultSet rs2 = pstmt.executeQuery();
-				while (rs2.next()) {
-					String value3 = rs2.getString(4);
-					if (value3.indexOf(" " + value2 + " ") > 0 || value3.indexOf(value2 + " ") == 0 || 
-						(value3.indexOf(" " + value2) == (value3.length() - value2.length()-1) && value2.length() < value3.length())) {
-						long docID = rs2.getLong(1);
-						long start = rs2.getLong(2);
-						//long end = rs2.getLong(3);
-						
-						int step = value3.indexOf(value2);
-						
-						String key = docID + "|" + (start + step) + "|" + (start + step + value2.length());
-						
-						//System.out.println("entity map: " + value + "|" + docID + "|" + start + "|" + end + "|" + flag);
-						entityMap.put(key, flag);
-						
-						if (entity && flag != null && flag && valMap.get(key) == null) {
-							println("entity adding: " + value2 + "|" + value3 + "|" + key);
-							valMap.put(key, true);
-							matchMap.put(key, true);
-							Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, targetType, (start + step), 
-								(start + step + value2.length()), value.toLowerCase(), null);
-							annot2.setProvenance(autoProvenance);
-							finalAnnotList.add(annot2);
-						}
+			//for (String value2 : valList) {
+			System.out.println("checking entity:" + value);
+			pstmt.setString(1, "%" + value + "%");
+			ResultSet rs2 = pstmt.executeQuery();
+			while (rs2.next()) {
+				String value3 = rs2.getString(4);
+				
+				System.out.println("found in: " + value3);
+				
+				if (value3.indexOf(" " + value + " ") > 0 || value3.indexOf(value + " ") == 0 || 
+					(value3.indexOf(" " + value) == (value3.length() - value.length()-1) && value.length() < value3.length())) {
+					long docID = rs2.getLong(1);
+					long start = rs2.getLong(2);
+					//long end = rs2.getLong(3);
+					
+					int step = value3.indexOf(value);
+					
+					String key = docID + "|" + (start + step) + "|" + (start + step + value.length());
+					
+					//System.out.println("entity map: " + value + "|" + docID + "|" + start + "|" + end + "|" + flag);
+					entityMap.put(key, flag);
+					
+					if (entity && flag != null && flag && valMap.get(key) == null) {
+						println("entity adding: " + value + "|" + value3 + "|" + key);
+						valMap.put(key, true);
+						matchMap.put(key, true);
+						Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, targetType, (start + step), 
+							(start + step + value.length()), value.toLowerCase(), null);
+						annot2.setProvenance(autoProvenance);
+						finalAnnotList.add(annot2);
 					}
 				}
 			}
-			
 		}
+			
+		//}
 		
 		
 		
