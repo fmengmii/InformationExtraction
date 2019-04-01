@@ -1394,6 +1394,7 @@ public class AutoAnnotateNER
 		//PreparedStatement pstmt = conn.prepareStatement("select distinct a.document_id, a.start, a.end, a.value from annotation a, annotation b where b.value like ? and b.provenance = 'gate8.0' and "
 		//	+ "a.annotation_type = 'Sentence' and a.start >= b.start and a.end <= b.end and a.document_id = b.document_id and a.document_id >= 1163");
 		PreparedStatement pstmt = conn.prepareStatement("select distinct document_id, start, end, value from annotation where value like ? and annotation_type = 'Sentence' and document_id >= 1163");
+		PreparedStatement pstmt2 = conn.prepareStatement("select start, end, value from annotation where annotation_type = 'Token' and start >= ? and end <= ? order by start");
 		//Statement stmt = conn.createStatement();
 		rs = stmt.executeQuery("select value, pos, total, prob from " + probEntityTable);
 		while (rs.next()) {
@@ -1436,13 +1437,13 @@ public class AutoAnnotateNER
 				continue;
 			
 			//for (String value2 : valList) {
-			System.out.println("checking entity:" + value);
+			println("checking entity: " + value);
 			pstmt.setString(1, "%" + value + "%");
 			ResultSet rs2 = pstmt.executeQuery();
 			while (rs2.next()) {
 				String value3 = rs2.getString(4);
 				
-				System.out.println("found in: " + value3);
+				println("found in: " + value3);
 				
 				if (value3.indexOf(" " + value + " ") > 0 || value3.indexOf(value + " ") == 0 || 
 					(value3.indexOf(" " + value) == (value3.length() - value.length()-1) && value.length() < value3.length())) {
@@ -1459,12 +1460,22 @@ public class AutoAnnotateNER
 					
 					if (entity && flag != null && flag && valMap.get(key) == null) {
 						println("entity adding: " + value + "|" + value3 + "|" + key);
-						valMap.put(key, true);
-						matchMap.put(key, true);
-						Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, targetType, (start + step), 
-							(start + step + value.length()), value.toLowerCase(), null);
-						annot2.setProvenance(autoProvenance);
-						finalAnnotList.add(annot2);
+						
+						ResultSet rs3 = pstmt3.executeQuery();
+						while (rs3.next()) {
+							long start2 = rs3.getLong(1);
+							long end2 = rs3.getLong(2);
+							String value4 = rs3.getString(3);
+							
+							String key2 = docID + "|" + start2 + "|" + end2;
+							
+							valMap.put(key2, true);
+							matchMap.put(key2, true);
+							Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, targetType, start2, 
+								end2, value4.toLowerCase(), null);
+							annot2.setProvenance(autoProvenance);
+							finalAnnotList.add(annot2);
+						}
 					}
 				}
 			}
