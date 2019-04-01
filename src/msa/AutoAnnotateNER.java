@@ -1394,7 +1394,7 @@ public class AutoAnnotateNER
 		//PreparedStatement pstmt = conn.prepareStatement("select distinct a.document_id, a.start, a.end, a.value from annotation a, annotation b where b.value like ? and b.provenance = 'gate8.0' and "
 		//	+ "a.annotation_type = 'Sentence' and a.start >= b.start and a.end <= b.end and a.document_id = b.document_id and a.document_id >= 1163");
 		PreparedStatement pstmt = conn.prepareStatement("select distinct document_id, start, end, value from annotation where value like ? and annotation_type = 'Sentence' and document_id >= 1163");
-		PreparedStatement pstmt2 = conn.prepareStatement("select start, end, value from annotation where annotation_type = 'Token' and start >= ? and end <= ? order by start");
+		PreparedStatement pstmt2 = conn.prepareStatement("select start, end, value from annotation where annotation_type = 'Token' and start >= ? and end <= ? and document_id = ? order by start");
 		//Statement stmt = conn.createStatement();
 		rs = stmt.executeQuery("select value, pos, total, prob from " + probEntityTable);
 		while (rs.next()) {
@@ -1465,6 +1465,8 @@ public class AutoAnnotateNER
 						
 						pstmt2.setLong(1, entityStart);
 						pstmt2.setLong(2, entityEnd);
+						pstmt2.setLong(3, docID);
+						
 						ResultSet rs3 = pstmt2.executeQuery();
 						while (rs3.next()) {
 							long start2 = rs3.getLong(1);
