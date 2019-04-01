@@ -1441,6 +1441,8 @@ public class AutoAnnotateNER
 			pstmt.setString(1, "%" + value + "%");
 			ResultSet rs2 = pstmt.executeQuery();
 			while (rs2.next()) {
+				long entityStart = rs2.getLong(2);
+				long entityEnd = rs2.getLong(3);
 				String value3 = rs2.getString(4);
 				
 				println("found in: " + value3);
@@ -1461,7 +1463,9 @@ public class AutoAnnotateNER
 					if (entity && flag != null && flag) {
 						println("entity adding: " + value + "|" + value3 + "|" + key);
 						
-						ResultSet rs3 = pstmt3.executeQuery();
+						pstmt2.setLong(1, entityStart);
+						pstmt2.setLong(2, entityEnd);
+						ResultSet rs3 = pstmt2.executeQuery();
 						while (rs3.next()) {
 							long start2 = rs3.getLong(1);
 							long end2 = rs3.getLong(2);
