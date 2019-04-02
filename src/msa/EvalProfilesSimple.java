@@ -302,27 +302,33 @@ public class EvalProfilesSimple
 			
 			String key = docID + "|" + start;
 			
-			Double profileScore = 0.0;
-			Double targetScore = 0.0;
+			Double profileScore = 100.0;
+			Double targetScore = 100.0;
 			
 			if (features != null) {
 			
 				Map<String, Object> featureMap = new HashMap<String, Object>();
 				featureMap = gson.fromJson(features, featureMap.getClass());
 				
-				int profileID = ((Double) featureMap.get("profileID")).intValue();
-				int targetID = ((Double) featureMap.get("targetID")).intValue();
-				
-				profileScore = profileScoreMap.get(profileID);
-				if (profileScore == null) {
-					profileScore = getProfileScore(profileID, provenance);
-					profileScoreMap.put(profileID, profileScore);
+				if (featureMap.get("global") != null) {
+					profileScore = 0.0;
+					targetScore = 0.0;
 				}
-				
-				targetScore = profileScoreMap.get(targetID);
-				if (targetScore == null) {
-					targetScore = getProfileScore(targetID, provenance);
-					profileScoreMap.put(targetID, targetScore);
+				else {
+					int profileID = ((Double) featureMap.get("profileID")).intValue();
+					int targetID = ((Double) featureMap.get("targetID")).intValue();
+					
+					profileScore = profileScoreMap.get(profileID);
+					if (profileScore == null) {
+						profileScore = getProfileScore(profileID, provenance);
+						profileScoreMap.put(profileID, profileScore);
+					}
+					
+					targetScore = profileScoreMap.get(targetID);
+					if (targetScore == null) {
+						targetScore = getProfileScore(targetID, provenance);
+						profileScoreMap.put(targetID, targetScore);
+					}
 				}
 			}
 			

@@ -1118,7 +1118,9 @@ public class AutoAnnotateNER
 					if (valMap.get(key) == null) {  
 						System.out.println("adding global: " + value + "|" + docID + "|" + start);
 						pw.println("adding global: " + value + "|" + docID + "|" + start);
-						Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, targetType, start, end, value, null);
+						Map<String, Object> featureMap = new HashMap<String, Object>();
+						featureMap.put("global", "true");
+						Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, targetType, start, end, value, featureMap);
 						annot2.setProvenance(autoProvenance);
 						annotList.add(annot2);
 						valMap.put(key, true);
@@ -1313,7 +1315,9 @@ public class AutoAnnotateNER
 						
 						if (valMap.get(key) == null) {  
 							println("adding global entity: " + value + "|" + docID2 + "|" + start);
-							Annotation annot2 = new Annotation(docID2, docNamespace, docTable, -1, targetType, start, end, value, null);
+							Map<String, Object> featureMap = new HashMap<String, Object>();
+							featureMap.put("global", "true");
+							Annotation annot2 = new Annotation(docID2, docNamespace, docTable, -1, targetType, start, end, value, featureMap);
 							annot2.setProvenance(autoProvenance);
 							annotList.add(annot2);
 							valMap.put(key, true);
