@@ -426,6 +426,9 @@ public class AutoAnnotateNER
 			*/
 			
 			
+			genValProbMap();
+			
+			
 			for (int index=0; index<annotTypeList.size(); index++) {
 				finalAnnotList = new ArrayList<Annotation>();
 				finalMatchList = new ArrayList<ProfileMatch>();
@@ -462,6 +465,9 @@ public class AutoAnnotateNER
 				profileMatcher.setPrintWriter(pw);
 				profileMatcher.setProfileMatch(true);
 				
+				profileMatcher.setTargetProbMap(valCountMap);
+				
+
 				GenSentences genSent = new GenSentences();
 				genSent.setRequireTarget(requireTarget);
 				genSent.setPunct(punct);
@@ -997,7 +1003,7 @@ public class AutoAnnotateNER
 	private void addSameDocAnnotations(Map<String, List<Long>> valDocMap) throws SQLException
 	{
 
-		addHighProbabilityAnnotations();
+		//genValProbMap();
 		
 		if (highProb) {
 			PreparedStatement pstmt = conn.prepareStatement("select distinct document_id, start, end from annotation where document_id >= 1163 and value = ? and annotation_type = 'Token' and (features like '%upperinitial%' or features like '%allCaps%')");
@@ -1367,7 +1373,11 @@ public class AutoAnnotateNER
 		
 		
 		
+		
+		
 		//remove low prob values
+		
+		/*
 		for (String value : valCountMap.keySet()) {
 			double prob = valCountMap.get(value);
 			if (prob < 0.0) {
@@ -1391,6 +1401,7 @@ public class AutoAnnotateNER
 					
 			}
 		}
+		*/
 		
 		
 		//check multi word terms
@@ -1518,7 +1529,8 @@ public class AutoAnnotateNER
 		}
 			
 		
-				
+		
+		addSingleEntities(targetProvenance, targetType, "prob_per_entity");
 		
 		
 		//pstmt.close();
@@ -1796,7 +1808,7 @@ public class AutoAnnotateNER
 	}
 	
 	
-	private void addHighProbabilityAnnotations() throws SQLException
+	private void genValProbMap() throws SQLException
 	{
 		Statement stmt = conn.createStatement();
 		

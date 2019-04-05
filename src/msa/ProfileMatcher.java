@@ -23,6 +23,8 @@ public class ProfileMatcher
 	private List<ProfileMatch> noMatchList;
 	private Map<String, List<String>> profileTargetMap;
 	
+	private Map<String, Double> targetProbMap;
+	
 	private int minSizeOffset = 0;
 	
 	private int maxGridLen = 300;
@@ -69,6 +71,11 @@ public class ProfileMatcher
 	public void setMinSizeOffset(int minSizeOffset)
 	{
 		this.minSizeOffset = minSizeOffset;
+	}
+	
+	public void setTargetProbMap(Map<String, Double> targetProbMap)
+	{
+		this.targetProbMap = targetProbMap;
 	}
 	
 	public List<ProfileMatch> matchProfile(List<AnnotationSequenceGrid> gridList, List<ProfileGrid> profileGridList, List<AnnotationSequenceGrid> targetGridList, String annotType, boolean extraction, 
@@ -563,6 +570,15 @@ public class ProfileMatcher
 
 								
 								for (int tIndex=0; tIndex<targetGridList.size(); tIndex++) {
+									String targetStr2 = targetStrList.get(tIndex);
+
+									Double targetProb = targetProbMap.get(targetStr2);
+									if (targetProb != null && targetProb < 0.0 && profileStr.indexOf(":" + annotType.toLowerCase()) < 0) {
+										System.out.println("Removing low prob value: " + targetStr2);
+										pw.println("Removing low prob value: " + targetStr2);
+										continue;
+									}
+									
 									List<MSAProfile> targetList = new ArrayList<MSAProfile>();
 									
 									/*
@@ -580,8 +596,9 @@ public class ProfileMatcher
 											targetStr, toksStr, grid.getSequence());
 											*/
 									
+									
 									ProfileMatch match = new ProfileMatch(profile, targetList, i, targetMatchCoords1List.get(tIndex), targetMatchCoords2List.get(tIndex), targetMatchIndexesList.get(tIndex),  
-											targetStrList.get(tIndex), toksStr, grid.getSequence());
+											targetStr2, toksStr, grid.getSequence());
 									
 									matchList.add(match);
 									matchCount++;
@@ -592,7 +609,6 @@ public class ProfileMatcher
 										
 										for (int k=0; k<targetList.size(); k++) {
 											target = targetList.get(k);
-											String targetStr2 = targetStrList.get(tIndex);
 											System.out.println("MATCHED TARGET PROFILE: " + target.getProfileID() + "|" + target.getProfileStr());
 											System.out.println("MATCHED TARGET: " + targetStr2);
 										}
@@ -603,7 +619,6 @@ public class ProfileMatcher
 											
 											for (int k=0; k<targetList.size(); k++) {
 												target = targetList.get(k);
-												String targetStr2 = targetStrList.get(tIndex);
 												pw.println("MATCHED TARGET PROFILE: " + target.getProfileID() + "|" + target.getProfileStr());
 												pw.println("MATCHED TARGET: " + targetStr2);
 											}
