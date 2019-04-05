@@ -572,7 +572,7 @@ public class ProfileMatcher
 								for (int tIndex=0; tIndex<targetGridList.size(); tIndex++) {
 									String targetStr2 = targetStrList.get(tIndex);
 
-									Double targetProb = targetProbMap.get(targetStr2);
+									Double targetProb = targetProbMap.get(targetStr2.toLowerCase());
 									if (targetProb != null && targetProb < 0.0 && profileStr.indexOf(":" + annotType.toLowerCase()) < 0) {
 										System.out.println("Removing low prob value: " + targetStr2);
 										pw.println("Removing low prob value: " + targetStr2);
