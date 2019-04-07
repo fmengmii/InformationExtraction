@@ -576,6 +576,7 @@ public class ProfileMatcher
 									if (targetProb != null && targetProb < 0.0 && profileStr.indexOf(":" + annotType.toLowerCase()) < 0) {
 										System.out.println("Removing low prob value: " + targetStr2);
 										pw.println("Removing low prob value: " + targetStr2);
+										matched = false;
 										continue;
 									}
 									
@@ -626,7 +627,7 @@ public class ProfileMatcher
 									}
 								}
 								
-								if (extraction) {
+								if (extraction && matched) {
 									int start = targetMatchCoords.get(0)[0];
 									int end = targetMatchCoords.get(targetMatchCoords.size()-1)[0]+1;
 									//List<AnnotationGridElement> col = grid.get(indexes[0]);

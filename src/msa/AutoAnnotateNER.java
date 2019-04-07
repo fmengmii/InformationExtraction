@@ -1735,7 +1735,7 @@ public class AutoAnnotateNER
 				long end = rs.getLong(3);
 				String features = rs.getString(4);
 				if (features.indexOf("upper") >= 0) {
-					System.out.println("checking: " + val + " " + docID + "|" + start + "|" + annotType);
+					println("checking: " + val + " " + docID + "|" + start + "|" + annotType);
 					
 					boolean flag1 = false;
 					boolean flag2 = false;
@@ -1782,7 +1782,7 @@ public class AutoAnnotateNER
 						pstmt2.setString(8, provenance);
 						pstmt2.setDouble(9, 1);
 						
-						System.out.println("adding: " + val + " " + docID + "|" + start);
+						println("adding: " + val + " " + docID + "|" + start);
 						pstmt2.execute();
 					}
 				}
