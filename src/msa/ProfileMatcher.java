@@ -573,7 +573,8 @@ public class ProfileMatcher
 									String targetStr2 = targetStrList.get(tIndex);
 
 									Double targetProb = targetProbMap.get(targetStr2.toLowerCase());
-									if (targetProb != null && targetProb < 0.0 && profileStr.indexOf(":" + annotType.toLowerCase()) < 0) {
+									//if (targetProb != null && targetProb < 0.0 && profileStr.indexOf(":" + annotType.toLowerCase()) < 0) {
+									if (targetProb != null && targetProb < 0.0) {
 										System.out.println("Removing low prob value: " + targetStr2);
 										pw.println("Removing low prob value: " + targetStr2);
 										matched = false;
