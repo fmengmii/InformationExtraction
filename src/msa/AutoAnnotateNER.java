@@ -406,7 +406,6 @@ public class AutoAnnotateNER
 			
 
 			
-			
 			//check for docID list info		
 			/*
 			if (docDBQuery != null) {				
@@ -1149,7 +1148,7 @@ public class AutoAnnotateNER
 		
 		
 		// adding global entities
-		Map<String, Boolean> globalEntityMap = new HashMap<String, Boolean>();
+		Map<String, List<String>> globalEntityMap = new HashMap<String, List<String>>();
 		if (globalEntity) {		
 			
 			//get entities
@@ -1191,7 +1190,11 @@ public class AutoAnnotateNER
 				long docID = annot.getDocID();
 				
 				if (docID == lastDocID && annot.getStart() <= lastEnd + 1) {
-					strBlder.append(" " + annot.getValue());
+					String space = " ";
+					if (annot.getStart() == lastEnd)
+						space = "";
+					
+					strBlder.append(space + annot.getValue());
 					docIDList.add(annot.getDocID());
 					startList.add(annot.getStart());
 					endList.add(annot.getEnd());
@@ -1202,23 +1205,30 @@ public class AutoAnnotateNER
 						String entityVal = strBlder.toString();
 						
 						if (entityVal.indexOf(" ") >= 0) {
-							Double prob = entityProbMap.get(entityVal);
+							/*Double prob = entityProbMap.get(entityVal);
+							 
 							
 							if (prob == null)
 								prob = 2.0;
 							
 							if (prob >= 0.8) {
+							*/
 												
-								entityList.add(entityVal + "|" + docID);
-								
-								for (int i=0; i<docIDList.size(); i++) {
-									long docID2 = docIDList.get(i);
-									long start = startList.get(i);
-									long end = endList.get(i);
-									globalEntityMap.put(docID2 + "|" + start + "|" + end, true);
-									println("adding entity to list: " + entityVal + "|" + docID2 + "|" + start + "|" + end);
-			
+							entityList.add(entityVal + "|" + docID);
+							
+							for (int i=0; i<docIDList.size(); i++) {
+								long docID2 = docIDList.get(i);
+								long start = startList.get(i);
+								long end = endList.get(i);
+								List<String> entityLocList = globalEntityMap.get(entityVal);
+								if (entityLocList == null) {
+									entityLocList = new ArrayList<String>();
+									globalEntityMap.put(entityVal, entityLocList);
 								}
+								
+								entityLocList.add(docID2 + "|" + start + "|" + end);
+								println("adding entity to list: " + entityVal + "|" + docID2 + "|" + start + "|" + end);
+		
 							}
 						}
 						
@@ -1252,9 +1262,8 @@ public class AutoAnnotateNER
 			
 			//pstmt = conn.prepareStatement("select distinct document_id, start, end from annotation where document_id >= 1163 and value = ? and annotation_type = 'Token' and features like '%nnp%'");
 			//PreparedStatement pstmt2 = conn.prepareStatement("select count(*) from annotation where document_id < 1163 and value = ? and provenance = 'conll2003-entity' and annotation_type != '" + targetType + "'");
-			PreparedStatement pstmt = conn.prepareStatement("select distinct a.document_id, a.start, a.end, a.value from annotation a, annotation b where b.value like ? and b.provenance = 'gate8.0' and "
-					+ "a.annotation_type = 'Token' and a.start >= b.start and a.end <= b.end and a.document_id = b.document_id and a.document_id >= 1163");
-			PreparedStatement pstmt2 = conn.prepareStatement("select count(*) from annotation where document_id < 1163 and value = ? and provenance = 'conll2003-token' and annotation_type != '" + targetType + "'");
+			PreparedStatement pstmt = conn.prepareStatement("select document_id, start, end ,value from annotation where value like ? and annotation_type = 'Sentence' and document_id >= 1163");
+			PreparedStatement pstmt2 = conn.prepareStatement("select start, end, value from annotation where document_id = ? and start >= ? and end <= ? and annotation_type = 'Token' order by start");
 			PreparedStatement pstmt3 = conn.prepareStatement("select prob from " + probEntityTable + " where value = ?");
 			
 			List<Annotation> annotList = new ArrayList<Annotation>();
@@ -1273,6 +1282,11 @@ public class AutoAnnotateNER
 				if (rs.next()) {
 					prob = rs.getDouble(1);
 				}
+				
+				//low prob or not same doc
+				if (prob < 0.8)
+					continue;
+
 				
 				/*
 				if (prob < 0.8)
@@ -1299,7 +1313,7 @@ public class AutoAnnotateNER
 				*/
 				
 								
-				pstmt.setString(1, value + "%");
+				pstmt.setString(1, "%" + value + "%");
 				rs = pstmt.executeQuery();
 				while (rs.next()) {
 					long docID2 = rs.getLong(1);
@@ -1307,27 +1321,44 @@ public class AutoAnnotateNER
 					long end = rs.getLong(3);
 					String value2 = rs.getString(4);
 					
-					//low prob or not same doc
-					if (prob < 0.8 && docID2 != docID)
+					long index1 = start + value2.indexOf(value);
+					long index2 = index1 + value.length();
+					if (value2.indexOf(value) < 0)
 						continue;
 					
+					pstmt2.setLong(1, docID2);
+					pstmt2.setLong(2, start);
+					pstmt2.setLong(3, end);
 					
-					if (value.indexOf(" " + value2 + " ") > 0 || value.indexOf(value2 + " ") == 0 || 
-							(value.indexOf(" " + value2) == (value.length() - value2.length()-1) && value2.length() < value.length())) {
-						String key = docID2 + "|" + start + "|" + end;
+					ResultSet rs2 = pstmt2.executeQuery();
+					
+					while (rs2.next()) {
+						long start2 = rs2.getLong(1);
+						long end2 = rs2.getLong(2);
+						String value3 = rs2.getString(3);
 						
-						//System.out.println("value: " + value + " value2: " + value2 + "|" + key);
-
+						if (!(start2 >= index1 && end2 <= index2))
+							continue;
 						
-						if (valMap.get(key) == null) {  
-							println("adding global entity: " + value + "|" + docID2 + "|" + start);
-							Map<String, Object> featureMap = new HashMap<String, Object>();
-							featureMap.put("global", "true");
-							Annotation annot2 = new Annotation(docID2, docNamespace, docTable, -1, targetType, start, end, value, featureMap);
-							annot2.setProvenance(autoProvenance);
-							annotList.add(annot2);
-							valMap.put(key, true);
-					}
+						if (value.indexOf(" " + value3 + " ") > 0 || value.indexOf(value3 + " ") == 0 || 
+								(value.indexOf(" " + value3) == (value.length() - value3.length()-1) && value3.length() < value.length())) {
+							String key = docID2 + "|" + start2 + "|" + end2;
+							
+							
+							
+							//System.out.println("value: " + value + " value2: " + value2 + "|" + key);
+	
+							
+							if (valMap.get(key) == null) {  
+								println("adding global entity: " + value + "|" + docID2 + "|" + start2 + "|" + value3);
+								Map<String, Object> featureMap = new HashMap<String, Object>();
+								featureMap.put("global", "true");
+								Annotation annot2 = new Annotation(docID2, docNamespace, docTable, -1, targetType, start2, end2, value3, featureMap);
+								annot2.setProvenance(autoProvenance);
+								annotList.add(annot2);
+								valMap.put(key, true);
+							}
+						}
 					}
 				}
 			}
@@ -1411,14 +1442,46 @@ public class AutoAnnotateNER
 			//	+ "a.annotation_type = 'Sentence' and a.start >= b.start and a.end <= b.end and a.document_id = b.document_id and a.document_id >= 1163");
 			PreparedStatement pstmt = conn.prepareStatement("select distinct document_id, start, end, value from annotation where value like ? and annotation_type = 'Sentence' and document_id >= 1163");
 			PreparedStatement pstmt2 = conn.prepareStatement("select start, end, value from annotation where annotation_type = 'Token' and start >= ? and end <= ? and document_id = ? order by start");
+			PreparedStatement pstmt3 = conn.prepareStatement("delete from annotation where annotation_type = '" + targetType + "' and provenance = '" + autoProvenance + "' and start >= ? and end <= ? and document_id = ?");
 			//Statement stmt = conn.createStatement();
 			rs = stmt.executeQuery("select value, pos, total, prob from " + probEntityTable);
 			while (rs.next()) {
 				String value = rs.getString(1);
+
+				//preprocess value
+				List<String> toks = SequenceUtilities.getToksFromStr(value);
 				
+				int count = 0;
+				for (String tok : toks) {
+					if (StringUtils.isAlphanumeric(tok))
+						count++;
+				}
 				
-				if (value.indexOf(" ") < 0)
+				if (count < 2)
 					continue;
+				
+				String lastTok = null;
+				StringBuilder strBlder = new StringBuilder();
+				for (String tok : toks) {
+					String space = " ";
+
+					if (lastTok != null) {
+						if (!StringUtils.isAlphanumeric(lastTok.substring(lastTok.length()-1)) && !lastTok.substring(lastTok.length()-1).equals(".") && tok.length() > 1)
+							space = "";
+						else if (lastTok.equals(".") && Character.isUpperCase(tok.charAt(0)) && tok.length() == 1)
+							space = "";
+						else if (Character.isAlphabetic(lastTok.charAt(lastTok.length()-1)) && !StringUtils.isAlphanumeric(tok))
+							space = "";
+					}
+					
+					lastTok = tok;
+					
+					strBlder.append(space + tok);
+				}
+				
+				value = strBlder.toString().trim();
+				
+				
 					
 				
 				//List<String> valList = new ArrayList<String>();
@@ -1454,56 +1517,93 @@ public class AutoAnnotateNER
 				
 				//for (String value2 : valList) {
 				println("checking entity: " + value);
-				pstmt.setString(1, "%" + value + "%");
-				ResultSet rs2 = pstmt.executeQuery();
-				while (rs2.next()) {
-					long entityStart = rs2.getLong(2);
-					long entityEnd = rs2.getLong(3);
-					String value3 = rs2.getString(4);
-					
-					println("found in: " + value3);
-					
-					if (value3.indexOf(" " + value + " ") > 0 || value3.indexOf(value + " ") == 0 || 
-						(value3.indexOf(" " + value) == (value3.length() - value.length()-1) && value.length() < value3.length())) {
-						long docID = rs2.getLong(1);
-						long start = rs2.getLong(2);
-						//long end = rs2.getLong(3);
+				
+				if (flag) {
+				
+					pstmt.setString(1, "%" + value + "%");
+					ResultSet rs2 = pstmt.executeQuery();
+					while (rs2.next()) {
+						long entityStart = rs2.getLong(2);
+						long entityEnd = rs2.getLong(3);
+						String value3 = rs2.getString(4);
 						
-						int step = value3.indexOf(value);
+						println("found in: " + value3);
 						
-						String key = docID + "|" + (start + step) + "|" + (start + step + value.length());
-						
-						//System.out.println("entity map: " + value + "|" + docID + "|" + start + "|" + end + "|" + flag);
-						entityMap.put(key, flag);
-						
-						if (entity && flag != null && flag) {
-							println("entity adding: " + value + "|" + value3 + "|" + key);
+						if (value3.indexOf(" " + value + " ") > 0 || value3.indexOf(value + " ") == 0 || 
+							(value3.indexOf(value + " ")-1 >= 0 && !Character.isAlphabetic(value3.charAt(value3.indexOf(value + " ")-1))) || 
+							(value3.indexOf(" " + value) + value.length()+1 < value3.length() && !Character.isAlphabetic(value3.charAt(value3.indexOf(" " + value) + value.length()+1))) ||
+							((value3.indexOf(value)-1 >= 0 && !Character.isAlphabetic(value3.charAt(value3.indexOf(value)-1))) && 
+								(value3.indexOf(value) + value.length() < value3.length() && !Character.isAlphabetic(value3.charAt(value3.indexOf(value) + value.length())))) ||
+							(value3.indexOf(" " + value) == (value3.length() - value.length()-1) && value.length() < value3.length())) {
+							long docID = rs2.getLong(1);
+							long start = rs2.getLong(2);
+							//long end = rs2.getLong(3);
 							
-							pstmt2.setLong(1, start + step);
-							pstmt2.setLong(2, start + step + value.length());
-							pstmt2.setLong(3, docID);
+							int step = value3.indexOf(value);
+							if (step < 0)
+								continue;
 							
-							ResultSet rs3 = pstmt2.executeQuery();
-							while (rs3.next()) {
-								long start2 = rs3.getLong(1);
-								long end2 = rs3.getLong(2);
-								String value4 = rs3.getString(3);
-								
-								String key2 = docID + "|" + start2 + "|" + end2;
-								
-								if (valMap.get(key2) == null) {
-									println("adding entity token: " + key2 + "|" + value4);
-									valMap.put(key2, true);
-									matchMap.put(key2, true);
-									Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, targetType, start2, 
-										end2, value4.toLowerCase(), null);
-									annot2.setProvenance(autoProvenance);
-									finalAnnotList.add(annot2);
+							String key = docID + "|" + (start + step) + "|" + (start + step + value.length());
+							
+							//System.out.println("entity map: " + value + "|" + docID + "|" + start + "|" + end + "|" + flag);
+							entityMap.put(key, flag);
+							
+							if (entity && flag != null) {
+								if (flag) {
+									println("entity adding: " + value + "|" + value3 + "|" + key);
+									
+									pstmt2.setLong(1, start + step);
+									pstmt2.setLong(2, start + step + value.length());
+									pstmt2.setLong(3, docID);
+									
+									ResultSet rs3 = pstmt2.executeQuery();
+									while (rs3.next()) {
+										long start2 = rs3.getLong(1);
+										long end2 = rs3.getLong(2);
+										String value4 = rs3.getString(3);
+										
+										String key2 = docID + "|" + start2 + "|" + end2;
+										
+										if (valMap.get(key2) == null) {
+											println("adding entity token: " + key2 + "|" + value4);
+											valMap.put(key2, true);
+											matchMap.put(key2, true);
+											Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, targetType, start2, 
+												end2, value4.toLowerCase(), null);
+											annot2.setProvenance(autoProvenance);
+											finalAnnotList.add(annot2);
+										}
+									}
 								}
 							}
 						}
 					}
 				}
+			
+				
+				else if (!flag) {
+
+					List<String> entityInfoList = globalEntityMap.get(value);
+					if (entityInfoList != null) {
+						for (String entityInfo : entityInfoList) {
+							String[] parts = entityInfo.split("\\|");
+							long docID = Long.parseLong(parts[0]);
+							long start = Long.parseLong(parts[1]);
+							long end = Long.parseLong(parts[2]);
+							
+							println("removing low prob entity: " + value + "|" + entityInfo);
+							
+							for (int i=0; i<finalAnnotList.size(); i++) {
+								Annotation annot = finalAnnotList.get(i);
+								if (annot.getDocID() == docID && annot.getStart() >= start && annot.getEnd() <= end) {
+									finalAnnotList.remove(i);
+									i--;
+								}
+							}
+						}
+					}
+				}
+				
 			}
 			
 		//}
@@ -1530,7 +1630,7 @@ public class AutoAnnotateNER
 			
 		
 		
-		addSingleEntities(targetProvenance, targetType, "prob_per_entity");
+		addSingleEntities(autoProvenance, targetType, probEntityTable);
 		
 		
 		//pstmt.close();
@@ -1712,21 +1812,27 @@ public class AutoAnnotateNER
 	{
 		Statement stmt = conn.createStatement();
 		PreparedStatement pstmt = conn.prepareStatement("select document_id, start, end, features from annotation where value = ? and annotation_type = 'Token' and document_id >= 1163 order by document_id, start");
-		PreparedStatement pstmt2 = conn.prepareStatement("insert into annotation (id, document_namespace, document_table, document_id, annotation_type, start, end, value, features, provenance, score) "
-				+ "values (?, 'ner', 'conll2003_document',?,?,?,?,?,?,?,?)");
-		PreparedStatement pstmt3 = conn.prepareStatement("select features from annotation where document_id = ? and end >= ? and end < ? and annotation_type = 'Token'");
-		PreparedStatement pstmt4 = conn.prepareStatement("select features from annotation where document_id = ? and start <= ? and start > ? and annotation_type = 'Token'");
+		//PreparedStatement pstmt2 = conn.prepareStatement("insert into annotation (id, document_namespace, document_table, document_id, annotation_type, start, end, value, features, provenance, score) "
+		//		+ "values (?, 'ner', 'conll2003_document',?,?,?,?,?,?,?,?)");
+		PreparedStatement pstmt3 = conn.prepareStatement("select features, value, start from annotation where document_id = ? and end >= ? and end < ? and annotation_type = 'Token'");
+		PreparedStatement pstmt4 = conn.prepareStatement("select features, value, start from annotation where document_id = ? and start <= ? and start > ? and annotation_type = 'Token'");
 		PreparedStatement pstmt5 = conn.prepareStatement("select count(*) from annotation where document_id = ? and start = ? and provenance = '" + provenance + "'");
 		
 		
 		List<String> valList = new ArrayList<String>();
-		ResultSet rs = stmt.executeQuery("select distinct value from " + probTable + " where value not like '% %' and prob = 1.0");
+		List<Double> probList = new ArrayList<Double>();
+		ResultSet rs = stmt.executeQuery("select distinct value, prob from " + probTable + " where value not like '% %' and (prob = 1.0 or prob = 0.0)");
 		while (rs.next()) {
 			String value = rs.getString(1);
+			double prob = rs.getDouble(2);
 			valList.add(value);
+			probList.add(prob);
 		}
 		
-		for (String val : valList) {
+		for (int i=0; i<valList.size(); i++) {
+			String val = valList.get(i);
+			double prob = probList.get(i);
+
 			pstmt.setString(1, val);
 			rs = pstmt.executeQuery();
 			while (rs.next()) {
@@ -1734,8 +1840,12 @@ public class AutoAnnotateNER
 				long start = rs.getLong(2);
 				long end = rs.getLong(3);
 				String features = rs.getString(4);
+				
+				if (valMap.get(docID + "|" + start + "|" + end) != null)
+					continue;
+				
 				if (features.indexOf("upper") >= 0) {
-					println("checking: " + val + " " + docID + "|" + start + "|" + annotType);
+					println("checking: " + val + " " + docID + "|" + start + "|" + annotType + "|" + prob + "|" + provenance);
 					
 					boolean flag1 = false;
 					boolean flag2 = false;
@@ -1746,7 +1856,12 @@ public class AutoAnnotateNER
 					ResultSet rs2 = pstmt3.executeQuery();
 					if (rs2.next()) {
 						String features2 = rs2.getString(1);
-						if (features2.indexOf("upper") < 0)
+						String val2 = rs2.getString(2);
+						long start2 = rs2.getLong(3);
+						
+						println("checking prev: " + features2 + "|" + val2 + "|" + start2);
+						
+						if (features2.indexOf("upper") < 0 && features2.indexOf("allCaps") < 0)
 							flag1 = true;
 					}
 					
@@ -1756,11 +1871,18 @@ public class AutoAnnotateNER
 					rs2 = pstmt4.executeQuery();
 					if (rs2.next()) {
 						String features2 = rs2.getString(1);
-						if (features2.indexOf("upper") < 0)
+						String val2 = rs2.getString(2);
+						long start2 = rs2.getLong(3);
+						
+						println("checking prev: " + features2 + "|" + val2 + "|" + start2);
+						
+						if (features2.indexOf("upper") < 0 && features2.indexOf("allCaps") < 0)
 							flag2 = true;
 					}
 					
-					int count = -1;
+					
+					/*
+					int count = 0;
 					if (flag1 && flag2) {
 						pstmt5.setLong(1, docID);
 						pstmt5.setLong(2, start);
@@ -1769,8 +1891,13 @@ public class AutoAnnotateNER
 							count = rs2.getInt(1);
 						}
 					}
+					*/
 					
-					if (count == 0) {
+					println("prob: " + prob);
+					
+					if (flag1 && flag2 && prob == 1.0) {
+						
+						/*
 						int id = getNextAnnotID(docID);
 						pstmt2.setInt(1, id);
 						pstmt2.setLong(2, docID);
@@ -1781,12 +1908,30 @@ public class AutoAnnotateNER
 						pstmt2.setString(7, null);
 						pstmt2.setString(8, provenance);
 						pstmt2.setDouble(9, 1);
-						
-						println("adding: " + val + " " + docID + "|" + start);
 						pstmt2.execute();
+						*/
+						
+						Annotation annot = new Annotation(docID, docNamespace, docTable, -1, targetType, 
+							start, end, val, null);
+						finalAnnotList.add(annot);
+						
+						println("adding single entity: " + val + " " + docID + "|" + start);
+						
+						valMap.put(docID + "|" + start + "|" + end, true);
 					}
+					/*
+					else if (prob == 0.0 && count > 0) {
+						for (int j=0; j<finalAnnotList.size(); j++) {
+							Annotation annot = finalAnnotList.get(j);
+							if (annot.getDocID() == docID && annot.getStart() == start && annot.getEnd() == end) {
+								println("removing single entity: " + val + "|" + docID + "|" + start);
+								finalAnnotList.remove(j);
+								j--;
+							}
+						}
+					}
+					*/
 				}
-				
 			}
 		}
 		
@@ -1817,7 +1962,7 @@ public class AutoAnnotateNER
 		//ResultSet rs = stmt.executeQuery("select value, count(*) from annotation where document_id < 1163 and provenance = 'conll2003-token' and annotation_type = 'I-PER' group by value");
 		ResultSet rs = stmt.executeQuery("select value, pos, total, prob from " + probTable);
 		while (rs.next()) {
-			String value = rs.getString(1).toLowerCase();
+			String value = rs.getString(1);
 			int count = rs.getInt(2);
 			int total = rs.getInt(3);
 			double prob = rs.getDouble(4);
