@@ -221,6 +221,9 @@ public class GenCoNLLAnnotations
 				String value = rs.getString(4);
 				String annotType2 = rs.getString(5);
 				
+				if (annotType.equals("O") && !Character.isUpperCase(value.charAt(0)))
+					continue;
+				
 				System.out.println("annot docID: " + docID + " start: " + start + " end: " + end + " value: " + value + " annotType: " + annotType2);
 				
 				if (docID == lastDocID && (start == lastEnd + 1 || start == lastEnd) && !annotType2.equals(stopAnnotType)) {
