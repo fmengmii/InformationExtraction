@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.google.gson.Gson;
 
 import align.AnnotationGridElement;
@@ -571,14 +573,36 @@ public class ProfileMatcher
 								
 								for (int tIndex=0; tIndex<targetGridList.size(); tIndex++) {
 									String targetStr2 = targetStrList.get(tIndex);
+									
+									boolean checkLowProb = true;
+									for (int gridIndex=0; gridIndex < grid.size(); gridIndex++) {
+										List<AnnotationGridElement> elementList = grid.get(gridIndex);
+										for (AnnotationGridElement elem : elementList) {
+											if (elem.getAnnot() != null && !(elem.getAnnot().getValue().equals(":start") || elem.getAnnot().getValue().equals(":end")) && 
+												(elem.getAnnot().getStart() == targetMatchIndexes[1] || elem.getAnnot().getEnd() == targetMatchIndexes[0])) {
+												checkLowProb = false;
+												break;
+											}
+										}
+									}
 
-									Double targetProb = targetProbMap.get(targetStr2.toLowerCase());
-									//if (targetProb != null && targetProb < 0.0 && profileStr.indexOf(":" + annotType.toLowerCase()) < 0) {
-									if (targetProb != null && targetProb < 0.0) {
-										System.out.println("Removing low prob value: " + targetStr2);
-										pw.println("Removing low prob value: " + targetStr2);
-										matched = false;
-										continue;
+									if (checkLowProb) {
+										Double targetProb = targetProbMap.get(targetStr2);
+										Double targetProb2 = targetProbMap.get(targetStr2.charAt(0) + targetStr.substring(1).toLowerCase());
+										if ((targetProb2 != null && targetProb != null && targetProb2 > targetProb && targetProb2 >= 0.0) || (targetProb2 != null && targetProb == null))
+											targetProb = targetProb2;
+										
+										if (targetProb == null && targetProb2 == null && StringUtils.isAllUpperCase(targetStr2)) {
+											targetProb = targetProbMap.get(targetStr2.toLowerCase());
+										}
+										
+										//if (targetProb != null && targetProb < 0.0 && profileStr.indexOf(":" + annotType.toLowerCase()) < 0) {
+										if (targetProb != null && targetProb < 0.0) {
+											System.out.println("Removing low prob value: " + targetStr2);
+											pw.println("Removing low prob value: " + targetStr2);
+											matched = false;
+											continue;
+										}
 									}
 									
 									List<MSAProfile> targetList = new ArrayList<MSAProfile>();
