@@ -209,6 +209,8 @@ public class GenCoNLLAnnotations
 			int currStart = -1;
 			StringBuilder currVal = null;
 			long docID = -1;
+			String lastVal = "";
+			boolean sentStart = false;
 			
 			String stopAnnotType = "B" + annotType.substring(1);
 			
@@ -221,8 +223,12 @@ public class GenCoNLLAnnotations
 				String value = rs.getString(4);
 				String annotType2 = rs.getString(5);
 				
-				if (annotType.equals("O") && !Character.isUpperCase(value.charAt(0)))
+				
+				if (annotType.equals("O") && !Character.isUpperCase(value.charAt(0))) {
+					lastVal = value;
 					continue;
+				}
+					
 				
 				System.out.println("annot docID: " + docID + " start: " + start + " end: " + end + " value: " + value + " annotType: " + annotType2);
 				
@@ -234,18 +240,30 @@ public class GenCoNLLAnnotations
 						long annotDocID = docID;
 						if (docID != lastDocID)
 							annotDocID = lastDocID;
-						Annotation outAnnot = new Annotation(annotID++, annotType, currStart, lastEnd, currVal.toString().trim(), new HashMap<String, Object>());
-						db.writeAnnotation(outAnnot, keyspace, "conll2003_document", (int) annotDocID, "conll2003-entity");
-						System.out.println("combined start: " + currStart + " end: " + lastEnd + " value: " + currVal.toString());
+
+						if (!annotType.equals("O") || (annotType.equals("O") && currVal.indexOf(" ") < 0 && !sentStart && currStart > 0) || 
+							(annotType.equals("O") && currVal.indexOf(" ") >= 0)) {
+								annotDocID = lastDocID;
+							Annotation outAnnot = new Annotation(annotID++, annotType, currStart, lastEnd, currVal.toString().trim(), new HashMap<String, Object>());
+							db.writeAnnotation(outAnnot, keyspace, "conll2003_document", (int) annotDocID, "conll2003-entity");
+							System.out.println("combined start: " + currStart + " end: " + lastEnd + " value: " + currVal.toString());
+						}
+						else
+							System.out.println("single entity sent start " + annotDocID + "|" + currStart + "|" + currVal.toString());
 					}
 
 					currStart = start;
 					currVal = new StringBuilder(value);
+					if (lastVal.equals("."))
+						sentStart = true;
+					else
+						sentStart = false;
 				}
 				
 
 				lastEnd = end;
 				lastDocID = docID;
+				lastVal = value;
 			}
 			
 			Annotation outAnnot = new Annotation(annotID++, annotType, currStart, lastEnd, currVal.toString().trim(), new HashMap<String, Object>());

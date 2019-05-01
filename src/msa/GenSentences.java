@@ -31,6 +31,7 @@ public class GenSentences
 	private List<AnnotationSequence> seqList;
 	private List<AnnotationSequence> posSeqList;
 	private List<AnnotationSequence> negSeqList;
+	private Map<String, AnnotationSequence> seqMap;
 		
 	private String orderBy;
 	
@@ -99,6 +100,11 @@ public class GenSentences
 	public void setProfileType(int profileType)
 	{
 		this.profileType = profileType;
+	}
+	
+	public Map<String, AnnotationSequence> getSeqMap()
+	{
+		return seqMap;
 	}
 	
 	public void init(MSADBInterface db, List<Map<String, Object>> annotFilterList, String targetType, String targetProvenance)
@@ -255,6 +261,7 @@ public class GenSentences
 	{
 		posSeqList = new ArrayList<AnnotationSequence>();
 		negSeqList = new ArrayList<AnnotationSequence>();
+		seqMap = new HashMap<String, AnnotationSequence>();
 		
 		for (int i=0; i<seqList.size(); i++) {
 			//AnnotationSequence seq = new AnnotationSequence();
@@ -343,6 +350,9 @@ public class GenSentences
 			}
 			else
 				negSeqList.add(currSeq);
+			
+			String key = currSeq.getDocID() + "|" + currSeq.getStart();
+			seqMap.put(key, currSeq);
 			
 			//System.out.println("i=" + i + ", minStart=" + minStart + ", endIndex=" + endIndex);
 		}

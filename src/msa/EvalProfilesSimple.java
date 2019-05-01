@@ -64,6 +64,8 @@ public class EvalProfilesSimple
 					readAnswers(ansMap, entityAnsMap, annotType, docID, ansProvenance);
 			}
 			
+			System.out.println("total answers: " + entityAnsMap.size());
+			
 			int tp = 0;
 			int fp = 0;
 			
@@ -283,85 +285,135 @@ public class EvalProfilesSimple
 		
 		strBlder.append(")");
 		
-		Map<Integer, Double> profileScoreMap = new HashMap<Integer, Double>();
+		Map<String, Double> profileScoreMap = new HashMap<String, Double>();
 		Map<String, String> provMap = new HashMap<String, String>();
-		Map<String, Double> scoreMap = new HashMap<String, Double>();
+		Map<String, Map<String, Double>> scoreMap = new HashMap<String, Map<String, Double>>();
 		Map<String, Boolean> multiMap = new HashMap<String, Boolean>();
+		Map<String, Double> valScoreMap = new HashMap<String, Double>();
 
 		PreparedStatement pstmt = conn.prepareStatement("delete from annotation where document_id = ? and start = ? and provenance = ?");
 		
 		Statement stmt = conn.createStatement();
-		ResultSet rs = stmt.executeQuery("select document_id, start, provenance, features from annotation where "
-			+ strBlder.toString() + " order by document_id, start");
+		ResultSet rs = stmt.executeQuery("select document_id, start, provenance, features, value from annotation where "
+			+ strBlder.toString());
 		
 		while(rs.next()) {
 			long docID = rs.getLong(1);
 			long start = rs.getLong(2);
 			String provenance = rs.getString(3);
 			String features = rs.getString(4);
+			String value = rs.getString(5).toLowerCase();
 			
 			String key = docID + "|" + start;
 			
-			Double profileScore = 100.0;
-			Double targetScore = 100.0;
+			Double profileScore = 0.0;
+			Double targetScore = 0.0;
 			
 			if (features != null) {
 			
 				Map<String, Object> featureMap = new HashMap<String, Object>();
 				featureMap = gson.fromJson(features, featureMap.getClass());
 				
-				if (featureMap.get("global") != null) {
-					profileScore = 0.0;
-					targetScore = 0.0;
-				}
-				else {
-					int profileID = ((Double) featureMap.get("profileID")).intValue();
-					int targetID = ((Double) featureMap.get("targetID")).intValue();
-					
-					profileScore = profileScoreMap.get(profileID);
-					if (profileScore == null) {
+				
+				int profileID = ((Double) featureMap.get("profileID")).intValue();
+				Double targetIDDouble = (Double) featureMap.get("targetID");
+				
+				int targetID = -1;
+				if (targetIDDouble != null)
+					targetID = targetIDDouble.intValue();
+				
+				profileScore = profileScoreMap.get(profileID + "|" + provenance);
+				double totalScore = 0.0;
+				if (profileScore == null) {
+					if (profileID == -1)
+						profileScore = -1.0;
+					else if (profileID == -2)
+						profileScore = -2.0;
+					else {
 						profileScore = getProfileScore(profileID, provenance);
-						profileScoreMap.put(profileID, profileScore);
+										
+						profileScoreMap.put(profileID + "|" + provenance, profileScore);
 					}
-					
-					targetScore = profileScoreMap.get(targetID);
+				}
+
+				
+				if (targetID >= 0) {
+					targetScore = profileScoreMap.get(targetID + "|" + provenance);
 					if (targetScore == null) {
 						targetScore = getProfileScore(targetID, provenance);
-						profileScoreMap.put(targetID, targetScore);
+						profileScoreMap.put(targetID + "|" + provenance, targetScore);
 					}
 				}
-			}
-			
-			double totalScore = profileScore + targetScore;
-			
-			Double matchScore = scoreMap.get(key);
-			if (matchScore != null)
-				multiMap.put(key, true);
-			
-			if (matchScore == null || totalScore > matchScore) {
-				provMap.put(key, provenance);
-				scoreMap.put(key, totalScore);
+					
+				totalScore = profileScore + targetScore;
+				
+				
+				Map<String, Double> provScoreMap = scoreMap.get(key + "|" + value);
+				if (provScoreMap == null) {
+					provScoreMap = new HashMap<String, Double>();
+					scoreMap.put(key + "|" + value, provScoreMap);
+				}
+				
+				Double score = provScoreMap.get(provenance);
+				if (score == null) {
+					provScoreMap.put(provenance, totalScore);
+				}
+				
+				score = valScoreMap.get(value + "|" + docID + "|" + provenance);
+				if (score == null) {
+					score = 0.0;
+				}
+				
+				//System.out.println(key + "|" + value + "|" + provenance + "|" + score);
+				
+				if (totalScore > score)
+					valScoreMap.put(value + "|" + docID + "|" + provenance, totalScore);
+				
 			}
 		}
-		
-		for (String key : multiMap.keySet()) {
-			String prov = provMap.get(key);
+				
+		for (String key : scoreMap.keySet()) {
 			String[] parts = key.split("\\|");
 			long docID = Long.parseLong(parts[0]);
 			long start = Long.parseLong(parts[1]);
+			String value = parts[2];
 			
-			System.out.println(key + ": " + prov);
-			
+			Map<String, Double> provScoreMap = scoreMap.get(key);
+			double max = -100.0;
+			String maxProv = "";
 			for (int i=0; i<provList.length; i++) {
-				if (!provList[i].equals(prov)) {
-					pstmt.setLong(1, docID);
-					pstmt.setLong(2, start);
-					pstmt.setString(3, provList[i]);
-					pstmt.execute();
+				Double score = provScoreMap.get(provList[i]);
+				if (score != null) {
+					/*
+					if (score == -2.0) {
+						score = valScoreMap.get(value + "|" + docID + "|" + provList[i]);
+						if (score == null)
+							score = 0.0;
+					}
+					*/
 					
-					System.out.println("deleting: " + key + " " + provList[i]);
+					System.out.println("score: " + key + "|" + provList[i] + "|" + score);
+					
+					if (score > max) {
+						max = score;
+						maxProv = provList[i];
+					}
 				}
 			}
+			
+			if (provScoreMap.size() > 1) {
+				for (String prov : provScoreMap.keySet()) {
+					if (!prov.equals(maxProv)) {
+						pstmt.setLong(1, docID);
+						pstmt.setLong(2, start);
+						pstmt.setString(3, prov);
+						pstmt.execute();
+						
+						System.out.println("deleting: " + key + "|" + value + "|" + prov);
+					}
+				}
+			}
+			
 		}
 		
 
@@ -394,11 +446,14 @@ public class EvalProfilesSimple
 		
 		double score = 0.0;
 		for (String tok : tokList) {
-			if (tok.indexOf("string") >= 0 || tok.indexOf("root") >= 0) {
+			if (tok.indexOf(":i-") >= 0) {
 				score += 10.0;
 			}
+			else if (tok.indexOf("string") >= 0 || tok.indexOf("root") >= 0) {
+				score += 3.0;
+			}
 			else if (tok.indexOf("lookup") >= 0) {
-				score += 5.0;
+				score += 2.0;
 			}
 			else if (tok.indexOf("category") >= 0) {
 				score += 1.0;
@@ -485,8 +540,8 @@ public class EvalProfilesSimple
 			
 			if (args[3].equals("y"))
 				eval.overlapping(args[0], args[1], args[2]);
-			
-			eval.eval(args[0], args[1], args[2]);
+			else
+				eval.eval(args[0], args[1], args[2]);
 		}
 		catch(Exception e)
 		{

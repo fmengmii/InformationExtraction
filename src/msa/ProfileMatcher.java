@@ -180,6 +180,9 @@ public class ProfileMatcher
 				
 				//iterate through each profile
 				matchCount = 0;
+				
+				//System.out.println("grid: " + grid.toString());
+				
 
 				for (ProfileGrid profileGridObj : profileGridListIndex) {
 					AnnotationSequenceGrid profileGrid = profileGridObj.getGrid();
@@ -575,12 +578,20 @@ public class ProfileMatcher
 									String targetStr2 = targetStrList.get(tIndex);
 									
 									boolean checkLowProb = true;
+									boolean start = false;
+									boolean allCaps = true;
 									for (int gridIndex=0; gridIndex < grid.size(); gridIndex++) {
 										List<AnnotationGridElement> elementList = grid.get(gridIndex);
 										for (AnnotationGridElement elem : elementList) {
-											if (elem.getAnnot() != null && !(elem.getAnnot().getValue().equals(":start") || elem.getAnnot().getValue().equals(":end")) && 
+											if (elem.getAnnot() != null && !elem.getAnnot().getValue().equals(".") && !(elem.getAnnot().getValue().equals(":start") || elem.getAnnot().getValue().equals(":end")) && 
 												(elem.getAnnot().getStart() == targetMatchIndexes[1] || elem.getAnnot().getEnd() == targetMatchIndexes[0])) {
 												checkLowProb = false;
+												break;
+											}
+											else if (elem.getAnnot() != null && elem.getAnnot().getEnd() >= targetMatchIndexes[0]-1 && elem.getAnnot().getValue().equals(":start"))
+												start = true;
+											else if (elem.getAnnot() != null && (StringUtils.isAlpha(elem.getAnnot().getValue()) && Character.isLowerCase(elem.getAnnot().getValue().charAt(0)))) {
+												allCaps = false;
 												break;
 											}
 										}
@@ -592,7 +603,8 @@ public class ProfileMatcher
 										if ((targetProb2 != null && targetProb != null && targetProb2 > targetProb && targetProb2 >= 0.0) || (targetProb2 != null && targetProb == null))
 											targetProb = targetProb2;
 										
-										if (targetProb == null && targetProb2 == null && StringUtils.isAllUpperCase(targetStr2)) {
+										//if (targetProb == null && targetProb2 == null && StringUtils.isAllUpperCase(targetStr2)) {
+										if (targetProb == null && targetProb2 == null && !start && allCaps) {
 											targetProb = targetProbMap.get(targetStr2.toLowerCase());
 										}
 										

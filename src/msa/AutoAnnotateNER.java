@@ -25,6 +25,7 @@ public class AutoAnnotateNER
 	private Boolean punct;
 	private List<AnnotationSequence> posSeqList;
 	private List<AnnotationSequence> negSeqList;
+	private Map<String, AnnotationSequence> seqMap;
 	
 	private String host;
 	private String dbName;
@@ -486,6 +487,7 @@ public class AutoAnnotateNER
 				//get sequences
 				//posSeqList = genSent.getPosSeqList();
 				negSeqList = genSent.getNegSeqList();
+				seqMap = genSent.getSeqMap();
 				
 				
 				//filter all caps sentences because all words get tagged as NNP
@@ -641,6 +643,7 @@ public class AutoAnnotateNER
 				features.add("$annotTypeName");
 				
 				Map<String, List<Long>> valDocMap = new HashMap<String, List<Long>>();
+				Map<String, List<Long>> valDocProfileMap = new HashMap<String, List<Long>>();
 				
 				
 				for (ProfileMatch match: matchList) {
@@ -678,16 +681,22 @@ public class AutoAnnotateNER
 					long start = targetCoords[0];
 					long end = targetCoords[1];
 					
-					value = value.toLowerCase();
+					//value = value.toLowerCase();
 					
 					List<Long> valDocList = valDocMap.get(value);
+					List<Long> valDocProfileList = valDocProfileMap.get(value);
 					if (valDocList == null) {
 						valDocList = new ArrayList<Long>();
 						valDocMap.put(value, valDocList);
+						valDocProfileList = new ArrayList<Long>();
+						valDocProfileMap.put(value, valDocProfileList);
+						
 					}
 					
-					if (!valDocList.contains(docID))
+					if (!valDocList.contains(docID)) {
 						valDocList.add(docID);
+						valDocProfileList.add(match.getProfile().getProfileID());
+					}
 					
 					Annotation annot = new Annotation(docID, docNamespace, docTable, -1, targetType, 
 						start, end, match.getTargetStr(), null);
@@ -719,7 +728,7 @@ public class AutoAnnotateNER
 					localPatternMatcher(matchList);
 				
 				
-				addSameDocAnnotations(valDocMap);
+				addSameDocAnnotations(valDocMap, valDocProfileMap);
 	
 				if (evalFlag) {
 					eval();
@@ -999,7 +1008,7 @@ public class AutoAnnotateNER
 	}
 	
 	
-	private void addSameDocAnnotations(Map<String, List<Long>> valDocMap) throws SQLException
+	private void addSameDocAnnotations(Map<String, List<Long>> valDocMap, Map<String, List<Long>> valDocProfileMap) throws SQLException
 	{
 
 		//genValProbMap();
@@ -1022,8 +1031,12 @@ public class AutoAnnotateNER
 							pw.println("adding: " + value + "|" + docID + "|" + start + "|" + prob);
 							valMap.put(docID + "|" + start + "|" + end, true);
 							matchMap.put(docID + "|" + start + "|" + end, true);
-							Annotation annot = new Annotation(docID, docNamespace, docTable, -1, targetType, start, end, value, null);
+							Map<String, Object> featureMap = new HashMap<String, Object>();
+							featureMap.put("profileID", -1);
+							Annotation annot = new Annotation(docID, docNamespace, docTable, -1, targetType, start, end, value, featureMap);
 							annot.setProvenance(autoProvenance);
+							String featuresStr = gson.toJson(featureMap);
+							annot.setFeatures(featuresStr);
 							finalAnnotList.add(annot);
 							
 							/*
@@ -1062,21 +1075,26 @@ public class AutoAnnotateNER
 		//adding existing annots from previous run
 		Statement stmt = conn.createStatement();
 		
-		ResultSet rs = stmt.executeQuery("select document_id, start, end, value from annotation where provenance = '" + existingProvenance + "' and annotation_type = '" + targetType + "' order by document_id, start");
+		ResultSet rs = stmt.executeQuery("select document_id, start, end, value, features from annotation where provenance = '" + existingProvenance + "' and annotation_type = '" + targetType + "' order by document_id, start");
 		println("select document_id, start, end, value from annotation where provenance = '" + existingProvenance + "' and annotation_type = '" + targetType + "' order by document_id, start");
 		while (rs.next()) {
 			long docID = rs.getLong(1);
 			long start = rs.getLong(2);
 			long end = rs.getLong(3);
 			String value = rs.getString(4);
+			String features = rs.getString(5);
 			
 			Boolean flag = valMap.get(docID + "|" + start + "|" + end);
 			if (flag == null) {
 				println("adding existing: " + value + "|" + docID + "|" + start);
 				valMap.put(docID + "|" + start + "|" + end, true);
 				matchMap.put(docID + "|" + start + "|" + end, true);
-				Annotation annot = new Annotation(docID, docNamespace, docTable, -1, targetType, start, end, value, null);
+				Map<String, Object> featureMap = new HashMap<String, Object>();
+				featureMap = gson.fromJson(features, featureMap.getClass());
+				Annotation annot = new Annotation(docID, docNamespace, docTable, -1, targetType, start, end, value, featureMap);
 				annot.setProvenance(autoProvenance);
+				String featuresStr = gson.toJson(featureMap);
+				annot.setFeatures(featuresStr);
 				finalAnnotList.add(annot);
 			}
 		}
@@ -1124,9 +1142,11 @@ public class AutoAnnotateNER
 						System.out.println("adding global: " + value + "|" + docID + "|" + start);
 						pw.println("adding global: " + value + "|" + docID + "|" + start);
 						Map<String, Object> featureMap = new HashMap<String, Object>();
-						featureMap.put("global", "true");
+						featureMap.put("profileID", -2);
 						Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, targetType, start, end, value, featureMap);
 						annot2.setProvenance(autoProvenance);
+						String featuresStr = gson.toJson(featureMap);
+						annot2.setFeatures(featuresStr);
 						annotList.add(annot2);
 						valMap.put(key, true);
 					}
@@ -1321,44 +1341,56 @@ public class AutoAnnotateNER
 					long end = rs.getLong(3);
 					String value2 = rs.getString(4);
 					
-					long index1 = start + value2.indexOf(value);
-					long index2 = index1 + value.length();
-					if (value2.indexOf(value) < 0)
-						continue;
+					int step = 0;
+					step = value2.indexOf(value);
 					
-					pstmt2.setLong(1, docID2);
-					pstmt2.setLong(2, start);
-					pstmt2.setLong(3, end);
-					
-					ResultSet rs2 = pstmt2.executeQuery();
-					
-					while (rs2.next()) {
-						long start2 = rs2.getLong(1);
-						long end2 = rs2.getLong(2);
-						String value3 = rs2.getString(3);
+					while (true) {
+						if (step < 0)
+							break;
 						
-						if (!(start2 >= index1 && end2 <= index2))
+						long index1 = start + step;
+						long index2 = index1 + value.length();
+						if (value2.indexOf(value) < 0)
 							continue;
 						
-						if (value.indexOf(" " + value3 + " ") > 0 || value.indexOf(value3 + " ") == 0 || 
-								(value.indexOf(" " + value3) == (value.length() - value3.length()-1) && value3.length() < value.length())) {
-							String key = docID2 + "|" + start2 + "|" + end2;
+						pstmt2.setLong(1, docID2);
+						pstmt2.setLong(2, start);
+						pstmt2.setLong(3, end);
+						
+						ResultSet rs2 = pstmt2.executeQuery();
+						
+						while (rs2.next()) {
+							long start2 = rs2.getLong(1);
+							long end2 = rs2.getLong(2);
+							String value3 = rs2.getString(3);
 							
+							if (!(start2 >= index1 && end2 <= index2))
+								continue;
 							
-							
-							//System.out.println("value: " + value + " value2: " + value2 + "|" + key);
-	
-							
-							if (valMap.get(key) == null) {  
-								println("adding global entity: " + value + "|" + docID2 + "|" + start2 + "|" + value3);
-								Map<String, Object> featureMap = new HashMap<String, Object>();
-								featureMap.put("global", "true");
-								Annotation annot2 = new Annotation(docID2, docNamespace, docTable, -1, targetType, start2, end2, value3, featureMap);
-								annot2.setProvenance(autoProvenance);
-								annotList.add(annot2);
-								valMap.put(key, true);
+							if (value.indexOf(" " + value3 + " ") > 0 || value.indexOf(value3 + " ") == 0 || 
+									(value.indexOf(" " + value3) == (value.length() - value3.length()-1) && value3.length() < value.length())) {
+								String key = docID2 + "|" + start2 + "|" + end2;
+								
+								
+								
+								//System.out.println("value: " + value + " value2: " + value2 + "|" + key);
+		
+								
+								if (valMap.get(key) == null) {  
+									println("adding global entity: " + value + "|" + docID2 + "|" + start2 + "|" + value3);
+									Map<String, Object> featureMap = new HashMap<String, Object>();
+									featureMap.put("profileID", -2);
+									Annotation annot2 = new Annotation(docID2, docNamespace, docTable, -1, targetType, start2, end2, value3, featureMap);
+									annot2.setProvenance(autoProvenance);
+									String featuresStr = gson.toJson(featureMap);
+									annot2.setFeatures(featuresStr);
+									annotList.add(annot2);
+									valMap.put(key, true);
+								}
 							}
 						}
+						
+						step = value2.indexOf(value, step+1);
 					}
 				}
 			}
@@ -1367,7 +1399,11 @@ public class AutoAnnotateNER
 			
 		}
 			
+		
+		
+		addSingleEntities(autoProvenance, targetType, probEntityTable, valDocMap, valDocProfileMap);
 	
+		
 		
 		//adding same doc token
 		
@@ -1378,8 +1414,12 @@ public class AutoAnnotateNER
 					continue;
 				
 				List<Long> docList = valDocMap.get(value);
+				List<Long> docProfileList = valDocProfileMap.get(value);
 				
-				for (Long docID : docList) {
+				for (int i=0; i<docList.size(); i++) {
+					long docID = docList.get(i);
+					long profileID = docProfileList.get(i);
+					
 					pstmt.setLong(1, docID);
 					pstmt.setString(2, value);
 					rs = pstmt.executeQuery();
@@ -1387,21 +1427,31 @@ public class AutoAnnotateNER
 						long start = rs.getLong(1);
 						long end = rs.getLong(2);
 						
+						Double prob = valCountMap.get(value);
+						
+						println("same doc checking: " + value + "|" + docID + "|" + start + "|" + prob);
+						
+						if (prob != null && prob < 0.0)
+							continue;
+						
 						Boolean flag = valMap.get(docID + "|" + start + "|" + end);
 						if (flag == null) {
-							System.out.println("adding same doc: " + value + "|" + docID + "|" + start + "|" + end);
-							pw.println("adding same doc: " + value + "|" + docID + "|" + start + "|" + end);
+							println("adding same doc: " + value + "|" + docID + "|" + start + "|" + end);
+							
 							valMap.put(docID + "|" + start + "|" + end, true);
 							matchMap.put(docID + "|" + start + "|" + end, true);
-							Annotation annot = new Annotation(docID, docNamespace, docTable, -1, targetType, start, end, value, null);
+							Map<String, Object> featureMap = new HashMap<String, Object>();
+							featureMap.put("profileID", profileID);
+							Annotation annot = new Annotation(docID, docNamespace, docTable, -1, targetType, start, end, value, featureMap);
 							annot.setProvenance(autoProvenance);
+							String featuresStr = gson.toJson(featureMap);
+							annot.setFeatures(featuresStr);
 							finalAnnotList.add(annot);
 						}
 					}
 				}
 			}
 		}
-		
 		
 		
 		
@@ -1460,6 +1510,7 @@ public class AutoAnnotateNER
 				if (count < 2)
 					continue;
 				
+				/*
 				String lastTok = null;
 				StringBuilder strBlder = new StringBuilder();
 				for (String tok : toks) {
@@ -1480,7 +1531,10 @@ public class AutoAnnotateNER
 				}
 				
 				value = strBlder.toString().trim();
+				*/
 				
+				String queryValue = value;
+				queryValue = queryValue.replaceAll("(\\s)+", "%");
 				
 					
 				
@@ -1516,74 +1570,269 @@ public class AutoAnnotateNER
 					continue;
 				
 				//for (String value2 : valList) {
-				println("checking entity: " + value);
+				println("checking entity: " + value + "|" + queryValue + "|" + flag);
 				
-				if (flag) {
 				
-					pstmt.setString(1, "%" + value + "%");
-					ResultSet rs2 = pstmt.executeQuery();
-					while (rs2.next()) {
-						long entityStart = rs2.getLong(2);
-						long entityEnd = rs2.getLong(3);
-						String value3 = rs2.getString(4);
+				pstmt.setString(1, "%" + queryValue + "%");
+				ResultSet rs2 = pstmt.executeQuery();
+				while (rs2.next()) {
+					long sentDocID = rs2.getLong(1);
+					long sentStart = rs2.getLong(2);
+					long sentEnd = rs2.getLong(3);
+					String value3 = rs2.getString(4);
+					
+					AnnotationSequence seq = seqMap.get(sentDocID + "|" + sentStart);
+					List<String> sentToks = seq.getToks();
+					//sentToks.remove(0);
+					//sentToks.remove(sentToks.size()-1);
+					
+					println("found in: " + sentDocID + "|" + sentStart + "|" + value3 + "|" + gson.toJson(toks) + "|" + gson.toJson(sentToks));
+					
+					int startIndex = sentToks.size();
+
+					while (true) {
 						
-						println("found in: " + value3);
+						sentToks = sentToks.subList(0, startIndex);
+						startIndex = Collections.lastIndexOfSubList(sentToks, toks);
 						
-						if (value3.indexOf(" " + value + " ") > 0 || value3.indexOf(value + " ") == 0 || 
-							(value3.indexOf(value + " ")-1 >= 0 && !Character.isAlphabetic(value3.charAt(value3.indexOf(value + " ")-1))) || 
-							(value3.indexOf(" " + value) + value.length()+1 < value3.length() && !Character.isAlphabetic(value3.charAt(value3.indexOf(" " + value) + value.length()+1))) ||
-							((value3.indexOf(value)-1 >= 0 && !Character.isAlphabetic(value3.charAt(value3.indexOf(value)-1))) && 
-								(value3.indexOf(value) + value.length() < value3.length() && !Character.isAlphabetic(value3.charAt(value3.indexOf(value) + value.length())))) ||
-							(value3.indexOf(" " + value) == (value3.length() - value.length()-1) && value.length() < value3.length())) {
-							long docID = rs2.getLong(1);
-							long start = rs2.getLong(2);
-							//long end = rs2.getLong(3);
+						if (startIndex < 0) {
 							
-							int step = value3.indexOf(value);
-							if (step < 0)
+							List<String> toks2 = new ArrayList<String>();
+							List<String> sentToks2 = new ArrayList<String>();
+							for (int i=0;  i<toks.size(); i++) {
+								String tok = toks.get(i);
+								toks2.add(tok.toLowerCase());
+							}
+							
+							for (int i=0; i<sentToks.size(); i++) {
+								String tok = sentToks.get(i);
+								sentToks2.add(tok.toLowerCase());
+							}
+							
+							startIndex = Collections.indexOfSubList(sentToks2, toks2);
+							
+							boolean flag2 = false;
+							if (startIndex >= 0) {
+								for (int i=startIndex; i<startIndex + toks2.size(); i++) {
+									String tok2 = sentToks.get(i);
+									for (int j=0; j< tok2.length(); j++) {
+										if (Character.isUpperCase(tok2.charAt(j))) {
+											flag2 = true;
+											break;
+										}
+									}
+								}
+							}
+							
+							if (!flag2)
+								startIndex = -1;
+						}
+						
+						if (startIndex >= 0) {
+							int endIndex = startIndex + toks.size()-1;
+							
+							String sentStr = SequenceUtilities.getStrFromToks(sentToks); 
+							List<Annotation> annotList = seq.getAnnotList(":token|string");
+							
+							println("found sublist: " + sentDocID + "|" + sentStart + "|" + startIndex);
+							//println("seq: " + gson.toJson(seq));
+							
+							long valueStart = annotList.get(startIndex).getStart();
+							long valueEnd = annotList.get(endIndex).getEnd();
+							
+							println("found in: " + value3 + "|" + sentStr);
+							
+							
+							//check if phrase is surrounded by lowercase
+							PreparedStatement pstmt4 = conn.prepareStatement("select features, value, start from annotation where document_id = ? and end <= ? and annotation_type = 'Token' order by end desc limit 0, 1");
+							PreparedStatement pstmt5 = conn.prepareStatement("select features, value, start from annotation where document_id = ? and start >= ? and annotation_type = 'Token' order by start limit 0, 1");
+							PreparedStatement pstmt6 = conn.prepareStatement("select count(*) from annotation where document_id = ? and end >= ? and annotation_type = 'Sentence' order by end limit 0, 1");
+							PreparedStatement pstmt7 = conn.prepareStatement("select count(*) from annotation where document_id = ? and start >= ? and annotation_type = 'Sentence' order by start limit 0, 1");
+	
+							boolean flag1 = false;
+							boolean flag2 = false;
+							boolean flag3 = false;
+							boolean flag4 = false;
+							
+							pstmt4.setLong(1, sentDocID);
+							pstmt4.setLong(2, valueStart);
+							ResultSet rs3 = pstmt4.executeQuery();
+							if (rs3.next()) {
+								String features2 = rs3.getString(1);
+								String val2 = rs3.getString(2);
+								long start2 = rs3.getLong(3);
+								
+								println("checking entity prev: " + features2 + "|" + val2 + "|" + start2);
+								
+								if (features2.indexOf("upper") < 0 && features2.indexOf("allCaps") < 0 && features2.indexOf("mixedCaps") < 0 && !val2.equals(".")) {
+									flag1 = true;
+									flag3 = true;
+								}
+								else {
+									pstmt7.setLong(1, sentDocID);
+									pstmt7.setLong(2, start2+1);
+									
+									ResultSet rs4 = pstmt7.executeQuery();
+									int sentCount = 0;
+									if (rs4.next()) {
+										sentCount = rs4.getInt(1);
+									}
+									
+									if (sentCount > 0) {
+										flag1 = true;
+										//flag3 = true;
+									}
+								}
+							}
+							else
+								flag1 = true;
+							
+							pstmt5.setLong(1, sentDocID);
+							pstmt5.setLong(2, valueEnd);
+							rs3 = pstmt5.executeQuery();
+							if (rs3.next()) {
+								String features2 = rs3.getString(1);
+								String val2 = rs3.getString(2);
+								long start2 = rs3.getLong(3);
+								
+								println("checking entity next: " + features2 + "|" + val2 + "|" + start2);
+								
+								
+								if (features2.indexOf("upper") < 0 && features2.indexOf("allCaps") < 0 && features2.indexOf("mixedCaps") < 0 && !val2.equals(".")) {
+									flag2 = true;
+									flag4 = true;
+								}
+								else {
+									pstmt6.setLong(1, sentDocID);
+									pstmt6.setLong(2, start2+1);
+									
+									ResultSet rs4 = pstmt6.executeQuery();
+									int sentCount = 0;
+									if (rs4.next()) {
+										sentCount = rs4.getInt(1);
+									}
+									
+									if (sentCount > 0) {
+										flag2 = true;
+										//flag4 = true;
+									}
+								}
+							}
+							else
+								flag2 = true;
+							
+							
+							
+							if (!flag1 || !flag2)
 								continue;
 							
-							String key = docID + "|" + (start + step) + "|" + (start + step + value.length());
+							
+							
+							/*
+							if (sentStr.indexOf(" " + value + " ") > 0 || sentStr.indexOf(value + " ") == 0 || 
+								(sentStr.indexOf(value + " ")-1 >= 0 && !Character.isAlphabetic(sentStr.charAt(sentStr.indexOf(value + " ")-1))) || 
+								(sentStr.indexOf(" " + value) + value.length()+1 < sentStr.length() && !Character.isAlphabetic(sentStr.charAt(sentStr.indexOf(" " + value) + value.length()+1))) ||
+								((sentStr.indexOf(value)-1 >= 0 && !Character.isAlphabetic(sentStr.charAt(sentStr.indexOf(value)-1))) && 
+									(sentStr.indexOf(value) + value.length() < sentStr.length() && !Character.isAlphabetic(sentStr.charAt(sentStr.indexOf(value) + value.length())))) ||
+								(sentStr.indexOf(" " + value) == (sentStr.length() - value.length()-1) && value.length() < sentStr.length())) {
+							
+							
+							int step = sentStr.indexOf(value);
+							if (step < 0)
+								continue;
+							*/
+							
+							
+							String key = sentDocID + "|" + valueStart + "|" + valueEnd;
 							
 							//System.out.println("entity map: " + value + "|" + docID + "|" + start + "|" + end + "|" + flag);
 							entityMap.put(key, flag);
 							
 							if (entity && flag != null) {
-								if (flag) {
-									println("entity adding: " + value + "|" + value3 + "|" + key);
+								println("entity add/remove: " + value + "|" + sentStr + "|" + key);
+								
+								pstmt2.setLong(1, valueStart);
+								pstmt2.setLong(2, valueEnd);
+								pstmt2.setLong(3, sentDocID);
+								
+								rs3 = pstmt2.executeQuery();
+								while (rs3.next()) {
+									long start2 = rs3.getLong(1);
+									long end2 = rs3.getLong(2);
+									String value4 = rs3.getString(3);
 									
-									pstmt2.setLong(1, start + step);
-									pstmt2.setLong(2, start + step + value.length());
-									pstmt2.setLong(3, docID);
+									String key2 = sentDocID + "|" + start2 + "|" + end2;
 									
-									ResultSet rs3 = pstmt2.executeQuery();
-									while (rs3.next()) {
-										long start2 = rs3.getLong(1);
-										long end2 = rs3.getLong(2);
-										String value4 = rs3.getString(3);
+									if (flag && valMap.get(key2) == null) {
+										println("adding entity token: " + key2 + "|" + value4);
+										valMap.put(key2, true);
+										matchMap.put(key2, true);
+										Map<String, Object> featureMap = new HashMap<String, Object>();
+										featureMap.put("profileID", -1);
+										Annotation annot2 = new Annotation(sentDocID, docNamespace, docTable, -1, targetType, start2, 
+											end2, value4.toLowerCase(), featureMap);
+										annot2.setProvenance(autoProvenance);
+										String featuresStr = gson.toJson(featureMap);
+										annot2.setFeatures(featuresStr);
+										finalAnnotList.add(annot2);
 										
-										String key2 = docID + "|" + start2 + "|" + end2;
+										List<Long> docList = valDocMap.get(value4);
+										List<Long> docProfileList = valDocProfileMap.get(value4);
+										if (docList == null) {
+											docList = new ArrayList<Long>();
+											valDocMap.put(value4, docList);
+											docProfileList = new ArrayList<Long>();
+											valDocProfileMap.put(value4, docProfileList);
+										}
 										
-										if (valMap.get(key2) == null) {
-											println("adding entity token: " + key2 + "|" + value4);
-											valMap.put(key2, true);
-											matchMap.put(key2, true);
-											Annotation annot2 = new Annotation(docID, docNamespace, docTable, -1, targetType, start2, 
-												end2, value4.toLowerCase(), null);
-											annot2.setProvenance(autoProvenance);
-											finalAnnotList.add(annot2);
+										if (!docList.contains(sentDocID)) {
+											docList.add(sentDocID);
+											docProfileList.add((long) -1);
+										}
+									}
+									else if (!flag && valMap.get(key2) != null && flag3 && flag4) {
+										println("removing entity token: " + key2 + "|" + value4);
+										for (int i=0; i<finalAnnotList.size(); i++) {
+											Annotation annot = finalAnnotList.get(i);
+											if (annot.getDocID() == sentDocID && annot.getStart() >= start2 && annot.getEnd() <= end2) {
+												finalAnnotList.remove(i);
+												i--;
+												valMap.remove(key2);
+											}
 										}
 									}
 								}
 							}
+							
+							//sentToks = sentToks.subList(startIndex+1, sentToks.size());
+							//startIndex = Collections.indexOfSubList(sentToks, toks);
 						}
+						else
+							break;
 					}
 				}
 			
-				
+				/*
 				else if (!flag) {
 
 					List<String> entityInfoList = globalEntityMap.get(value);
+					if (entityInfoList == null) {
+						if (StringUtils.isAllUpperCase(value)) {
+							StringBuilder strBlder = new StringBuilder();
+							for (String tok : toks) {
+								strBlder.append(tok.substring(0, 1) + tok.substring(1).toLowerCase() + " ");
+							}
+							
+							value = strBlder.toString().trim();
+							entityInfoList = globalEntityMap.get(value);
+						}
+						
+						else {
+							value = value.toUpperCase();
+							entityInfoList = globalEntityMap.get(value);
+						}							
+					}
+					
 					if (entityInfoList != null) {
 						for (String entityInfo : entityInfoList) {
 							String[] parts = entityInfo.split("\\|");
@@ -1603,7 +1852,7 @@ public class AutoAnnotateNER
 						}
 					}
 				}
-				
+				*/
 			}
 			
 		//}
@@ -1619,18 +1868,13 @@ public class AutoAnnotateNER
 	
 				
 				if (flag != null && !flag) {
-					System.out.println("entity removing: " + annot.getValue() + "|" + key);
-					pw.println("entity removing: " + annot.getValue() + "|" + key);
+					println("removing entity: " + annot.getValue() + "|" + key);
 					finalAnnotList.remove(i);
 					i--;
 					valMap.remove(key);
 				}
 			}
 		}
-			
-		
-		
-		addSingleEntities(autoProvenance, targetType, probEntityTable);
 		
 		
 		//pstmt.close();
@@ -1808,7 +2052,7 @@ public class AutoAnnotateNER
 	}
 	
 	
-	private void addSingleEntities(String provenance, String annotType, String probTable) throws SQLException
+	private void addSingleEntities(String provenance, String annotType, String probTable, Map<String, List<Long>> valDocMap, Map<String, List<Long>> valDocProfileMap) throws SQLException
 	{
 		Statement stmt = conn.createStatement();
 		PreparedStatement pstmt = conn.prepareStatement("select document_id, start, end, features from annotation where value = ? and annotation_type = 'Token' and document_id >= 1163 order by document_id, start");
@@ -1817,6 +2061,7 @@ public class AutoAnnotateNER
 		PreparedStatement pstmt3 = conn.prepareStatement("select features, value, start from annotation where document_id = ? and end >= ? and end < ? and annotation_type = 'Token'");
 		PreparedStatement pstmt4 = conn.prepareStatement("select features, value, start from annotation where document_id = ? and start <= ? and start > ? and annotation_type = 'Token'");
 		PreparedStatement pstmt5 = conn.prepareStatement("select count(*) from annotation where document_id = ? and start = ? and provenance = '" + provenance + "'");
+		PreparedStatement pstmt6 = conn.prepareStatement("select count(*) from annotation where document_id = ? and end = ? and annotation_type = 'Sentence'");
 		
 		
 		List<String> valList = new ArrayList<String>();
@@ -1841,10 +2086,8 @@ public class AutoAnnotateNER
 				long end = rs.getLong(3);
 				String features = rs.getString(4);
 				
-				if (valMap.get(docID + "|" + start + "|" + end) != null)
-					continue;
 				
-				if (features.indexOf("upper") >= 0) {
+				if (features.indexOf("upper") >= 0 || features.indexOf("allCaps") >= 0 || features.indexOf("mixedCaps") >= 0) {
 					println("checking: " + val + " " + docID + "|" + start + "|" + annotType + "|" + prob + "|" + provenance);
 					
 					boolean flag1 = false;
@@ -1861,7 +2104,7 @@ public class AutoAnnotateNER
 						
 						println("checking prev: " + features2 + "|" + val2 + "|" + start2);
 						
-						if (features2.indexOf("upper") < 0 && features2.indexOf("allCaps") < 0)
+						if (features2.indexOf("upper") < 0 && features2.indexOf("allCaps") < 0 && features2.indexOf("mixedCaps") < 0 && !val2.equals(".") && start2 > 0)
 							flag1 = true;
 					}
 					
@@ -1874,10 +2117,23 @@ public class AutoAnnotateNER
 						String val2 = rs2.getString(2);
 						long start2 = rs2.getLong(3);
 						
-						println("checking prev: " + features2 + "|" + val2 + "|" + start2);
+						println("checking next: " + features2 + "|" + val2 + "|" + start2);
 						
-						if (features2.indexOf("upper") < 0 && features2.indexOf("allCaps") < 0)
+						if (features2.indexOf("upper") < 0 && features2.indexOf("allCaps") < 0 && features2.indexOf("mixedCaps") < 0 && !val2.equals("."))
 							flag2 = true;
+						else if (val2.equals(".")) {
+							pstmt6.setLong(1, docID);
+							pstmt6.setLong(2, start2+1);
+							
+							ResultSet rs3 = pstmt6.executeQuery();
+							int sentCount = 0;
+							if (rs3.next()) {
+								sentCount = rs3.getInt(1);
+							}
+							
+							if (sentCount > 0)
+								flag2 = true;
+						}
 					}
 					
 					
@@ -1895,42 +2151,66 @@ public class AutoAnnotateNER
 					
 					println("prob: " + prob);
 					
-					if (flag1 && flag2 && prob == 1.0) {
+					if (flag1 && flag2) {
+						if (prob == 1.0) {
+							
+							if (valMap.get(docID + "|" + start + "|" + end) != null)
+								continue;
 						
-						/*
-						int id = getNextAnnotID(docID);
-						pstmt2.setInt(1, id);
-						pstmt2.setLong(2, docID);
-						pstmt2.setString(3, annotType);
-						pstmt2.setLong(4, start);
-						pstmt2.setLong(5, end);
-						pstmt2.setString(6, val);
-						pstmt2.setString(7, null);
-						pstmt2.setString(8, provenance);
-						pstmt2.setDouble(9, 1);
-						pstmt2.execute();
-						*/
-						
-						Annotation annot = new Annotation(docID, docNamespace, docTable, -1, targetType, 
-							start, end, val, null);
-						finalAnnotList.add(annot);
-						
-						println("adding single entity: " + val + " " + docID + "|" + start);
-						
-						valMap.put(docID + "|" + start + "|" + end, true);
-					}
-					/*
-					else if (prob == 0.0 && count > 0) {
-						for (int j=0; j<finalAnnotList.size(); j++) {
-							Annotation annot = finalAnnotList.get(j);
-							if (annot.getDocID() == docID && annot.getStart() == start && annot.getEnd() == end) {
-								println("removing single entity: " + val + "|" + docID + "|" + start);
-								finalAnnotList.remove(j);
-								j--;
+							/*
+							int id = getNextAnnotID(docID);
+							pstmt2.setInt(1, id);
+							pstmt2.setLong(2, docID);
+							pstmt2.setString(3, annotType);
+							pstmt2.setLong(4, start);
+							pstmt2.setLong(5, end);
+							pstmt2.setString(6, val);
+							pstmt2.setString(7, null);
+							pstmt2.setString(8, provenance);
+							pstmt2.setDouble(9, 1);
+							pstmt2.execute();
+							*/
+							
+							Map<String, Object> featureMap = new HashMap<String, Object>();
+							featureMap.put("profileID", -1);
+							Annotation annot = new Annotation(docID, docNamespace, docTable, -1, targetType, 
+								start, end, val, featureMap);
+							annot.setProvenance(autoProvenance);
+							String featuresStr = gson.toJson(featureMap);
+							annot.setFeatures(featuresStr);
+							finalAnnotList.add(annot);
+							
+							println("adding single entity: " + val + " " + docID + "|" + start);
+							
+							valMap.put(docID + "|" + start + "|" + end, true);
+							
+							List<Long> docList = valDocMap.get(val);
+							List<Long> docProfileList = valDocProfileMap.get(val);
+							if (docList == null) {
+								docList = new ArrayList<Long>();
+								valDocMap.put(val, docList);
+								docProfileList = new ArrayList<Long>();
+								valDocProfileMap.put(val, docProfileList);
+							}
+							
+							if (!docList.contains(docID)) {
+								docList.add(docID);
+								docProfileList.add((long) -1);
+							}
+							
+						}
+					
+						else if (prob == 0.0) {
+							for (int j=0; j<finalAnnotList.size(); j++) {
+								Annotation annot = finalAnnotList.get(j);
+								if (annot.getDocID() == docID && annot.getStart() == start && annot.getEnd() == end) {
+									println("removing single entity: " + val + "|" + docID + "|" + start);
+									finalAnnotList.remove(j);
+									j--;
+								}
 							}
 						}
 					}
-					*/
 				}
 			}
 		}
@@ -1958,6 +2238,7 @@ public class AutoAnnotateNER
 		Statement stmt = conn.createStatement();
 		
 		valCountMap = new HashMap<String, Double>();
+		Map<String, Integer> totalMap = new HashMap<String, Integer>();
 		
 		//ResultSet rs = stmt.executeQuery("select value, count(*) from annotation where document_id < 1163 and provenance = 'conll2003-token' and annotation_type = 'I-PER' group by value");
 		ResultSet rs = stmt.executeQuery("select value, pos, total, prob from " + probTable);
@@ -1966,18 +2247,49 @@ public class AutoAnnotateNER
 			int count = rs.getInt(2);
 			int total = rs.getInt(3);
 			double prob = rs.getDouble(4);
-			System.out.println("global prob: " + value + "|" + prob + "|" + count + "|" + total);
-			pw.println("global prob: " + value + "|" + prob + "|" + count + "|" + total);
-			if (prob > minGlobalPrec && total > minGlobalCount) {					
+			
+			if (StringUtils.isAllUpperCase(value))
+				value = value.substring(0, 1) + value.substring(1).toLowerCase();
+			
+			Integer total2 = totalMap.get(value);
+			if (total2 == null) {
+				total2 = 0;
+			}
+			else {
+				double prob2 = valCountMap.get(value);
+				prob = ((double) prob) * (((double) total) / ((double) total+total2)) +
+						((double) prob2) * (((double) total2) / ((double) total+total2));
+				
+			}
+
+			total += total2;
+			totalMap.put(value, total);
+			
+			println("global prob: " + value + "|" + prob + "|" + count + "|" + total);
+			
+			valCountMap.put(value, prob);
+		}
+		
+		for (String value : valCountMap.keySet()) {
+			double prob = valCountMap.get(value);
+			int total = totalMap.get(value);
+			double prob2 = 0.0;
+			
+			if (prob > minGlobalPrec && total > minGlobalCount) {	
+				prob2 = prob;
 				valCountMap.put(value, prob);
 			}
-			else if (prob <= minGlobalNegPrec && total > minGlobalNegCount)
+			else if (prob <= minGlobalNegPrec && total > minGlobalNegCount) {
+				prob2 = -1.0;
 				valCountMap.put(value, -1.0);
+			}
 			
 			else
 				valCountMap.put(value, 0.0);
-				
+			
+			println("global prob score: " + value + "|" + prob + "|" + total + "|" + prob2);
 
+				
 		}
 		
 		stmt.close();
