@@ -138,6 +138,7 @@ public class AutoAnnotateNER
 	private boolean sameDocEntity;
 	private boolean highProb;
 	private boolean entity;
+	private boolean prior;
 	
 	private String probTable;
 	private String probEntityTable;
@@ -333,6 +334,7 @@ public class AutoAnnotateNER
 			sameDocEntity = Boolean.parseBoolean(props.getProperty("sameDocEntity"));
 			highProb = Boolean.parseBoolean(props.getProperty("highProb"));
 			entity = Boolean.parseBoolean(props.getProperty("entity"));
+			prior = Boolean.parseBoolean(props.getProperty("prior"));
 			
 			probTable = props.getProperty("probTable");
 			probEntityTable = props.getProperty("probEntityTable");
@@ -728,7 +730,8 @@ public class AutoAnnotateNER
 					localPatternMatcher(matchList);
 				
 				
-				addSameDocAnnotations(valDocMap, valDocProfileMap);
+				if (prior)
+					addSameDocAnnotations(valDocMap, valDocProfileMap);
 	
 				if (evalFlag) {
 					eval();
