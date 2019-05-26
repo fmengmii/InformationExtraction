@@ -204,7 +204,9 @@ public class BestPatterns
 				
 				
 				System.out.println("reading answers...");
-				Map<String, Boolean> ansMap = readAnswers(annotType, provenance);
+				Map<String, Boolean> ansMap = new HashMap<String, Boolean>();
+				for (long docID : docIDList)
+					readAnswers(docID, annotType, provenance, ansMap);
 				
 				System.out.println("ansMap size: " + ansMap.size());
 				
@@ -328,6 +330,9 @@ public class BestPatterns
 						String key = profileID + "|" + targetID;
 						String docKey = profileID + "|" + targetID + "|" + docID;
 						Boolean ansFlag = ansMap.get(docID + "|" + start + "|" + end);
+						
+						if (profileID == 1514 && targetID == 1864)
+							System.out.println("ansFlag: " + ansFlag + " " + docID + "|" + start + "|" + end);
 						
 						if (inactiveMap.get(key) != null)
 							continue;
@@ -826,11 +831,8 @@ public class BestPatterns
 	
 
 	
-	private Map<String, Boolean> readAnswers(String annotType, String provenance) throws SQLException
+	private Map<String, Boolean> readAnswers(long docID, String annotType, String provenance, Map<String, Boolean> ansMap) throws SQLException
 	{
-		Map<String, Boolean> ansMap = new HashMap<String, Boolean>();
-		
-		
 		
 		/*
 		PreparedStatement pstmt = annotConn.prepareStatement("select a.start, a.end from annotation a, annotation b where a.document_id = ? and a.annotation_type = 'Token' and "
@@ -872,11 +874,10 @@ public class BestPatterns
 			*/
 		
 		
-		ResultSet rs = stmt.executeQuery("select distinct document_id, start, " + rq + "end" + rq + " from " + schema + "annotation where annotation_type = '" + annotType + 
+		ResultSet rs = stmt.executeQuery("select distinct document_id, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = " + docID + " and annotation_type = '" + annotType + 
 			"' and provenance = '" + provenance + "' order by document_id, start");
 		
 		while (rs.next()) {
-			long docID = rs.getLong(1);
 			int start = rs.getInt(2);
 			int end = rs.getInt(3);
 			ansMap.put(docID + "|" + start + "|" + end, true);

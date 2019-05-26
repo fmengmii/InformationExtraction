@@ -15,7 +15,7 @@ public class IEDriver
 	private GenMSADriver genMSADriver;
 	private FilterPatterns filterPatt;
 	private BestPatterns bestPatt;
-	private AutoAnnotate autoAnnot;
+	private AutoAnnotateNER autoAnnot;
 	private PopulateFrame pop;
 	private Cleanup cleanup;
 	
@@ -185,7 +185,7 @@ public class IEDriver
 		genMSADriver = new GenMSADriver();
 		filterPatt = new FilterPatterns();
 		bestPatt = new BestPatterns();
-		autoAnnot = new AutoAnnotate();
+		autoAnnot = new AutoAnnotateNER();
 		pop = new PopulateFrame();
 		cleanup = new Cleanup();
 		
@@ -329,7 +329,7 @@ public class IEDriver
 			populateFlag = Boolean.parseBoolean(props.getProperty("populateFlag"));
 			
 			
-			//get CLeanup properties
+			//get Cleanup properties
 			minFreqCount = Integer.parseInt(props.getProperty("minFreqCount"));
 			lowFreqDocCount = Integer.parseInt(props.getProperty("lowFreqDocCount"));
 			

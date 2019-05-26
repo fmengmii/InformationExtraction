@@ -145,6 +145,8 @@ public class AutoAnnotateNER
 	
 	private String existingProvenance;
 	
+	private boolean extraction = true;
+	
 	private int totalTP;
 	
 	private String schema = "";
@@ -187,6 +189,26 @@ public class AutoAnnotateNER
 	public void setFinalTableList(List<String> finalTableList)
 	{
 		this.finalTableList = finalTableList;
+	}
+	
+	public void setDocDBQuery(String docDBQuery)
+	{
+		this.docDBQuery = docDBQuery;
+	}
+	
+	public void setProfileMinTotal(int profileMinTotal)
+	{
+		this.profileMinTotal = profileMinTotal;
+	}
+	
+	public void setProfileMinPrec(double profileMinPrec)
+	{
+		this.profileMinPrec = profileMinPrec;
+	}
+	
+	public void setAutoProvenance(String autoProvenance)
+	{
+		this.autoProvenance = autoProvenance;
 	}
 	
 	public void init(String config)
@@ -340,6 +362,10 @@ public class AutoAnnotateNER
 			probEntityTable = props.getProperty("probEntityTable");
 			
 			existingProvenance = props.getProperty("existingProvenance");
+			
+			String extractionStr = props.getProperty("extraction");
+			if (extractionStr != null)
+				extraction = Boolean.parseBoolean(extractionStr);
 		}
 		catch(Exception e)
 		{
@@ -428,7 +454,7 @@ public class AutoAnnotateNER
 			*/
 			
 			
-			genValProbMap();
+			//genValProbMap();
 			
 			
 			for (int index=0; index<annotTypeList.size(); index++) {
@@ -537,10 +563,19 @@ public class AutoAnnotateNER
 				}
 				*/
 				
+				//append previous sentence??
 				List<AnnotationSequenceGrid> negGridList = new ArrayList<AnnotationSequenceGrid>();
+				AnnotationSequence prevSeq = null;
 				for (AnnotationSequence seq : negSeqList) {
-					List<AnnotationSequenceGrid> gridList = genGrid.toAnnotSeqGrid(seq, false, false, false, true, false);
+					AnnotationSequence seq2 = seq;
+					if (prevSeq != null) {
+						seq2 = prevSeq.clone();
+						seq2.append(seq);
+					}
+					
+					List<AnnotationSequenceGrid> gridList = genGrid.toAnnotSeqGrid(seq2, false, false, false, true, false);
 					negGridList.addAll(gridList);
+					prevSeq = seq;
 				}
 				
 				
@@ -636,7 +671,7 @@ public class AutoAnnotateNER
 				invertedIndex.setTargetFlag(true);
 				invertedIndex.genIndex(profileGridList, targetGridList, profileIDMap, targetIDMap);
 	
-				List<ProfileMatch> matchList = profileMatcher.matchProfile(negGridList, profileGridList, null, targetType, true, maxGaps, syntax, phrase, false, msaProfileMap, msaTargetProfileMap, invertedIndex);
+				List<ProfileMatch> matchList = profileMatcher.matchProfile(negGridList, profileGridList, null, targetType, extraction, maxGaps, syntax, phrase, false, msaProfileMap, msaTargetProfileMap, invertedIndex);
 				
 				noMatchList = profileMatcher.getNoMatchList();
 				
@@ -653,10 +688,15 @@ public class AutoAnnotateNER
 					//target can only be 1 token (only for CoNLL2003)
 					String value = match.getTargetStr();
 					
-					
+					/*
 					if (value.indexOf(" ") >= 0 && value.length() > 3) {
 						continue;
 					}
+					*/
+					
+					AnnotationSequenceGrid grid = negGridList.get(match.getGridIndex());					
+					long docID = grid.getSequence().getDocID();
+					System.out.println(docID + "|" + match.getTargetIndexes()[0] + "|" + match.getTargetIndexes()[1]);
 					
 					
 					if (value.length() > 1 && !Character.isLetter(value.charAt(value.length()-1)))
@@ -669,12 +709,10 @@ public class AutoAnnotateNER
 						continue;
 					
 					
-					AnnotationSequenceGrid grid = negGridList.get(match.getGridIndex());
 					int[] targetCoords = match.getTargetIndexes();
 					
 					//extractMap.put(value, true);
 					
-					long docID = grid.getSequence().getDocID();
 					
 					
 					//long start = targetAnnot.getStart();
@@ -926,7 +964,9 @@ public class AutoAnnotateNER
 						long end = Long.parseLong(parts[2]);
 						
 						AnnotationSequence seq = getSequence(docID, start, end);
-						String seqStr = SequenceUtilities.getStrFromToks(seq.getToks());
+						String seqStr = "";
+						if (seq != null)
+							seqStr = SequenceUtilities.getStrFromToks(seq.getToks());
 						
 						System.out.println("not found: " + key + ", " + value + " | " + seqStr);
 						pw.println("not found: " + key + ", " + value + " | " + seqStr);
@@ -1000,7 +1040,10 @@ public class AutoAnnotateNER
 	{
 		AnnotationSequence seq = null;
 		
+		//System.out.println("docID: " + docID + " start: " + start + " end: " + end);
+		
 		for (AnnotationSequence seq2 : negSeqList) {
+			//System.out.println("seq: docID: " + seq2.getDocID() + " start: " + seq2.getStart() + " end:" + seq2.getEnd());
 			if (docID == seq2.getDocID() && start >= seq2.getStart() && end <= seq2.getEnd()) {
 				seq = seq2;
 				break;

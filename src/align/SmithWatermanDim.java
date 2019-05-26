@@ -131,7 +131,7 @@ public class SmithWatermanDim
 			//if (score == null)
 			
 			annotTypeScoreMap.put(annotType, score);
-			//System.out.println("type: " + annotType + ", score: " + score);
+			System.out.println("type: " + annotType + ", score: " + score);
 		}
 	}
 	
@@ -261,6 +261,7 @@ public class SmithWatermanDim
 					if (annotScore == null)
 						System.out.println("annotType: " + annotType + ", tok: " + tok1);
 					double score = matchScore * annotTypeScoreMap.get(annotType);
+					//System.out.println("score: " + score);
 					if (score < 0.0)
 						continue;
 					
@@ -293,7 +294,7 @@ public class SmithWatermanDim
 					}
 					else {
 						if (multiMatch) {
-							//System.out.println("matched: " + tok1 + ", " + tok2);
+							//System.out.println("matched2: " + tok1 + ", " + tok2);
 							gridScore2.addTok(tok1);
 						}
 					}
@@ -324,10 +325,47 @@ public class SmithWatermanDim
 					GridScore gridPointer = locScoreMap.get(key);
 					
 					if (profileMatch) {
+						int hiValue = 0;
+						int hiValue2 = 0;
 						int row = gridPointer.getRow();
 						List<AnnotationGridElement> col = annotSeqGrid1.get(row-1);
-						if (gridPointer.getTokList().size() < col.size())
-							gridPointer = new GridScore(i, j, "", "", 0.0, 0, 0);
+						Map<Double, Boolean> map = new HashMap<Double, Boolean>();
+						double hiScore = 0.0;
+						for (AnnotationGridElement elem2 : col) {
+							Double score = annotTypeScoreMap.get(elem2.getTok());
+							//if (elem2.getTok().equals(":negated-finding") || elem2.getTok().equals(":metamap-finding") || elem2.getTok().equals(":negated-finding-g")) {
+							if (score != null && score >= 100.0 && score > hiScore) {
+								//if (map.get(score) == null) {
+								//	map.put(score, true);
+									hiValue++;
+									hiScore = score;
+								//}
+							}
+						}
+							
+						//map = new HashMap<String, Boolean>();
+						//int colNum = gridPointer.getCol();
+						List<String> tokList = gridPointer.getTokList();
+						//List<AnnotationGridElement> col2 = annotSeqGrid2.get(colNum-1);
+						for (String tok : tokList) {
+						//for (AnnotationGridElement elem2 : col2) {
+							Double score = annotTypeScoreMap.get(tok);
+							//System.out.println("tok: " + tok + " score: " + score);
+							//if (elem2.getTok().equals(":negated-finding") || elem2.getTok().equals(":metamap-finding") || elem2.getTok().equals(":negated-finding-g")) {
+							if (score != null && score == hiScore) {
+								//if (map.get(tok) != null) {
+									//map.put(elem2.getTok(), true);
+									hiValue2++;
+								//}
+							}
+						}
+						
+						//System.out.println("hiScore: " + hiScore + " hiValue:" + hiValue + " hiValue2:" + hiValue2);
+						
+						if (gridPointer.getTokList().size() < col.size()) {
+							if ((hiValue > 0 && hiValue2 == 0) || hiValue == 0)
+								gridPointer = new GridScore(i, j, "", "", 0.0, 0, 0);
+						}
 					}
 					
 					String tok1 = gridPointer.getTok1();

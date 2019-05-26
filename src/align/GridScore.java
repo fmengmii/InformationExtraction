@@ -150,7 +150,7 @@ public class GridScore
 			tokList.add(tok);
 			tokMulti = new StringBuilder(tok);
 		}
-		else if (tokMulti.length() == 0 || tokMulti.indexOf("|") >= 0) {
+		else if (tokMulti.length() == 0 || tokMulti.indexOf(":target") < 0) {
 			//System.out.println("here2");
 			
 			if (tokList.indexOf(tok) < 0) {
