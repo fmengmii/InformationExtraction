@@ -126,6 +126,10 @@ public class IEDriver
 	private boolean evalFlag;
 	private String autoProvenance;
 	private boolean autoRecheck;
+	private double minGlobalPrec;
+	private int minGlobalCount;
+	private double minGlobalNegPrec;
+	private int minGlobalNegCount;
 	
 	
 	//Cleanup
@@ -325,6 +329,11 @@ public class IEDriver
 			autoProvenance = props.getProperty("autoProvenance");
 			autoRecheck = Boolean.parseBoolean(props.getProperty("autoRecheck"));
 			
+			minGlobalPrec = Double.parseDouble(props.getProperty("minGlobalPrec"));
+			minGlobalCount = Integer.parseInt(props.getProperty("minGlobalCount"));
+			minGlobalNegPrec = Double.parseDouble(props.getProperty("minGlobalNegPrec"));
+			minGlobalNegCount = Integer.parseInt(props.getProperty("minGlobalNegCount"));
+			
 			//get Populate properties
 			populateFlag = Boolean.parseBoolean(props.getProperty("populateFlag"));
 			
@@ -442,6 +451,8 @@ public class IEDriver
 			gateProps.setProperty("provenance", gateProvenance);
 			gateProps.setProperty("schema", schema);
 			gateProps.setProperty("docSchema", docSchema);
+			
+			
 			
 			//String gateDocQuery = "select a." + docIDCol + ", a." + docTextCol + " from " + schema + docTable + " a, document_status b "
 			//	+ "where b.document_namespace = '" + docNamespace + "' and b.document_table = '" + docTable + "' and a." + docIDCol + " = b.document_id and b.status = 0 "
@@ -617,6 +628,11 @@ public class IEDriver
 			autoProps.setProperty("autoOutFile", autoOutFile);
 			autoProps.setProperty("evalFlag", Boolean.toString(evalFlag));
 			autoProps.setProperty("autoProvenance", autoProvenance);
+			
+			autoProps.setProperty("minGlobalPrec", Double.toString(minGlobalPrec));
+			autoProps.setProperty("minGlobalCount", Integer.toString(minGlobalCount));
+			autoProps.setProperty("minGlobalNegPrec", Double.toString(minGlobalNegPrec));
+			autoProps.setProperty("minGlobalNegCount", Integer.toString(minGlobalNegCount));
 			
 			autoAnnot.init(autoProps);
 

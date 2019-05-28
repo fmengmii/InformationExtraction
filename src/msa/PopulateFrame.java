@@ -31,7 +31,7 @@ public class PopulateFrame
 			pstmtInsert = conn.prepareStatement("insert into " + this.schema + "frame_instance_data (frame_instance_id, slot_id, value, section_slot_number, element_slot_number, document_namespace, "
 				+ "document_table, document_id, annotation_id, provenance, element_id, v_scroll_pos, scroll_height, scroll_width) values (?,?,?,?,?,?,?,?,?,'" + provenance + "',?,null,null,null)");
 			
-			pstmtCheckElemRepeat = conn.prepareStatement("select count(*) from " + this.schema + "frame_instance_element_repeat where frame_instance_id = ? and element_id = ? and section_slot_num = ?");
+			pstmtCheckElemRepeat = conn.prepareStatement("select repeat_num from " + this.schema + "frame_instance_element_repeat where frame_instance_id = ? and element_id = ? and section_slot_num = ?");
 			pstmtInsertElemRepeat = conn.prepareStatement("insert into " + this.schema + "frame_instance_element_repeat (frame_instance_id, element_id, section_slot_num, repeat_num) values (?,?,?,?)");
 			pstmtUpdateElemRepeat = conn.prepareStatement("update " + this.schema + "frame_instance_element_repeat set repeat_num = ? where frame_instance_id = ? and "
 				+ "element_id = ?");
@@ -70,9 +70,11 @@ public class PopulateFrame
 					+ "a.id = b.annotation_id)";
 			}
 			
-			ResultSet rs = stmt.executeQuery(queryStr);
+			
 			Map<String, Integer> map = new HashMap<String, Integer>();
-			Map<Integer, Integer> sectionSlotMap = new HashMap<Integer, Integer>();
+			Map<Integer, Integer> sectionSlotMap = new HashMap<Integer, Integer>();			
+						
+			ResultSet rs = stmt.executeQuery(queryStr);
 			
 			while (rs.next()) {
 				int annotID = rs.getInt(1);
@@ -121,23 +123,22 @@ public class PopulateFrame
 			for (String key : map.keySet()) {
 				int repeatNum = map.get(key) + 1;
 				
-				System.out.println(key + ": " + repeatNum);
-				
+								
 				String[] parts = key.split("\\|");
 				long frameInstanceID = Long.parseLong(parts[0]);
-				int elemID = Integer.parseInt(parts[1]);
+				int elemID = Integer.parseInt(parts[2]);
 				
-				int count = 0;
+				int repeat = 0;
 				pstmtCheckElemRepeat.setLong(1, frameInstanceID);
 				pstmtCheckElemRepeat.setInt(2, elemID);
 				pstmtCheckElemRepeat.setInt(3, 0);
 				ResultSet rs2 = pstmtCheckElemRepeat.executeQuery();
 				if (rs2.next()) {
-					count = rs2.getInt(1);
+					repeat = rs2.getInt(1);
 				}
 				
-				if (count > 0) {
-					pstmtUpdateElemRepeat.setInt(1, repeatNum);
+				if (repeat > 0) {
+					pstmtUpdateElemRepeat.setInt(1, repeatNum + repeat);
 					pstmtUpdateElemRepeat.setLong(2, frameInstanceID);
 					pstmtUpdateElemRepeat.setInt(3, elemID);
 					pstmtUpdateElemRepeat.execute();
@@ -149,6 +150,8 @@ public class PopulateFrame
 					pstmtInsertElemRepeat.setInt(4, repeatNum);
 					pstmtInsertElemRepeat.execute();
 				}
+				
+				System.out.println(key + ": " + repeatNum + repeat);
 			}
 			
 			
