@@ -331,8 +331,8 @@ public class BestPatterns
 						String docKey = profileID + "|" + targetID + "|" + docID;
 						Boolean ansFlag = ansMap.get(docID + "|" + start + "|" + end);
 						
-						if (profileID == 1514 && targetID == 1864)
-							System.out.println("ansFlag: " + ansFlag + " " + docID + "|" + start + "|" + end);
+						if (profileID == 3664 && targetID == 1852)
+							System.out.println("ansFlag: " + ansFlag + " " + docID + "|" + start + "|" + end + "|" + profileID + "|" + targetID);
 						
 						if (inactiveMap.get(key) != null)
 							continue;

@@ -67,7 +67,7 @@ public class AutoAnnotateNER
 	private PreparedStatement pstmt3;
 	private PreparedStatement pstmtWrite;
 	private PreparedStatement pstmtCheck;
-	private PreparedStatement pstmtDeleteFrameData;
+	//private PreparedStatement pstmtDeleteFrameData;
 	private PreparedStatement pstmtDeleteAnnots;
 	
 	private int maxGaps = 1;
@@ -321,6 +321,7 @@ public class AutoAnnotateNER
 			
 			pw = new PrintWriter(outFile);
 			
+			
 			if (requireTarget) {
 				Map<String, Object> targetMap = new HashMap<String, Object>();
 				targetMap.put("annotType", targetType);
@@ -328,6 +329,7 @@ public class AutoAnnotateNER
 				targetMap.put("targetStr", ":target");
 				msaAnnotFilterList.add(targetMap);
 			}
+			
 			
 			
 			//add annotation type tags from previous runs
@@ -427,7 +429,7 @@ public class AutoAnnotateNER
 			
 			pstmtCheck = conn2.prepareStatement("select count(*) from " + autoMatchTable + " where document_id = ? and start = ? and " + rq + "end" + rq + " = ? and run_name = '" + runName + "'");
 			
-			pstmtDeleteFrameData = conn.prepareStatement("delete from " + schema + "frame_instance_data where document_id = ? and annotation_id in (select a.id from annotation a where a.document_id = ? and a.annotation_type = ? and provenance = '" + autoProvenance + "')");
+			//pstmtDeleteFrameData = conn.prepareStatement("delete from " + schema + "frame_instance_data where document_id = ? and annotation_id in (select a.id from annotation a where a.document_id = ? and a.annotation_type = ? and provenance = '" + autoProvenance + "')");
 			pstmtDeleteAnnots = conn.prepareStatement("delete from " + schema + "annotation where annotation_type = ? and document_id = ? and provenance = '" + autoProvenance + "'");
 			
 			rq = DBConnection.reservedQuote;
@@ -467,6 +469,15 @@ public class AutoAnnotateNER
 				
 				if (targetType.length() == 0 || profileTable.length() == 0 || finalTable.length() == 0)
 					continue;
+				
+				if (requireTarget) {
+					msaAnnotFilterList.remove(msaAnnotFilterList.size()-1);
+					Map<String, Object> targetMap = new HashMap<String, Object>();
+					targetMap.put("annotType", targetType);
+					targetMap.put("provenance", targetProvenance);
+					targetMap.put("targetStr", ":target");
+					msaAnnotFilterList.add(targetMap);
+				}
 
 				
 				docIDList = new ArrayList<Long>();
@@ -482,7 +493,7 @@ public class AutoAnnotateNER
 				ansSeqMap = new HashMap<String, AnnotationSequence>();
 				
 				List<String> annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType, scoreList);
-				annotTypeNameList.add(":" + targetType.toLowerCase());
+				annotTypeNameList.add(annotTypeNameList.size()-1, ":" + targetType.toLowerCase());
 				scoreList.add(10.0);
 				
 				genGrid = new GenAnnotationGrid(annotTypeNameList, tokType);
@@ -996,20 +1007,20 @@ public class AutoAnnotateNER
 	public void writeAnnotations(String annotType)
 	{
 		try {
-			/*
+			
 			if (finalAnnotList.size() > 0) {
 				pstmtDeleteAnnots.setString(1, annotType);
 				for (long docID : docIDList) {
-					pstmtDeleteFrameData.setLong(1, docID);
-					pstmtDeleteFrameData.setLong(2, docID);
-					pstmtDeleteFrameData.setString(3, annotType);
-					pstmtDeleteFrameData.execute();
+					//pstmtDeleteFrameData.setLong(1, docID);
+					//pstmtDeleteFrameData.setLong(2, docID);
+					//pstmtDeleteFrameData.setString(3, annotType);
+					//pstmtDeleteFrameData.execute();
 					
 					pstmtDeleteAnnots.setLong(2, docID);
 					pstmtDeleteAnnots.execute();
 				}
 			}
-			*/
+			
 			
 			for (Annotation annot : finalAnnotList) {
 					

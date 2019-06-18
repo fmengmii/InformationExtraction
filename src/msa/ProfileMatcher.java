@@ -606,7 +606,8 @@ public class ProfileMatcher
 										//if (targetProb != null && targetProb < 0.0 && profileStr.indexOf(":" + annotType.toLowerCase()) < 0) {
 										if (targetProb != null && targetProb < 0.0) {
 											System.out.println("Removing low prob value: " + targetStr2);
-											pw.println("Removing low prob value: " + targetStr2);
+											if (pw != null)
+												pw.println("Removing low prob value: " + targetStr2);
 											matched = false;
 											continue;
 										}
@@ -645,12 +646,14 @@ public class ProfileMatcher
 												k--;
 												matchCount--;
 												System.out.println("overlapped: " + match2.getTargetIndexes()[0] + "|" + match2.getTargetIndexes()[1]);
-												pw.println("overlapped: " + match2.getTargetIndexes()[0] + "|" + match2.getTargetIndexes()[1]);
+												if (pw != null)
+													pw.println("overlapped: " + match2.getTargetIndexes()[0] + "|" + match2.getTargetIndexes()[1]);
 												matched = false;
 											}
 											else if (match2.getSequence().getDocID() == match.getSequence().getDocID() && match2.getTargetIndexes()[0] <= match.getTargetIndexes()[0] && match2.getTargetIndexes()[1] >= match.getTargetIndexes()[1]) {
 												System.out.println("overlapping: " + match2.getTargetIndexes()[0] + "|" + match2.getTargetIndexes()[1]);
-												pw.println("overlapping: " + match2.getTargetIndexes()[0] + "|" + match2.getTargetIndexes()[1]);
+												if (pw != null)
+													pw.println("overlapping: " + match2.getTargetIndexes()[0] + "|" + match2.getTargetIndexes()[1]);
 												add = false;
 												//matched = false;
 												break;
@@ -660,7 +663,8 @@ public class ProfileMatcher
 									
 									if (add) {
 										System.out.println("adding match: " + match.getTargetIndexes()[0] + "|" + match.getTargetIndexes()[1]);
-										pw.println("adding match: " + match.getTargetIndexes()[0] + "|" + match.getTargetIndexes()[1]);
+										if (pw != null)
+											pw.println("adding match: " + match.getTargetIndexes()[0] + "|" + match.getTargetIndexes()[1]);
 										matchList.add(match);
 										matchCount++;
 									}
