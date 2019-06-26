@@ -332,6 +332,7 @@ public class AutoAnnotateNER
 			
 			
 			
+			
 			//add annotation type tags from previous runs
 			/*
 			Map<String, Object> targetMap = new HashMap<String, Object>();
@@ -457,6 +458,7 @@ public class AutoAnnotateNER
 			
 			
 			//genValProbMap();
+			
 			
 			
 			for (int index=0; index<annotTypeList.size(); index++) {

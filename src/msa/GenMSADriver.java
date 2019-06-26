@@ -580,9 +580,9 @@ public class GenMSADriver
 				}
 				
 				cluster++;
-				
-				lastDocIndex = totalDocList.size();
+
 				totalDocList.addAll(docList);
+				lastDocIndex = totalDocList.size();
 			}
 			
 			
