@@ -67,7 +67,7 @@ public class AutoAnnotateNER
 	private PreparedStatement pstmt3;
 	private PreparedStatement pstmtWrite;
 	private PreparedStatement pstmtCheck;
-	private PreparedStatement pstmtDeleteFrameData;
+	//private PreparedStatement pstmtDeleteFrameData;
 	private PreparedStatement pstmtDeleteAnnots;
 	
 	private int maxGaps = 1;
@@ -138,11 +138,14 @@ public class AutoAnnotateNER
 	private boolean sameDocEntity;
 	private boolean highProb;
 	private boolean entity;
+	private boolean prior;
 	
 	private String probTable;
 	private String probEntityTable;
 	
 	private String existingProvenance;
+	
+	private boolean extraction = true;
 	
 	private int totalTP;
 	
@@ -186,6 +189,26 @@ public class AutoAnnotateNER
 	public void setFinalTableList(List<String> finalTableList)
 	{
 		this.finalTableList = finalTableList;
+	}
+	
+	public void setDocDBQuery(String docDBQuery)
+	{
+		this.docDBQuery = docDBQuery;
+	}
+	
+	public void setProfileMinTotal(int profileMinTotal)
+	{
+		this.profileMinTotal = profileMinTotal;
+	}
+	
+	public void setProfileMinPrec(double profileMinPrec)
+	{
+		this.profileMinPrec = profileMinPrec;
+	}
+	
+	public void setAutoProvenance(String autoProvenance)
+	{
+		this.autoProvenance = autoProvenance;
 	}
 	
 	public void init(String config)
@@ -298,6 +321,7 @@ public class AutoAnnotateNER
 			
 			pw = new PrintWriter(outFile);
 			
+			
 			if (requireTarget) {
 				Map<String, Object> targetMap = new HashMap<String, Object>();
 				targetMap.put("annotType", targetType);
@@ -305,6 +329,8 @@ public class AutoAnnotateNER
 				targetMap.put("targetStr", ":target");
 				msaAnnotFilterList.add(targetMap);
 			}
+			
+			
 			
 			
 			//add annotation type tags from previous runs
@@ -333,11 +359,16 @@ public class AutoAnnotateNER
 			sameDocEntity = Boolean.parseBoolean(props.getProperty("sameDocEntity"));
 			highProb = Boolean.parseBoolean(props.getProperty("highProb"));
 			entity = Boolean.parseBoolean(props.getProperty("entity"));
+			prior = Boolean.parseBoolean(props.getProperty("prior"));
 			
 			probTable = props.getProperty("probTable");
 			probEntityTable = props.getProperty("probEntityTable");
 			
 			existingProvenance = props.getProperty("existingProvenance");
+			
+			String extractionStr = props.getProperty("extraction");
+			if (extractionStr != null)
+				extraction = Boolean.parseBoolean(extractionStr);
 		}
 		catch(Exception e)
 		{
@@ -399,7 +430,7 @@ public class AutoAnnotateNER
 			
 			pstmtCheck = conn2.prepareStatement("select count(*) from " + autoMatchTable + " where document_id = ? and start = ? and " + rq + "end" + rq + " = ? and run_name = '" + runName + "'");
 			
-			pstmtDeleteFrameData = conn.prepareStatement("delete from " + schema + "frame_instance_data where document_id = ? and annotation_id in (select a.id from annotation a where a.document_id = ? and a.annotation_type = ? and provenance = '" + autoProvenance + "')");
+			//pstmtDeleteFrameData = conn.prepareStatement("delete from " + schema + "frame_instance_data where document_id = ? and annotation_id in (select a.id from annotation a where a.document_id = ? and a.annotation_type = ? and provenance = '" + autoProvenance + "')");
 			pstmtDeleteAnnots = conn.prepareStatement("delete from " + schema + "annotation where annotation_type = ? and document_id = ? and provenance = '" + autoProvenance + "'");
 			
 			rq = DBConnection.reservedQuote;
@@ -426,7 +457,8 @@ public class AutoAnnotateNER
 			*/
 			
 			
-			genValProbMap();
+			//genValProbMap();
+			
 			
 			
 			for (int index=0; index<annotTypeList.size(); index++) {
@@ -439,6 +471,15 @@ public class AutoAnnotateNER
 				
 				if (targetType.length() == 0 || profileTable.length() == 0 || finalTable.length() == 0)
 					continue;
+				
+				if (requireTarget) {
+					msaAnnotFilterList.remove(msaAnnotFilterList.size()-1);
+					Map<String, Object> targetMap = new HashMap<String, Object>();
+					targetMap.put("annotType", targetType);
+					targetMap.put("provenance", targetProvenance);
+					targetMap.put("targetStr", ":target");
+					msaAnnotFilterList.add(targetMap);
+				}
 
 				
 				docIDList = new ArrayList<Long>();
@@ -454,7 +495,7 @@ public class AutoAnnotateNER
 				ansSeqMap = new HashMap<String, AnnotationSequence>();
 				
 				List<String> annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType, scoreList);
-				annotTypeNameList.add(":" + targetType.toLowerCase());
+				annotTypeNameList.add(annotTypeNameList.size()-1, ":" + targetType.toLowerCase());
 				scoreList.add(10.0);
 				
 				genGrid = new GenAnnotationGrid(annotTypeNameList, tokType);
@@ -535,10 +576,19 @@ public class AutoAnnotateNER
 				}
 				*/
 				
+				//append previous sentence??
 				List<AnnotationSequenceGrid> negGridList = new ArrayList<AnnotationSequenceGrid>();
+				AnnotationSequence prevSeq = null;
 				for (AnnotationSequence seq : negSeqList) {
-					List<AnnotationSequenceGrid> gridList = genGrid.toAnnotSeqGrid(seq, false, false, false, true, false);
+					AnnotationSequence seq2 = seq;
+					if (prevSeq != null) {
+						seq2 = prevSeq.clone();
+						seq2.append(seq);
+					}
+					
+					List<AnnotationSequenceGrid> gridList = genGrid.toAnnotSeqGrid(seq2, false, false, false, true, false);
 					negGridList.addAll(gridList);
+					prevSeq = seq;
 				}
 				
 				
@@ -634,7 +684,7 @@ public class AutoAnnotateNER
 				invertedIndex.setTargetFlag(true);
 				invertedIndex.genIndex(profileGridList, targetGridList, profileIDMap, targetIDMap);
 	
-				List<ProfileMatch> matchList = profileMatcher.matchProfile(negGridList, profileGridList, null, targetType, true, maxGaps, syntax, phrase, false, msaProfileMap, msaTargetProfileMap, invertedIndex);
+				List<ProfileMatch> matchList = profileMatcher.matchProfile(negGridList, profileGridList, null, targetType, extraction, maxGaps, syntax, phrase, false, msaProfileMap, msaTargetProfileMap, invertedIndex);
 				
 				noMatchList = profileMatcher.getNoMatchList();
 				
@@ -651,10 +701,15 @@ public class AutoAnnotateNER
 					//target can only be 1 token (only for CoNLL2003)
 					String value = match.getTargetStr();
 					
-					
+					/*
 					if (value.indexOf(" ") >= 0 && value.length() > 3) {
 						continue;
 					}
+					*/
+					
+					AnnotationSequenceGrid grid = negGridList.get(match.getGridIndex());					
+					long docID = grid.getSequence().getDocID();
+					System.out.println(docID + "|" + match.getTargetIndexes()[0] + "|" + match.getTargetIndexes()[1]);
 					
 					
 					if (value.length() > 1 && !Character.isLetter(value.charAt(value.length()-1)))
@@ -667,12 +722,10 @@ public class AutoAnnotateNER
 						continue;
 					
 					
-					AnnotationSequenceGrid grid = negGridList.get(match.getGridIndex());
 					int[] targetCoords = match.getTargetIndexes();
 					
 					//extractMap.put(value, true);
 					
-					long docID = grid.getSequence().getDocID();
 					
 					
 					//long start = targetAnnot.getStart();
@@ -728,7 +781,8 @@ public class AutoAnnotateNER
 					localPatternMatcher(matchList);
 				
 				
-				addSameDocAnnotations(valDocMap, valDocProfileMap);
+				if (prior)
+					addSameDocAnnotations(valDocMap, valDocProfileMap);
 	
 				if (evalFlag) {
 					eval();
@@ -923,7 +977,9 @@ public class AutoAnnotateNER
 						long end = Long.parseLong(parts[2]);
 						
 						AnnotationSequence seq = getSequence(docID, start, end);
-						String seqStr = SequenceUtilities.getStrFromToks(seq.getToks());
+						String seqStr = "";
+						if (seq != null)
+							seqStr = SequenceUtilities.getStrFromToks(seq.getToks());
 						
 						System.out.println("not found: " + key + ", " + value + " | " + seqStr);
 						pw.println("not found: " + key + ", " + value + " | " + seqStr);
@@ -953,20 +1009,20 @@ public class AutoAnnotateNER
 	public void writeAnnotations(String annotType)
 	{
 		try {
-			/*
+			
 			if (finalAnnotList.size() > 0) {
 				pstmtDeleteAnnots.setString(1, annotType);
 				for (long docID : docIDList) {
-					pstmtDeleteFrameData.setLong(1, docID);
-					pstmtDeleteFrameData.setLong(2, docID);
-					pstmtDeleteFrameData.setString(3, annotType);
-					pstmtDeleteFrameData.execute();
+					//pstmtDeleteFrameData.setLong(1, docID);
+					//pstmtDeleteFrameData.setLong(2, docID);
+					//pstmtDeleteFrameData.setString(3, annotType);
+					//pstmtDeleteFrameData.execute();
 					
 					pstmtDeleteAnnots.setLong(2, docID);
 					pstmtDeleteAnnots.execute();
 				}
 			}
-			*/
+			
 			
 			for (Annotation annot : finalAnnotList) {
 					
@@ -997,7 +1053,10 @@ public class AutoAnnotateNER
 	{
 		AnnotationSequence seq = null;
 		
+		//System.out.println("docID: " + docID + " start: " + start + " end: " + end);
+		
 		for (AnnotationSequence seq2 : negSeqList) {
+			//System.out.println("seq: docID: " + seq2.getDocID() + " start: " + seq2.getStart() + " end:" + seq2.getEnd());
 			if (docID == seq2.getDocID() && start >= seq2.getStart() && end <= seq2.getEnd()) {
 				seq = seq2;
 				break;

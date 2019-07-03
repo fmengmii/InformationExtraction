@@ -212,14 +212,14 @@ public class ProfileMatcher
 					//System.out.println("profile from inverted: " + profileStr);
 					//System.out.println("profileGrid: " + profileGrid.toString());
 					
-					/*
-					if (profileStr.equals("[\":start|start\",\":target\",\":i-org\"]") || 
-						profileStr.equals("[\":target\",\":i-org\",\":token|string|(!:token|root|(!:token|category|(!:syntaxtreenode|cat|-lrb-\",\":i-org\",\":token|string|)!:token|root|)!:token|category|)!:syntaxtreenode|cat|-rrb-\"]")) {
-						System.out.println("HERE: " + profileGrid.size() + ", " + grid.getActiveSize());
-						System.out.println("grid: " + grid.toString());
-						System.out.println("profileGrid: " + profileGrid.toString());
-					}
-					*/
+					
+					//if (profileStr.equals("[\":start|start\",\":target\",\":i-org\"]") || 
+						//profileStr.equals("[\":target\",\":i-org\",\":token|string|(!:token|root|(!:token|category|(!:syntaxtreenode|cat|-lrb-\",\":i-org\",\":token|string|)!:token|root|)!:token|category|)!:syntaxtreenode|cat|-rrb-\"]")) {
+						//System.out.println("HERE: " + profileGrid.size() + ", " + grid.getActiveSize());
+						//System.out.println("grid: " + grid.toString());
+						//System.out.println("profileGrid: " + profileGrid.toString());
+					//}
+					
 					
 					
 					
@@ -245,7 +245,7 @@ public class ProfileMatcher
 					if (minSize > 3)
 						minSize -= minSizeOffset;
 					
-					if (found < (profileElemToks.size() - 1 - minSizeOffset)) {
+					if (found < (profileElemToks.size() - 1 - minSizeOffset) - 3) {
 						//System.out.println("skipped!");
 						continue;
 					}
@@ -284,7 +284,6 @@ public class ProfileMatcher
 					for (int j=0; j<indexesList.size(); j++) {
 						int[] indexes = indexesList.get(j);
 						
-						//System.out.println("indexes[0]: " + indexes[0] + " indexes[1]: " + indexes[1]);
 						
 						
 						//check if the indexes are within the focus coords
@@ -408,10 +407,6 @@ public class ProfileMatcher
 									align1Str = SequenceUtilities.getStrFromToks(align1);
 									align2Str = SequenceUtilities.getStrFromToks(align2);
 									
-									//if (gridStr.indexOf("HONG") >= 0) {
-									//System.out.println("targetProfile: " + targetProfileStr);
-									//}
-									
 									
 									if (align1.size() == 0) {
 										break;
@@ -434,7 +429,7 @@ public class ProfileMatcher
 									extractEnd = targetEnd + indexes[0];
 									
 									
-									
+									//System.out.println("targetStart: " + targetStart + " targetEnd: " + targetEnd);
 									targetStr = SequenceUtilities.getStrFromToks(targetGrid.getSequence().getToks().subList(targetStart, targetEnd));
 	
 									
@@ -597,7 +592,7 @@ public class ProfileMatcher
 										}
 									}
 
-									if (checkLowProb) {
+									if (checkLowProb && targetProbMap != null) {
 										Double targetProb = targetProbMap.get(targetStr2);
 										Double targetProb2 = targetProbMap.get(targetStr2.charAt(0) + targetStr.substring(1).toLowerCase());
 										if ((targetProb2 != null && targetProb != null && targetProb2 > targetProb && targetProb2 >= 0.0) || (targetProb2 != null && targetProb == null))
@@ -611,7 +606,8 @@ public class ProfileMatcher
 										//if (targetProb != null && targetProb < 0.0 && profileStr.indexOf(":" + annotType.toLowerCase()) < 0) {
 										if (targetProb != null && targetProb < 0.0) {
 											System.out.println("Removing low prob value: " + targetStr2);
-											pw.println("Removing low prob value: " + targetStr2);
+											if (pw != null)
+												pw.println("Removing low prob value: " + targetStr2);
 											matched = false;
 											continue;
 										}
@@ -638,8 +634,40 @@ public class ProfileMatcher
 									ProfileMatch match = new ProfileMatch(profile, targetList, i, targetMatchCoords1List.get(tIndex), targetMatchCoords2List.get(tIndex), targetMatchIndexesList.get(tIndex),  
 											targetStr2, toksStr, grid.getSequence());
 									
-									matchList.add(match);
-									matchCount++;
+									//remove matches that are overlapped by current match
+									boolean add = true;
+									
+									if (extraction)	 {
+										for (int k=0; k<matchList.size(); k++) {
+											ProfileMatch match2 = matchList.get(k);
+											if (match2.getSequence().getDocID() == match.getSequence().getDocID() && (match.getTargetIndexes()[0] <= match2.getTargetIndexes()[0] && match.getTargetIndexes()[1] > match2.getTargetIndexes()[1] ||
+												match.getTargetIndexes()[0] < match2.getTargetIndexes()[0] && match.getTargetIndexes()[1] >= match2.getTargetIndexes()[1])) {	
+												matchList.remove(k);
+												k--;
+												matchCount--;
+												System.out.println("overlapped: " + match2.getTargetIndexes()[0] + "|" + match2.getTargetIndexes()[1]);
+												if (pw != null)
+													pw.println("overlapped: " + match2.getTargetIndexes()[0] + "|" + match2.getTargetIndexes()[1]);
+												matched = false;
+											}
+											else if (match2.getSequence().getDocID() == match.getSequence().getDocID() && match2.getTargetIndexes()[0] <= match.getTargetIndexes()[0] && match2.getTargetIndexes()[1] >= match.getTargetIndexes()[1]) {
+												System.out.println("overlapping: " + match2.getTargetIndexes()[0] + "|" + match2.getTargetIndexes()[1]);
+												if (pw != null)
+													pw.println("overlapping: " + match2.getTargetIndexes()[0] + "|" + match2.getTargetIndexes()[1]);
+												add = false;
+												//matched = false;
+												break;
+											}
+										}
+									}
+									
+									if (add) {
+										System.out.println("adding match: " + match.getTargetIndexes()[0] + "|" + match.getTargetIndexes()[1]);
+										if (pw != null)
+											pw.println("adding match: " + match.getTargetIndexes()[0] + "|" + match.getTargetIndexes()[1]);
+										matchList.add(match);
+										matchCount++;
+									}
 									
 									if (verbose) {
 										System.out.println("MATCHED!: " + annotType + ", " + ", " + gson.toJson(matchCoords1) + ", " + gson.toJson(matchCoords2) + ", " + grid.getSequence().getDocID() + ":" + targetMatchIndexes[0] + ":" + targetMatchIndexes[1]);
@@ -648,7 +676,7 @@ public class ProfileMatcher
 										for (int k=0; k<targetList.size(); k++) {
 											target = targetList.get(k);
 											System.out.println("MATCHED TARGET PROFILE: " + target.getProfileID() + "|" + target.getProfileStr());
-											System.out.println("MATCHED TARGET: " + targetStr2);
+											System.out.println("MATCHED TARGET: " + targetStr2 + " " + gson.toJson(targetMatchCoords));
 										}
 										
 										if (pw != null) {
@@ -658,21 +686,34 @@ public class ProfileMatcher
 											for (int k=0; k<targetList.size(); k++) {
 												target = targetList.get(k);
 												pw.println("MATCHED TARGET PROFILE: " + target.getProfileID() + "|" + target.getProfileStr());
-												pw.println("MATCHED TARGET: " + targetStr2);
+												pw.println("MATCHED TARGET: " + targetStr2 + " " + gson.toJson(targetMatchCoords));
 											}
 										}
 									}
 								}
 								
 								if (extraction && matched) {
-									int start = targetMatchCoords.get(0)[0];
-									int end = targetMatchCoords.get(targetMatchCoords.size()-1)[0]+1;
+									//int start = targetMatchCoords.get(0)[0];
+									//int end = targetMatchCoords.get(targetMatchCoords.size()-1)[0]+1;
+									
+									List<int[]> targetMatchCoords2 = sw.getMatchCoords2();
+									
+									targetMatchCoords = targetMatchCoords2;
+		
+									int targetStart = targetMatchCoords2.get(0)[0];
+									int[] coords = targetMatchCoords2.get(targetMatchCoords2.size()-1);
+									int targetEnd = targetGrid.get(coords[0]).get(coords[1]).getEndIndex();
+									//int gridEnd = targetGrid.size();
+									
+									
 									//List<AnnotationGridElement> col = grid.get(indexes[0]);
 									List<AnnotationGridElement> col = grid.get(extractStart);
-									AnnotationGridElement elem = new AnnotationGridElement(":" + annotType.toLowerCase(), indexes[0] + start, indexes[0] + end, col.size());
+									AnnotationGridElement elem = new AnnotationGridElement(":" + annotType.toLowerCase(), indexes[0] + targetStart, indexes[0] + targetEnd, col.size());
 									col.add(elem);
 					
 									//System.out.println(indexes[0] + ", " + extractStart);
+									
+									//if (grid.getSequence().getDocID() == 104)
 									//System.out.println(grid.toString());
 									
 									//processGrid(profileGrid, grid, matchCoords1, matchCoords2);

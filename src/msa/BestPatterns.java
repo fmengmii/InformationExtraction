@@ -147,6 +147,11 @@ public class BestPatterns
 		this.finalTableList = finalTableList;
 	}
 	
+	public void setFilterFlag(boolean filterFlag)
+	{
+		this.filterFlag = filterFlag;
+	}
+	
 	public void getBestPatterns(String msaUser, String msaPassword, String annotUser, String annotPassword)
 	{
 		try {			
@@ -194,7 +199,7 @@ public class BestPatterns
 				docIDList = new ArrayList<Long>();
 				//ResultSet rs = stmt.executeQuery("select distinct document_id from " + rq + indexTable + rq + " order by document_id");
 				if (docQuery == null) {
-					docQuery = "select document_id from " + schema + "document_status" + " where status = 1 order by document_id";
+					docQuery = "select document_id from " + schema + "document_status" + " where status = 2 order by document_id";
 				}
 				
 				ResultSet rs = stmt.executeQuery(docQuery);
@@ -204,7 +209,9 @@ public class BestPatterns
 				
 				
 				System.out.println("reading answers...");
-				Map<String, Boolean> ansMap = readAnswers(annotType, provenance);
+				Map<String, Boolean> ansMap = new HashMap<String, Boolean>();
+				for (long docID : docIDList)
+					readAnswers(docID, annotType, provenance, ansMap);
 				
 				System.out.println("ansMap size: " + ansMap.size());
 				
@@ -361,10 +368,7 @@ public class BestPatterns
 							
 							
 						}
-						else {
-							if (profileID == 26 && targetID == 64)
-								System.out.println(profileID + "|" + targetID + "|" + docID + "|" + start + "|" + end + "|" + targetStr + "|" + ansFlag);
-							
+						else {							
 							boolean inc = true;
 							ansFlag = false;
 							Integer docCount = docCountMap.get(docKey + "|" + ansFlag);
@@ -472,45 +476,45 @@ public class BestPatterns
 				stmt.close();
 				pstmt.close();
 				pstmtUpdateProfile.close();
-			}
 			
 		
-			if (filterFlag) {
-				System.out.println("filter overlap...");
-				filterOverlapping(annotType);
-				
-				/*
-				int count = 0;
-				PreparedStatement pstmt = conn.prepareStatement("update " + schema + finalTable + " set prec = -1.0, true_pos = 0, false_pos = 0, total = 0 where profile_id = ? and target_id = ?");
-				for (String key : posMap.keySet()) {
-					Boolean flag = profileFilterMap.get(key);
-					if (flag == null) {
-						String[] parts = key.split("\\|");
-						int profileID = Integer.parseInt(parts[0]);
-						int targetID = Integer.parseInt(parts[1]);
-						
-						System.out.println("filtered: " + profileID + "|" + targetID);
-						
-						pstmt.setInt(1, profileID);
-						pstmt.setInt(2, targetID);
-						pstmt.addBatch();
-						//conn.commit();
-						
-						count++;
-						if (count % 1000 == 0) {
-							pstmt.executeBatch();
-							conn.commit();
+				if (filterFlag) {
+					System.out.println("filter overlap...");
+					filterOverlapping(annotType);
+					
+					/*
+					int count = 0;
+					PreparedStatement pstmt = conn.prepareStatement("update " + schema + finalTable + " set prec = -1.0, true_pos = 0, false_pos = 0, total = 0 where profile_id = ? and target_id = ?");
+					for (String key : posMap.keySet()) {
+						Boolean flag = profileFilterMap.get(key);
+						if (flag == null) {
+							String[] parts = key.split("\\|");
+							int profileID = Integer.parseInt(parts[0]);
+							int targetID = Integer.parseInt(parts[1]);
+							
+							System.out.println("filtered: " + profileID + "|" + targetID);
+							
+							pstmt.setInt(1, profileID);
+							pstmt.setInt(2, targetID);
+							pstmt.addBatch();
+							//conn.commit();
+							
+							count++;
+							if (count % 1000 == 0) {
+								pstmt.executeBatch();
+								conn.commit();
+							}
 						}
 					}
+					
+					pstmt.executeBatch();
+					conn.commit();
+					*/
 				}
-				
-				pstmt.executeBatch();
-				conn.commit();
-				*/
-			}
 
 			
 			//cleanIndexTable();
+			}
 			
 			
 			conn.close();
@@ -826,11 +830,8 @@ public class BestPatterns
 	
 
 	
-	private Map<String, Boolean> readAnswers(String annotType, String provenance) throws SQLException
+	private Map<String, Boolean> readAnswers(long docID, String annotType, String provenance, Map<String, Boolean> ansMap) throws SQLException
 	{
-		Map<String, Boolean> ansMap = new HashMap<String, Boolean>();
-		
-		
 		
 		/*
 		PreparedStatement pstmt = annotConn.prepareStatement("select a.start, a.end from annotation a, annotation b where a.document_id = ? and a.annotation_type = 'Token' and "
@@ -872,11 +873,10 @@ public class BestPatterns
 			*/
 		
 		
-		ResultSet rs = stmt.executeQuery("select distinct document_id, start, " + rq + "end" + rq + " from " + schema + "annotation where annotation_type = '" + annotType + 
+		ResultSet rs = stmt.executeQuery("select distinct document_id, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = " + docID + " and annotation_type = '" + annotType + 
 			"' and provenance = '" + provenance + "' order by document_id, start");
 		
 		while (rs.next()) {
-			long docID = rs.getLong(1);
 			int start = rs.getInt(2);
 			int end = rs.getInt(3);
 			ansMap.put(docID + "|" + start + "|" + end, true);

@@ -168,6 +168,7 @@ public class MySQLDBInterface implements MSADBInterface
 	
 	public List<Annotation> getSentAnnots(String docNamespace, String docTable, long docID, int start, int end, boolean punct) throws MSADBException
 	{
+		//System.out.println("start getSentAnnots");
 		List<Annotation> annotList = new ArrayList<Annotation>();
 		
 		try {
@@ -177,7 +178,9 @@ public class MySQLDBInterface implements MSADBInterface
 			pstmtSentAnnots.setInt(4, start);
 			pstmtSentAnnots.setInt(5, end);
 	
+			//System.out.println("start query: " + pstmtSentAnnots.toString());
 			ResultSet rs = pstmtSentAnnots.executeQuery();
+			//System.out.println("end query");
 			
 			while (rs.next()) {
 				int id = rs.getInt("id");
@@ -200,6 +203,8 @@ public class MySQLDBInterface implements MSADBInterface
 				Annotation annot = new Annotation(id, annotType, annotStart, annotEnd, value, featureMap, provenance);
 				annotList.add(annot);
 			}
+			
+			//System.out.println("end getSentAnnots");
 		}
 		catch(SQLException e)
 		{

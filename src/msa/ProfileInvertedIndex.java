@@ -185,7 +185,7 @@ public class ProfileInvertedIndex
 			//System.out.println("count: " + count + " count2: " + count2);
 			
 			//found a matching profile grid
-			if (count >= (count2 - maxGaps)) {
+			if (count >= (count2 - maxGaps) - 2) {
 				//System.out.println("Inverted Index: " + SequenceUtilities.getStrFromToks(profileGrid.getGrid().getSequence().getToks()));
 				profileGridList.add(profileGrid);
 				

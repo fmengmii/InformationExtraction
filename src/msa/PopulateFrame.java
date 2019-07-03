@@ -9,9 +9,15 @@ public class PopulateFrame
 {
 	private Connection conn;
 	private PreparedStatement pstmtInsert;
+	private PreparedStatement pstmtDelete;
+	private PreparedStatement pstmtCountDelete;
 	private PreparedStatement pstmtCheckElemRepeat;
 	private PreparedStatement pstmtInsertElemRepeat;
 	private PreparedStatement pstmtUpdateElemRepeat;
+	private PreparedStatement pstmtDeleteElemRepeat;
+	private PreparedStatement pstmtCheckFrameInstanceLocked;
+	private PreparedStatement pstmtLockFrameInstance;
+	private PreparedStatement pstmtDeleteFrameInstanceLock;
 	private String schema;
 	private String rq;
 	private String provenance;
@@ -30,11 +36,17 @@ public class PopulateFrame
 			this.conn = conn;
 			pstmtInsert = conn.prepareStatement("insert into " + this.schema + "frame_instance_data (frame_instance_id, slot_id, value, section_slot_number, element_slot_number, document_namespace, "
 				+ "document_table, document_id, annotation_id, provenance, element_id, v_scroll_pos, scroll_height, scroll_width) values (?,?,?,?,?,?,?,?,?,'" + provenance + "',?,null,null,null)");
+			pstmtDelete = conn.prepareStatement("delete from " + this.schema + "frame_instance_data where frame_instance_id = ? and provenance = '" + provenance + "'");
+			//pstmtCountDelete = conn.prepareStatement("select element_id, count(*) from " + this.schema + "frame_instance_data where frame_instance_id = ? and provenance = ? group by element_id");
 			
-			pstmtCheckElemRepeat = conn.prepareStatement("select count(*) from " + this.schema + "frame_instance_element_repeat where frame_instance_id = ? and element_id = ? and section_slot_num = ?");
+			pstmtCheckElemRepeat = conn.prepareStatement("select repeat_num from " + this.schema + "frame_instance_element_repeat where frame_instance_id = ? and element_id = ? and section_slot_num = ?");
 			pstmtInsertElemRepeat = conn.prepareStatement("insert into " + this.schema + "frame_instance_element_repeat (frame_instance_id, element_id, section_slot_num, repeat_num) values (?,?,?,?)");
 			pstmtUpdateElemRepeat = conn.prepareStatement("update " + this.schema + "frame_instance_element_repeat set repeat_num = ? where frame_instance_id = ? and "
 				+ "element_id = ?");
+			pstmtDeleteElemRepeat = conn.prepareStatement("delete from " + this.schema + "frame_instance_element_repeat where frame_instance_id = ?");
+			pstmtCheckFrameInstanceLocked = conn.prepareStatement("select count(*) from " + this.schema + "frame_instance_lock where frame_instance_id = ?");
+			pstmtLockFrameInstance = conn.prepareStatement("insert into " + this.schema + "frame_instance_lock values (?,'##auto',CURRENT_TIMESTAMP)");
+			pstmtDeleteFrameInstanceLock = conn.prepareStatement("delete from " + this.schema + "frame_instance_lock where frame_instance_id = ?");
 		}
 		catch(Exception e)
 		{
@@ -48,6 +60,9 @@ public class PopulateFrame
 			
 			Statement stmt = conn.createStatement();
 			
+			
+			
+			/*
 			String queryStr = "delete from " + schema + "frame_instance_data where (document_id, annotation_id) in (select distinct a.document_id, a.id from " + schema + "annotation a," + schema + "document_status b where a.provenance = '" + provenance + "'"
 				+ " and b.status = 0 and a.document_id = b.document_id)";
 			if (DBConnection.dbType.startsWith("sqlserver")) {
@@ -57,9 +72,9 @@ public class PopulateFrame
 			}
 			
 			stmt.execute(queryStr);
+			*/
 			
-			queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type from " + schema + "annotation where provenance = '" + provenance + "' and (document_namespace, document_table, document_id, id) not in "
-					+ "(select distinct a.document_namespace, a.document_table, a.document_id, a.annotation_id from frame_instance_data a)";
+			String queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type from " + schema + "annotation where provenance = '" + provenance + "'";
 			
 			//queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type from " + schema + "annotation where provenance = '" + provenance + "' order by document_id, start";
 			
@@ -70,9 +85,26 @@ public class PopulateFrame
 					+ "a.id = b.annotation_id)";
 			}
 			
-			ResultSet rs = stmt.executeQuery(queryStr);
+			
+			ResultSet rs = stmt.executeQuery("select frame_instance_id from " + schema + "frame_instance_status where status = 0");
+			while (rs.next()) {
+				int frameInstanceID = rs.getInt(1);
+				pstmtDelete.setInt(1, frameInstanceID);
+				pstmtDelete.execute();
+				
+				System.out.println(pstmtDelete.toString());
+				
+				pstmtDeleteElemRepeat.setInt(1, frameInstanceID);
+				pstmtDeleteElemRepeat.execute();
+			}
+			
+			
 			Map<String, Integer> map = new HashMap<String, Integer>();
-			Map<Integer, Integer> sectionSlotMap = new HashMap<Integer, Integer>();
+			Map<Integer, Integer> sectionSlotMap = new HashMap<Integer, Integer>();			
+						
+			rs = stmt.executeQuery(queryStr);
+			
+			int currFrameInstanceID = -1;
 			
 			while (rs.next()) {
 				int annotID = rs.getInt(1);
@@ -83,6 +115,31 @@ public class PopulateFrame
 				String annotType = rs.getString(6);
 				
 				int frameInstanceID = getFrameInstanceID(docID);
+				
+				if (frameInstanceID != currFrameInstanceID) {
+					currFrameInstanceID = frameInstanceID;
+				
+					//lock frame instance in one transaction
+					conn.setAutoCommit(false);
+					pstmtCheckFrameInstanceLocked.setInt(1, frameInstanceID);
+					
+					int count = 0;
+					ResultSet rs2 = pstmtCheckFrameInstanceLocked.executeQuery();
+					if (rs2.next()) {
+						count = rs2.getInt(1);
+					}
+					
+					//skip over because locked
+					if (count > 0)
+						continue;
+					
+					pstmtLockFrameInstance.setInt(1, frameInstanceID);
+					pstmtLockFrameInstance.execute();
+					
+					conn.commit();
+					conn.setAutoCommit(true);
+				}				
+				
 				int[] ans = getElementSlotID(annotType);
 				String key = frameInstanceID + "|" + ans[0] + "|" + ans[1];
 				
@@ -116,28 +173,31 @@ public class PopulateFrame
 				pstmtInsert.setInt(10, ans[0]);
 				pstmtInsert.execute();
 				
+				
+				//release lock
+				pstmtDeleteFrameInstanceLock.setInt(1, frameInstanceID);
+				pstmtDeleteFrameInstanceLock.execute();
 			}
 			
 			for (String key : map.keySet()) {
 				int repeatNum = map.get(key) + 1;
 				
-				System.out.println(key + ": " + repeatNum);
-				
+								
 				String[] parts = key.split("\\|");
 				long frameInstanceID = Long.parseLong(parts[0]);
-				int elemID = Integer.parseInt(parts[1]);
+				int elemID = Integer.parseInt(parts[2]);
 				
-				int count = 0;
+				int repeat = 0;
 				pstmtCheckElemRepeat.setLong(1, frameInstanceID);
 				pstmtCheckElemRepeat.setInt(2, elemID);
 				pstmtCheckElemRepeat.setInt(3, 0);
 				ResultSet rs2 = pstmtCheckElemRepeat.executeQuery();
 				if (rs2.next()) {
-					count = rs2.getInt(1);
+					repeat = rs2.getInt(1);
 				}
 				
-				if (count > 0) {
-					pstmtUpdateElemRepeat.setInt(1, repeatNum);
+				if (repeat > 0) {
+					pstmtUpdateElemRepeat.setInt(1, repeatNum + repeat);
 					pstmtUpdateElemRepeat.setLong(2, frameInstanceID);
 					pstmtUpdateElemRepeat.setInt(3, elemID);
 					pstmtUpdateElemRepeat.execute();
@@ -149,7 +209,10 @@ public class PopulateFrame
 					pstmtInsertElemRepeat.setInt(4, repeatNum);
 					pstmtInsertElemRepeat.execute();
 				}
+				
+				System.out.println(key + ": " + repeatNum + repeat);
 			}
+			
 			
 			
 			stmt.close();

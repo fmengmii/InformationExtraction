@@ -175,6 +175,21 @@ public class FilterPatterns
 		return docIDMap;
 	}
 	
+	public void setDocDBQuery(String docDBQuery)
+	{
+		this.docDBQuery = docDBQuery;
+	}
+	
+	public void setGroup(String group)
+	{
+		this.group = group;
+	}
+	
+	public void setTargetGroup(String targetGroup)
+	{
+		this.targetGroup = targetGroup;
+	}
+	
 	public void init(Properties props)
 	{
 		try {			
@@ -257,11 +272,13 @@ public class FilterPatterns
 			posFilterMinCount = Integer.parseInt(props.getProperty("posFilterMinCount"));
 			
 			
+			
 			targetMap = new HashMap<String, Object>();
 			targetMap.put("annotType", targetType);
 			targetMap.put("target", true);
 			targetMap.put("provenance", targetProvenance);
 			//targetMap.put("targetStr", ":" + targetType.toLowerCase());
+			//msaAnnotFilterList.remove(msaAnnotFilterList.size()-1);
 			msaAnnotFilterList.add(targetMap);
 			
 			if (targetType2 != null) {
@@ -273,6 +290,8 @@ public class FilterPatterns
 				msaAnnotFilterList.add(targetMap);
 				profileType = 2;
 			}
+			
+			
 			
 			blockSize = Integer.parseInt(props.getProperty("blockSize"));
 			docBlockSize = Integer.parseInt(props.getProperty("docBlockSize"));
@@ -367,6 +386,7 @@ public class FilterPatterns
 			for (int index=0; index<annotTypeList.size(); index++) {
 				
 				
+				
 				targetType = annotTypeList.get(index);
 				profileTable = profileTableList.get(index);
 				indexTable = indexTableList.get(index);
@@ -374,6 +394,32 @@ public class FilterPatterns
 			
 				if (targetType.length() == 0 || profileTable.length() == 0 || indexTable.length() == 0)
 					continue;
+				
+				
+				
+				targetMap = new HashMap<String, Object>();
+				targetMap.put("annotType", targetType);
+				targetMap.put("target", true);
+				targetMap.put("provenance", targetProvenance);
+				//targetMap.put("targetStr", ":" + targetType.toLowerCase());
+				msaAnnotFilterList.remove(msaAnnotFilterList.size()-1);
+				msaAnnotFilterList.add(targetMap);
+				
+				if (targetType2 != null) {
+					targetMap2 = new HashMap<String, Object>();
+					targetMap2.put("annotType", targetType2);
+					targetMap2.put("target", true);
+					targetMap2.put("provenance", targetProvenance);
+					targetMap2.put("targetStr", ":target2");
+					msaAnnotFilterList.add(targetMap);
+					profileType = 2;
+				}
+				
+				
+				
+				List<String> annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType, scoreList);
+				annotTypeNameList.add(annotTypeNameList.size()-1, ":" + targetType.toLowerCase());
+				scoreList.add(10.0);
 				
 				
 				/*
@@ -388,8 +434,8 @@ public class FilterPatterns
 				*/
 				
 			
-				targetMap.put("targetStr", ":" + targetType.toLowerCase());		
-				annotTypeNameList.add(":" + targetType.toLowerCase());
+				//targetMap.put("targetStr", ":" + targetType.toLowerCase());		
+				//annotTypeNameList.add(":" + targetType.toLowerCase());
 				
 				stats.setAnnotTypeNameList(annotTypeNameList);
 				stats.setScoreList(scoreList);
@@ -657,8 +703,6 @@ public class FilterPatterns
 					
 				}
 				
-				annotTypeNameList.remove(annotTypeNameList.size()-1);
-
 				docRS.close();
 			}
 			

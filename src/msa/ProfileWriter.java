@@ -27,9 +27,9 @@ public class ProfileWriter
 	{
 		conn = DBConnection.dbConnection(user, password, host, keyspace, dbType);
 		String rq = DBConnection.reservedQuote;
-		pstmtInsert = conn.prepareStatement("insert into " + msaTable + " (profile, annotation_type, " + rq + "group" + rq + ", profile_type, score, true_pos, false_pos, rows) "
+		pstmtInsert = conn.prepareStatement("insert into " + msaTable + " (profile, annotation_type, " + rq + "group" + rq + ", profile_type, score, true_pos, false_pos, " + rq + "rows" + rq + ") "
 			+ "values (?,?,?,?,?,?,?,?)");
-		pstmtUpdate = conn.prepareStatement("update " + msaTable + " set score=?,true_pos=?,false_pos=?,rows=? where profile=? and annotation_type=? "
+		pstmtUpdate = conn.prepareStatement("update " + msaTable + " set score=?,true_pos=?,false_pos=?," + rq + "rows" + rq + "=? where profile=? and annotation_type=? "
 			+ "and " + rq + "group" + rq + "=? and profile_type=?");
 		pstmtExists = conn.prepareStatement("select count(*) from " + msaTable + " where profile = ? and annotation_type = ? "
 				+ "and profile_type = ?");		
@@ -60,7 +60,7 @@ public class ProfileWriter
 			
 			//insert
 			if (count == 0 || duplicates) {
-				pstmtInsert.setString(1, profile.getProfileStr());
+				pstmtInsert.setString(1, toSQL(profile.getProfileStr()));
 				pstmtInsert.setString(2, profile.getAnnotType());
 				pstmtInsert.setString(3, profile.getGroup());
 				pstmtInsert.setInt(4, profile.getType());
@@ -68,6 +68,9 @@ public class ProfileWriter
 				pstmtInsert.setInt(6, profile.getTruePos());
 				pstmtInsert.setInt(7, profile.getFalsePos());
 				pstmtInsert.setInt(8, profile.getRows());
+				
+				//System.out.println("query: " + pstmtInsert.toString());
+				
 				pstmtInsert.execute();
 			}
 			//update
@@ -76,7 +79,7 @@ public class ProfileWriter
 				pstmtUpdate.setInt(2, profile.getTruePos());
 				pstmtUpdate.setInt(3, profile.getFalsePos());
 				pstmtUpdate.setInt(4, profile.getRows());
-				pstmtUpdate.setString(5, profile.getProfileStr());
+				pstmtUpdate.setString(5, toSQL(profile.getProfileStr()));
 				pstmtUpdate.setString(6, profile.getAnnotType());
 				pstmtUpdate.setString(7, profile.getGroup());
 				pstmtUpdate.setInt(8, profile.getType());
@@ -86,5 +89,18 @@ public class ProfileWriter
 				i--;
 			}
 		}
+	}
+	
+	private String toSQL(String str)
+	{
+		StringBuilder strBlder = new StringBuilder();
+		for (int i=0; i<str.length(); i++) {
+			if (str.charAt(i) == '\'')
+				strBlder.append("''");
+			else
+				strBlder.append(str.charAt(i));
+		}
+		
+		return strBlder.toString();
 	}
 }
