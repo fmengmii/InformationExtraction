@@ -32,6 +32,7 @@ public class BestPatterns
 	private int posMinCount;
 	private boolean cleanTables = false;
 	private String docQuery;
+	private String group;
 	
 	private List<String> groupList;
 	private List<String> targetGroupList;
@@ -102,6 +103,8 @@ public class BestPatterns
 			filterFlag = Boolean.parseBoolean(filterFlagStr);
 		
 		docQuery = props.getProperty("docQuery");
+		group = props.getProperty("group");
+		
 		
 		//minCount = Integer.parseInt(props.getProperty("minCount"));
 		
@@ -161,6 +164,10 @@ public class BestPatterns
 			annotConn = DBConnection.dbConnection(annotUser, annotPassword, host, dbName, dbType);
 			rq = DBConnection.reservedQuote;
 			
+			String rq2 = rq;
+			if (DBConnection.dbType.startsWith("sqlserver"))
+				rq2 = "";
+			
 			
 			if (annotType != null) {
 				annotTypeList = new ArrayList<String>();
@@ -188,8 +195,15 @@ public class BestPatterns
 				PreparedStatement pstmt = conn.prepareStatement("insert into " + schema + finalTable + " (profile_id, target_id, total, prec, true_pos, false_pos) values (?,?,?,?,?,?)");
 				PreparedStatement pstmtUpdateProfile = conn.prepareStatement("update " + schema + profileTable + " set score = ? where profile_id = ?");
 				PreparedStatement pstmtUpdateProfileCounts = conn.prepareStatement("update " + schema + profileTable + " set true_pos = ?, false_pos = ? where profile_id = ?");
-				PreparedStatement pstmtGetIndexCounts = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", count(*) from " + schema + rq + indexTable + rq + " a, " + schema + profileTable + " b "
-						+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.document_id = ? group by a.profile_id, a.target_id, a.start, a." + rq + "end" + rq);
+				PreparedStatement pstmtGetIndexCounts = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", count(*) "
+					+ "from " + schema + rq2 + indexTable + rq2 + " a, " + schema + profileTable + " b "
+					+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.document_id = ? "
+					+ "group by a.profile_id, a.target_id, a.start, a." + rq + "end" + rq);
+				
+				PreparedStatement pstmtGetIndexCounts2 = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", count(*) "
+						+ "from " + schema + rq2 + indexTable + rq2 + " a, " + schema + profileTable + " b "
+						+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.document_id = ? and b." + rq + "group" + rq + " = '" + group + "' "
+						+ "group by a.profile_id, a.target_id, a.start, a." + rq + "end" + rq);
 				
 				Statement stmt = conn.createStatement();
 				
@@ -199,12 +213,14 @@ public class BestPatterns
 				docIDList = new ArrayList<Long>();
 				//ResultSet rs = stmt.executeQuery("select distinct document_id from " + rq + indexTable + rq + " order by document_id");
 				if (docQuery == null) {
-					docQuery = "select document_id from " + schema + "document_status" + " where status = 2 order by document_id";
+					docQuery = "select document_id, status from " + schema + "document_status" + " where status = 1 or status = 2 order by document_id";
 				}
 				
+				List<Integer> statusList = new ArrayList<Integer>();
 				ResultSet rs = stmt.executeQuery(docQuery);
 				while (rs.next()) {
 					docIDList.add(rs.getLong(1));
+					statusList.add(rs.getInt(2));
 				}
 				
 				
@@ -294,10 +310,18 @@ public class BestPatterns
 				//rs = stmt.executeQuery("select distinct a.profile_id, a.target_id, a.document_id, a.start, a." + rq + "end" + rq + " from " + schema + rq + indexTable + rq + " a, " + schema + profileTable + " b "
 				//	+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id");
 				
-				for (long docID : docIDList) {
+				for (int i=0; i<docIDList.size(); i++) {
+					long docID = docIDList.get(i);
+					int status = statusList.get(i);
 					
-					pstmtGetIndexCounts.setLong(1, docID);
-					rs = pstmtGetIndexCounts.executeQuery();
+					if (status == 1) {
+						pstmtGetIndexCounts.setLong(1, docID);
+						rs = pstmtGetIndexCounts.executeQuery();
+					}
+					else {
+						pstmtGetIndexCounts2.setLong(1, docID);
+						rs = pstmtGetIndexCounts2.executeQuery();
+					}
 					
 					while (rs.next()) {
 						/*
@@ -683,7 +707,11 @@ public class BestPatterns
 		Map<String, String> profileUseMap = new HashMap<String, String>();
 		Map<String, Double> profileUseScoreMap = new HashMap<String, Double>();
 		profileFilterMap = new HashMap<String, Boolean>();
-		rs = stmt.executeQuery("select b.document_id, b.start, a.profile_id, a.target_id from " + schema + finalTable + " a, " + schema + rq + indexTable + rq + " b "
+		String rq2 = rq;
+		if (DBConnection.dbType.startsWith("sqlserver"))
+			rq2 = "";
+		
+		rs = stmt.executeQuery("select b.document_id, b.start, a.profile_id, a.target_id from " + schema + finalTable + " a, " + schema + rq2 + indexTable + rq2 + " b "
 			+ "where a.profile_id = b.profile_id and a.target_id = b.target_id and a.prec >= " + posThreshold + " and total >= " + posMinCount +
 			" order by b.profile_id, b.target_id");
 		while (rs.next()) {

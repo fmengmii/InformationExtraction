@@ -566,7 +566,7 @@ public class GenMSADriver
 				//write profiles
 				if (write) {
 					ProfileWriter writer = new ProfileWriter();
-					writer.setMsaTable(profileTable);
+					writer.setMsaTable(schema + "." + profileTable);
 					writer.init(user, password, host, dbType, dbName);
 				
 					System.out.println("writing... ");

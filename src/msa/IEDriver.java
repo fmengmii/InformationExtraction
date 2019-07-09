@@ -596,6 +596,7 @@ public class IEDriver
 			bestProps.setProperty("negMinCount", Integer.toString(negMinCount));
 			bestProps.setProperty("posThreshold", Double.toString(posThreshold));
 			bestProps.setProperty("posMinCount", Integer.toString(posMinCount));
+			bestProps.setProperty("group", group);
 			
 			bestPatt.init(bestProps);
 			
@@ -677,6 +678,7 @@ public class IEDriver
 			
 
 			stmt = conn.createStatement();
+			String rq = DBConnection.reservedQuote;
 						
 			boolean flag = true;
 			
@@ -742,12 +744,39 @@ public class IEDriver
 			
 			
 			//clean up any previous incomplete runs
-			pstmtDeleteIncompleteFromIndex.execute();
-			pstmtUpdateProfileGroup.setString(1, group + "##");
-			pstmtUpdateProfileGroup.setString(2, group);
-			pstmtUpdateProfileGroup.execute();
+			System.out.println("clean up previous runs...");
+			stmt.execute("delete from " + schema2 + rq + "index" + rq + 
+			" where document_id in (select distinct a.document_id from " + schema2 + "document_status a where a.status = 1)");
+			
+			stmt.execute("delete from " + schema2 + rq + "index" + rq + " where profile_id in (select a.profile_id from " + schema2 + "profile a where a." + rq + "group" + rq + " = '" + group + "')");
+			
+			stmt.execute("delete from " + schema2 + "annotation where provenance = '" + gateProvenance + "' and not exists (select a.document_id from " + schema2 + "document_status a where a.document_id = document_id)");
+			
+			int docStatusOneCount = 0;
+			rs = stmt.executeQuery("select count(*) from " + schema2 + "document_status where status = 1");
+			if (rs.next())
+				docStatusOneCount = rs.getInt(1);
+			
+			int profileNewCount = 0;
+			rs = stmt.executeQuery("select count(*) from " + schema2 + "profile where " + rq + "group" + rq + " = '" + group + "'");
+			if (rs.next())
+				profileNewCount = rs.getInt(1);
+			
+			//clear final table if there were documents with status 1 or there were new profiles that didn't finish processing
+			if (docStatusOneCount > 0 || profileNewCount > 0) {
+				System.out.println("delete from final table...");
+				stmt.execute("delete from " + schema2 + "final");
+			}
+			
+			
+			//pstmtUpdateProfileGroup.setString(1, group + "##");
+			//pstmtUpdateProfileGroup.setString(2, group);
+			//pstmtUpdateProfileGroup.execute();
 
-			updateDocsWithStatus(2, 1);
+			//updateDocsWithStatus(2, 1);
+			
+			
+			
 			
 			
 			int count = 0;
@@ -932,14 +961,32 @@ public class IEDriver
 				}
 				
 				
+				//best patterns
+				if (bestFlag && filterPatt.getDocIDMap().size() > 0) {
+					System.out.println("** BEST **");
+					
+					pstmtDeleteFinalTable.execute();
+					
+					bestPatt.setAnnotTypeList(activeAnnotTypeList);
+					bestPatt.setProfileTableList(profileTableList);
+					bestPatt.setIndexTableList(indexTableList);
+					bestPatt.setFinalTableList(finalTableList);					
+					bestPatt.getBestPatterns(user, password, user, password);
+				}
+				
+				
 				//set document status
 				if (docList.size() > 0) {
+					conn.setAutoCommit(false);
+					
 					List<DocBean> docListSmall = docList.subList(0, lastDocIndex);
 					int newStatus = 2;
 					if (docListSmall.size() >= blockSize)
 						newStatus = 3;
 					
 					updateDocsWithStatusDocID(1, newStatus, docListSmall);
+					if (newStatus == 3)
+						updateDocsWithStatusDocID(2, 3, docListSmall);
 					
 					//docListSmall = docList.subList(lastDocIndex, docList.size());
 					//updateDocsWithStatusDocID(1, 3, docListSmall);
@@ -958,22 +1005,13 @@ public class IEDriver
 					pstmtUpdateProfileGroup.setString(1, group + "##");
 					pstmtUpdateProfileGroup.setString(2, group);
 					pstmtUpdateProfileGroup.execute();
+					
+					conn.commit();
+					conn.setAutoCommit(true);
 				}
 				
 
 				
-				//best patterns
-				if (bestFlag && filterPatt.getDocIDMap().size() > 0) {
-					System.out.println("** BEST **");
-					
-					//pstmtDeleteFinalTable.execute();
-					
-					bestPatt.setAnnotTypeList(activeAnnotTypeList);
-					bestPatt.setProfileTableList(profileTableList);
-					bestPatt.setIndexTableList(indexTableList);
-					bestPatt.setFinalTableList(finalTableList);					
-					bestPatt.getBestPatterns(user, password, user, password);
-				}
 				
 				//auto annotate
 				if (autoFlag) {

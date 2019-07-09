@@ -21,8 +21,11 @@ public class MatchWriter
 	{
 		conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
 		String rq = DBConnection.reservedQuote;
+		String rq2 = rq;
+		if (DBConnection.dbType.startsWith("sqlserver"))
+			rq2 = "";
 		conn.setAutoCommit(false);
-		pstmtTarget = conn.prepareStatement("insert into " + rq + tableName + rq + " (profile_id, document_id, start, " + rq + "end" + rq + ", target_id) values (?,?,?,?,?)");
+		pstmtTarget = conn.prepareStatement("insert into " + rq2 + tableName + rq2 + " (profile_id, document_id, start, " + rq + "end" + rq + ", target_id) values (?,?,?,?,?)");
 	}
 	
 	public void write(List<ProfileMatch> matchList) throws SQLException

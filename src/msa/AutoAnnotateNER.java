@@ -469,6 +469,8 @@ public class AutoAnnotateNER
 				profileTable = profileTableList.get(index);
 				finalTable = finalTableList.get(index);
 				
+				System.out.println("targetType: " + targetType);
+				
 				if (targetType.length() == 0 || profileTable.length() == 0 || finalTable.length() == 0)
 					continue;
 				
@@ -605,7 +607,7 @@ public class AutoAnnotateNER
 				profileIDMap = new HashMap<Long, ProfileGrid>();
 				targetIDMap = new HashMap<Long, AnnotationSequenceGrid>();
 				
-				Map<MSAProfile, List<MSAProfile>> profileMap = reader.readFinal(targetType, profileMinTotal, profileMinPrec, finalTable, profileTable);
+				Map<MSAProfile, List<MSAProfile>> profileMap = reader.readFinal(targetType, profileMinTotal, profileMinPrec, schema + finalTable, schema + profileTable);
 				
 				for (MSAProfile profile : profileMap.keySet()) {
 					AnnotationSequenceGrid profileSeqGrid = genGrid.toAnnotSeqGrid(profile.getToks(), false);
