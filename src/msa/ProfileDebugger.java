@@ -2,6 +2,7 @@ package msa;
 
 import java.sql.*;
 import java.util.*;
+import java.io.*;
 
 import utils.db.DBConnection;
 
@@ -9,14 +10,40 @@ import utils.db.DBConnection;
 public class ProfileDebugger
 {
 	private Connection conn;
+	private String profileStr;
+	private String targetStr;
+	private long profileID;
+	private String value;
+	private String profileTable;
+	private String indexTable;
+	private String provenance;
 	
 	public ProfileDebugger()
 	{
 	}
 	
-	public void init(String user, String password, String host, String dbName, String dbType)
+	public void init(String user, String password, String config)
 	{
 		try {
+			Properties props = new Properties();
+			props.load(new FileReader(config));
+			
+			String host = props.getProperty("host");
+			String dbName = props.getProperty("dbName");
+			String dbType = props.getProperty("dbType");
+			
+			profileStr = props.getProperty("profileStr");
+			targetStr = props.getProperty("targetStr");
+			profileID = -1;
+			String profileIDStr = props.getProperty("profileID");
+			if (profileIDStr != null)
+				profileID = Long.parseLong(profileIDStr);
+			
+			value = props.getProperty("value");
+			profileTable = props.getProperty("profileTable");
+			indexTable = props.getProperty("indexTable");
+			provenance = props.getProperty("provenance");
+			
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);	
 		}
 		catch(Exception e)
@@ -25,7 +52,7 @@ public class ProfileDebugger
 		}
 	}
 	
-	public void debug(String profileStr, String targetStr, long profileID, String value, String profileTable, String indexTable, String provenance)
+	public void debug()
 	{
 		try {
 			//conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
@@ -154,8 +181,14 @@ public class ProfileDebugger
 	
 	public static void main(String[] args)
 	{
+		if (args.length != 3) {
+			System.out.println("usage: user password config");
+			System.exit(0);
+		}
+		
+		
 		ProfileDebugger debug = new ProfileDebugger();
-		debug.init("fmeng", "fmeng", "localhost", "msa", "mysql");
+		debug.init(args[0], args[1], args[2]);
 		//debug.debug("[\":target\",\":i-per\",\":i-per\"]");
 		//debug.debug("[\":token|string|the!:token|root|the!:token|orth|lowercase!:token|category|dt!:syntaxtreenode|cat|dt\",\":target\"]");
 		
@@ -166,7 +199,7 @@ public class ProfileDebugger
 		//debug.debug("[\":token|string|m!:token|root|m!:token|orth|upperinitial!:token|category|nnp!:syntaxtreenode|cat|nnp\",\":token|string|.!:token|root|.!:token|category|.!:syntaxtreenode|cat|.\",\":target\"]");
 		//debug.debug("[\":target\",\":i-per\",\":i-per\"]", "", -1, "general");
 		//debug.debug("", "", 15, null, "msa_profile_not_per", "msa_profile_match_index_not_per", "conll2003-not-per-token");
-		debug.debug("", "", 14, null, "profile", "`index`", "conll2003-inc-token");
+		debug.debug();
 
 		//debug.debug("[\":target\",\":token|string|0!:token|root|0!:token|category|cd!:number|value|0.0!:number|number!:syntaxtreenode|cat|cd\",\":end|end\"]");
 		//debug.debug("[\":syntaxtreenode|cat|np\",\":token|orth|lowercase!:syntaxtreenode|cat|vbd\",\":target\",\":i-per\"]", "fmeng", "fmeng", "10.9.94.203", "msa", "mysql");
