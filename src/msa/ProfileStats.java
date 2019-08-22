@@ -189,7 +189,7 @@ public class ProfileStats
 			pstmt6 = msaConn.prepareStatement("update " + schema + finalTable + " set true_pos = 0, false_pos = 0, total = 0 where profile_id = ? and target_id = ?");
 			
 			matchWriter = new MatchWriter();
-			matchWriter.init(msaUser, msaPassword, host, msaKeyspace, dbType, schema + indexTable);
+			matchWriter.init(msaUser, msaPassword, host, msaKeyspace, dbType, indexTable, schema);
 			
 			profileMatcher.setAligner(sw);
 			profileMatcher.setProfileMatch(true);

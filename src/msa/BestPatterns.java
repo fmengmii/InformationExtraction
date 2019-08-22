@@ -15,6 +15,7 @@ public class BestPatterns
 	private Connection annotConn;
 	private PreparedStatement pstmt;
 	private List<Long> docIDList;
+	private Map<String, Boolean> ansMap;
 	
 	private String host;
 	private String dbName;
@@ -225,7 +226,7 @@ public class BestPatterns
 				
 				
 				System.out.println("reading answers...");
-				Map<String, Boolean> ansMap = new HashMap<String, Boolean>();
+				ansMap = new HashMap<String, Boolean>();
 				for (long docID : docIDList)
 					readAnswers(docID, annotType, provenance, ansMap);
 				
@@ -265,7 +266,9 @@ public class BestPatterns
 				inactiveMap = new HashMap<String, Boolean>();
 				String targetStr = "";
 				
+				System.out.println("preloading counts...");
 				preloadCounts();
+				System.out.println("finished preloading counts...");
 				//preload pos and neg counts
 				//preload inactive profile/target pairs
 				
@@ -316,10 +319,12 @@ public class BestPatterns
 					
 					if (status == 1) {
 						pstmtGetIndexCounts.setLong(1, docID);
+						//System.out.println(pstmtGetIndexCounts.toString());
 						rs = pstmtGetIndexCounts.executeQuery();
 					}
 					else {
 						pstmtGetIndexCounts2.setLong(1, docID);
+						//System.out.println(pstmtGetIndexCounts2.toString());
 						rs = pstmtGetIndexCounts2.executeQuery();
 					}
 					
@@ -578,9 +583,36 @@ public class BestPatterns
 		Map<Integer, Integer> profileTypeMap = new HashMap<Integer, Integer>();
 		Statement stmt = conn.createStatement();
 		
+		
+		if (docIDList == null) {
+			System.out.println("getting doc IDs...");
+			docIDList = new ArrayList<Long>();
+			//ResultSet rs = stmt.executeQuery("select distinct document_id from " + rq + indexTable + rq + " order by document_id");
+			if (docQuery == null) {
+				docQuery = "select document_id, status from " + schema + "document_status" + " where status = 1 or status = 2 order by document_id";
+			}
+			
+			//statusList = new ArrayList<Integer>();
+			ResultSet rs = stmt.executeQuery(docQuery);
+			while (rs.next()) {
+				docIDList.add(rs.getLong(1));
+				//statusList.add(rs.getInt(2));
+			}
+		}
+		
+		
+		if (ansMap == null) {
+			System.out.println("reading answers...");
+			ansMap = new HashMap<String, Boolean>();
+			for (long docID : docIDList)
+				readAnswers(docID, annotType, provenance, ansMap);
+		}
+		
+		
 		int maxTargetLen = 0;
 		
-		ResultSet rs = stmt.executeQuery("select distinct b.profile_id, b.profile, b.profile_type from " + schema + finalTable + " a, " + schema + profileTable + " b where a.profile_id = b.profile_id or a.target_id = b.profile_id");
+		ResultSet rs = stmt.executeQuery("select distinct b.profile_id, b.profile, b.profile_type from " + schema + finalTable + " a, " + schema + profileTable + " b where "
+			+ "a.profile_id = b.profile_id or a.target_id = b.profile_id");
 		while (rs.next()) {
 			int profileID = rs.getInt(1);
 			String profileStr = rs.getString(2);
@@ -599,6 +631,8 @@ public class BestPatterns
 				maxTargetLen = len;
 			
 			profileStringMap.put(profileID, profileStr);
+			
+			/*
 			int index = profileStr.indexOf("[\":target");
 			int skew = 0;
 			if (profileStr.endsWith(":target\"]"))
@@ -607,6 +641,7 @@ public class BestPatterns
 				skew = 1;
 			
 			profileSkewMap.put(profileID, skew);
+			*/
 			
 			
 		}
@@ -650,7 +685,8 @@ public class BestPatterns
 				continue;
 			
 			double targetLen = ((double) targetStr.length()) / targetBase;
-			profileScoreMap.put(profileID, ((double) count + targetLen));
+			//profileScoreMap.put(profileID, ((double) count + targetLen));
+			profileScoreMap.put(profileID, ((double) count));
 			
 			if (count > maxFreq)
 				maxFreq = count;
@@ -711,22 +747,28 @@ public class BestPatterns
 		if (DBConnection.dbType.startsWith("sqlserver"))
 			rq2 = "";
 		
-		rs = stmt.executeQuery("select b.document_id, b.start, a.profile_id, a.target_id from " + schema + finalTable + " a, " + schema + rq2 + indexTable + rq2 + " b "
-			+ "where a.profile_id = b.profile_id and a.target_id = b.target_id and a.prec >= " + posThreshold + " and total >= " + posMinCount +
+		Map<String, Integer> useTotalMap = new HashMap<String, Integer>();
+		
+		rs = stmt.executeQuery("select b.document_id, b.start, a.profile_id, a.target_id, a.total from " + schema + finalTable + " a, " + schema + rq2 + indexTable + rq2 + " b "
+			+ "where a.profile_id = b.profile_id and a.target_id = b.target_id and a.prec >= " + posThreshold + " and a.total >= " + posMinCount +
 			" order by b.profile_id, b.target_id");
 		while (rs.next()) {
 			long docID = rs.getLong(1);
 			long start = rs.getLong(2);
 			int profileID = rs.getInt(3);
 			int targetID = rs.getInt(4);
-			int skew = profileSkewMap.get(profileID);
+			int total = rs.getInt(5);
+			//int skew = profileSkewMap.get(profileID);
 			int profileType = profileTypeMap.get(profileID);
 			
 			
 			double score = profileScoreMap.get(profileID);
 			//String key = docID + "|" + start + "|" + skew;
-			String key = docID + "|" + start + "|" + targetID + "|" + profileType;
+			//String key = docID + "|" + start + "|" + targetID + "|" + profileType;
+			String key = docID + "|" + start + "|" + profileType;
+			
 			Double useScore = profileUseScoreMap.get(key);
+			Integer useTotal = useTotalMap.get(key);
 
 			String oldProfile = profileUseMap.get(key);
 			if (oldProfile == null)
@@ -734,19 +776,26 @@ public class BestPatterns
 
 			if (useScore == null) 
 				useScore = 1000000.0;
+			
+			if (useTotal == null)
+				useTotal = 0;
 
-			if (score < useScore) {
+			if (score <= useScore && total > useTotal) {
 				//String oldProfile = profileUseMap.get(key);
 				if (oldProfile == null)
 					oldProfile = "";
 				
 				profileUseScoreMap.put(key, score);
 				profileUseMap.put(key, profileID + "|" + targetID);
-				//if (profileID == 162 || oldProfile.startsWith("162") || profileID == 26 || oldProfile.startsWith("26"))
-				//	System.out.println(key + ": " + profileID + "|" + targetID + " replaces " + oldProfile + " old score:" + useScore + " new score:" + score);
+				useTotalMap.put(key, total);
+				
+				if (profileID == 4642 || oldProfile.startsWith("4642"))
+					System.out.println(key + ": " + profileID + "|" + targetID + " replaces " + oldProfile + " old score:" + useScore + " new score:" + score);
 
 				//profileFilterMap.put(profileID + "|" + targetID, true);
 			}
+			else if (profileID == 4642)
+				System.out.println("not used: " + key + ": " + profileID + "|" + targetID + " old: " + oldProfile + " score:" + score);
 		}
 		
 		for (String key : profileUseMap.keySet()) {

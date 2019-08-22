@@ -17,15 +17,17 @@ public class MatchWriter
 	{
 	}
 	
-	public void init(String user, String password, String host, String dbName, String dbType, String tableName) throws SQLException, ClassNotFoundException
+	public void init(String user, String password, String host, String dbName, String dbType, String tableName, String schema) throws SQLException, ClassNotFoundException
 	{
 		conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
 		String rq = DBConnection.reservedQuote;
-		String rq2 = rq;
+		String tableName2 = schema + rq + tableName + rq;
 		if (DBConnection.dbType.startsWith("sqlserver"))
-			rq2 = "";
+			tableName2 = rq + schema + tableName + rq;
 		conn.setAutoCommit(false);
-		pstmtTarget = conn.prepareStatement("insert into " + rq2 + tableName + rq2 + " (profile_id, document_id, start, " + rq + "end" + rq + ", target_id) values (?,?,?,?,?)");
+		
+		//pstmtTarget = conn.prepareStatement("insert into " + rq2 + tableName + rq2 + " (profile_id, document_id, start, " + rq + "end" + rq + ", target_id) values (?,?,?,?,?)");
+		pstmtTarget = conn.prepareStatement("insert into " + tableName2 + " (profile_id, document_id, start, " + rq + "end" + rq + ", target_id) values (?,?,?,?,?)");
 	}
 	
 	public void write(List<ProfileMatch> matchList) throws SQLException

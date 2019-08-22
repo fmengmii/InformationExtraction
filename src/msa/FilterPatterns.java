@@ -688,6 +688,7 @@ public class FilterPatterns
 						//set up inverted index
 						System.out.println("gen inverted index...");
 						invertedIndex.genIndex(profileGridList, targetProfileGridList, profileIDMap, targetIDMap);
+						System.out.println("inverted index finished...");
 		
 						
 						stats.getProfileStats(gridList, profileGridList, targetProfileGridList, profileType, msaProfileMap, msaTargetProfileMap, invertedIndex, targetIDMap);

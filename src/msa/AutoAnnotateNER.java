@@ -579,6 +579,7 @@ public class AutoAnnotateNER
 				*/
 				
 				//append previous sentence??
+				
 				List<AnnotationSequenceGrid> negGridList = new ArrayList<AnnotationSequenceGrid>();
 				AnnotationSequence prevSeq = null;
 				for (AnnotationSequence seq : negSeqList) {
@@ -590,8 +591,9 @@ public class AutoAnnotateNER
 					
 					List<AnnotationSequenceGrid> gridList = genGrid.toAnnotSeqGrid(seq2, false, false, false, true, false);
 					negGridList.addAll(gridList);
-					prevSeq = seq;
+					//prevSeq = seq;
 				}
+				
 				
 				
 				//read profiles
