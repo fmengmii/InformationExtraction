@@ -32,7 +32,7 @@ CREATE TABLE SCHEMA."final" (
 )
 
 
-CREATE TABLE "index" (
+CREATE TABLE SCHEMA."index" (
   "profile_id" bigint DEFAULT NULL,
   "target_id" bigint DEFAULT NULL,
   "document_id" bigint DEFAULT NULL,
