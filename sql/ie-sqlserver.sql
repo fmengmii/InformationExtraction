@@ -1,7 +1,7 @@
 CREATE TABLE SCHEMA."profile" (
   "profile_id" int NOT NULL IDENTITY(1,1),
   "group" varchar(500) DEFAULT NULL,
-  "profile" text,
+  "profile" varchar(max),
   "name" varchar(500) DEFAULT NULL,
   "profile_type" int DEFAULT NULL,
   "annotation_type" varchar(500) DEFAULT NULL,
