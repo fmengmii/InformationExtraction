@@ -26,7 +26,7 @@ CREATE TABLE SCHEMA."final" (
   "target_id" bigint DEFAULT NULL,
   "total" int DEFAULT NULL,
   "prec" float DEFAULT NULL,
-  "valence" tinyint(4) DEFAULT NULL
+  "valence" tinyint DEFAULT NULL
 )
 
 
