@@ -26,7 +26,9 @@ CREATE TABLE `final` (
   `target_id` bigint(20) DEFAULT NULL,
   `total` int(11) DEFAULT NULL,
   `prec` double DEFAULT NULL,
-  `valence` tinyint(4) DEFAULT NULL
+  `valence` tinyint(4) DEFAULT NULL,
+  `true_pos` int NULL,
+  `false_pos` int NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 

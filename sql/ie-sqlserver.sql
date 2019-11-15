@@ -26,7 +26,18 @@ CREATE TABLE SCHEMA."final" (
   "target_id" bigint DEFAULT NULL,
   "total" int DEFAULT NULL,
   "prec" float DEFAULT NULL,
-  "valence" tinyint DEFAULT NULL
+  "valence" tinyint DEFAULT NULL,
+  "true_pos" int NULL,
+  "false_pos" int NULL
+)
+
+
+CREATE TABLE "index" (
+  "profile_id" bigint DEFAULT NULL,
+  "target_id" bigint DEFAULT NULL,
+  "document_id" bigint DEFAULT NULL,
+  "start" bigint DEFAULT NULL,
+  "end" bigint DEFAULT NULL
 )
 
 
