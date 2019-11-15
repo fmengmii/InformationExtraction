@@ -172,6 +172,7 @@ public class ProfileStats
 	public void init(String annotUser, String annotPassword, String msaUser, String msaPassword, String host, String keyspace, String msaKeyspace, String dbType,
 		String indexTable, String finalTable, String annotType, String provenance)
 	{
+		System.out.println("init profilestats!");
 		try {
 			//this.annotType = annotType;
 			this.provenance = provenance;

@@ -325,6 +325,8 @@ public class FilterPatterns
 	
 	public void filterPatterns(String annotUser, String annotPassword, String docUser, String docPassword, String msaUser, String msaPassword)
 	{
+		System.out.println("start filter patterns!");
+		
 		try {
 			/*
 			if (docDBQuery != null) {				
@@ -374,6 +376,8 @@ public class FilterPatterns
 			stats.setPosFilterMinCount(posFilterMinCount);
 			stats.setSchema(schema);
 			stats.setPrintWriter(pw);
+			
+			System.out.println("init filter patterns!");
 			stats.init(annotUser, annotPassword, msaUser, msaPassword, host, dbName, dbName, dbType, indexTable, finalTable,
 				targetType, targetProvenance);
 			
