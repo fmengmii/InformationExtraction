@@ -22,8 +22,8 @@ public class MatchWriter
 		conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
 		String rq = DBConnection.reservedQuote;
 		String tableName2 = schema + rq + tableName + rq;
-		if (DBConnection.dbType.startsWith("sqlserver"))
-			tableName2 = rq + schema + tableName + rq;
+		//if (DBConnection.dbType.startsWith("sqlserver"))
+		//	tableName2 = rq + schema + tableName + rq;
 		conn.setAutoCommit(false);
 		
 		//pstmtTarget = conn.prepareStatement("insert into " + rq2 + tableName + rq2 + " (profile_id, document_id, start, " + rq + "end" + rq + ", target_id) values (?,?,?,?,?)");
