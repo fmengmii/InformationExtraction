@@ -61,6 +61,7 @@ public class MatchWriter
 			}
 		}
 		
+		System.out.println(pstmtTarget.toString());
 		pstmtTarget.executeBatch();
 		conn.commit();
 	}
