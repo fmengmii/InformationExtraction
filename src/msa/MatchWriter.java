@@ -27,6 +27,7 @@ public class MatchWriter
 		conn.setAutoCommit(false);
 		
 		//pstmtTarget = conn.prepareStatement("insert into " + rq2 + tableName + rq2 + " (profile_id, document_id, start, " + rq + "end" + rq + ", target_id) values (?,?,?,?,?)");
+		System.out.println("insert into " + tableName2 + " (profile_id, document_id, start, " + rq + "end" + rq + ", target_id) values (?,?,?,?,?)");
 		pstmtTarget = conn.prepareStatement("insert into " + tableName2 + " (profile_id, document_id, start, " + rq + "end" + rq + ", target_id) values (?,?,?,?,?)");
 	}
 	
