@@ -27,6 +27,7 @@ CREATE TABLE SCHEMA."final" (
   "total" int DEFAULT NULL,
   "prec" float DEFAULT NULL,
   "valence" tinyint DEFAULT NULL,
+  "disabled" tinyint DEFAULT NULL,
   "true_pos" int NULL,
   "false_pos" int NULL
 )

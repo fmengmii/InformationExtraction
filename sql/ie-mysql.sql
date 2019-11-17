@@ -27,6 +27,7 @@ CREATE TABLE `final` (
   `total` int(11) DEFAULT NULL,
   `prec` double DEFAULT NULL,
   `valence` tinyint(4) DEFAULT NULL,
+  `disabled` tinyint(4) DEFAULT NULL,
   `true_pos` int NULL,
   `false_pos` int NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;

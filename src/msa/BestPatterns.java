@@ -165,10 +165,6 @@ public class BestPatterns
 			annotConn = DBConnection.dbConnection(annotUser, annotPassword, host, dbName, dbType);
 			rq = DBConnection.reservedQuote;
 			
-			String rq2 = rq;
-			//if (DBConnection.dbType.startsWith("sqlserver"))
-			//	rq2 = "";
-			
 			
 			if (annotType != null) {
 				annotTypeList = new ArrayList<String>();
@@ -197,17 +193,13 @@ public class BestPatterns
 				PreparedStatement pstmtUpdateProfile = conn.prepareStatement("update " + schema + profileTable + " set score = ? where profile_id = ?");
 				PreparedStatement pstmtUpdateProfileCounts = conn.prepareStatement("update " + schema + profileTable + " set true_pos = ?, false_pos = ? where profile_id = ?");
 				PreparedStatement pstmtGetIndexCounts = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", count(*) "
-					+ "from " + schema + rq2 + indexTable + rq2 + " a, " + schema + profileTable + " b "
+					+ "from " + schema + rq + indexTable + rq + " a, " + schema + profileTable + " b "
 					+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.document_id = ? "
 					+ "group by a.profile_id, a.target_id, a.start, a." + rq + "end" + rq);
 				
-				System.out.println("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", count(*) "
-						+ "from " + schema + rq2 + indexTable + rq2 + " a, " + schema + profileTable + " b "
-						+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.document_id = ? and b." + rq + "group" + rq + " = '" + group + "' "
-						+ "group by a.profile_id, a.target_id, a.start, a." + rq + "end" + rq);
 				
 				PreparedStatement pstmtGetIndexCounts2 = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", count(*) "
-						+ "from " + schema + rq2 + indexTable + rq2 + " a, " + schema + profileTable + " b "
+						+ "from " + schema + rq + indexTable + rq + " a, " + schema + profileTable + " b "
 						+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.document_id = ? and b." + rq + "group" + rq + " = '" + group + "' "
 						+ "group by a.profile_id, a.target_id, a.start, a." + rq + "end" + rq);
 				
@@ -748,13 +740,10 @@ public class BestPatterns
 		Map<String, String> profileUseMap = new HashMap<String, String>();
 		Map<String, Double> profileUseScoreMap = new HashMap<String, Double>();
 		profileFilterMap = new HashMap<String, Boolean>();
-		String rq2 = rq;
-		//if (DBConnection.dbType.startsWith("sqlserver"))
-		//	rq2 = "";
 		
 		Map<String, Integer> useTotalMap = new HashMap<String, Integer>();
 		
-		rs = stmt.executeQuery("select b.document_id, b.start, a.profile_id, a.target_id, a.total from " + schema + finalTable + " a, " + schema + rq2 + indexTable + rq2 + " b "
+		rs = stmt.executeQuery("select b.document_id, b.start, a.profile_id, a.target_id, a.total from " + schema + finalTable + " a, " + schema + rq + indexTable + rq + " b "
 			+ "where a.profile_id = b.profile_id and a.target_id = b.target_id and a.prec >= " + posThreshold + " and a.total >= " + posMinCount +
 			" order by b.profile_id, b.target_id");
 		while (rs.next()) {
