@@ -2567,9 +2567,12 @@ public class AutoAnnotateNER
 		}
 		*/
 		
+		String valueStr = "value";
+		if (DBConnection.dbType.startsWith("sqlserver"))
+			valueStr = "cast(value as varchar(max))";
 		
-		ResultSet rs = stmt.executeQuery("select distinct start, " + rq + "end" + rq + ", annotation_type, value "
-			+ "from " + schema + "annotation where document_id = " + docID + " and annotation_type = '" + annotType
+		ResultSet rs = stmt.executeQuery("select distinct start, " + rq + "end" + rq + ", annotation_type, " + valueStr
+			+ " from " + schema + "annotation where document_id = " + docID + " and annotation_type = '" + annotType
 			+ "' and provenance = '" + provenance + "' order by start");
 		
 		while (rs.next()) {
