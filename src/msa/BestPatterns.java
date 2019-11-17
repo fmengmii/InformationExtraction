@@ -201,6 +201,10 @@ public class BestPatterns
 					+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.document_id = ? "
 					+ "group by a.profile_id, a.target_id, a.start, a." + rq + "end" + rq);
 				
+				System.out.println("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", count(*) "
+						+ "from " + schema + rq2 + indexTable + rq2 + " a, " + schema + profileTable + " b "
+						+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.document_id = ? and b." + rq + "group" + rq + " = '" + group + "' "
+						+ "group by a.profile_id, a.target_id, a.start, a." + rq + "end" + rq);
 				
 				PreparedStatement pstmtGetIndexCounts2 = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", count(*) "
 						+ "from " + schema + rq2 + indexTable + rq2 + " a, " + schema + profileTable + " b "
@@ -324,7 +328,6 @@ public class BestPatterns
 						rs = pstmtGetIndexCounts.executeQuery();
 					}
 					else {
-						System.out.println(pstmtGetIndexCounts2.toString());
 						pstmtGetIndexCounts2.setLong(1, docID);
 						
 						rs = pstmtGetIndexCounts2.executeQuery();
