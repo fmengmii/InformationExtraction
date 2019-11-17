@@ -166,8 +166,8 @@ public class BestPatterns
 			rq = DBConnection.reservedQuote;
 			
 			String rq2 = rq;
-			if (DBConnection.dbType.startsWith("sqlserver"))
-				rq2 = "";
+			//if (DBConnection.dbType.startsWith("sqlserver"))
+			//	rq2 = "";
 			
 			
 			if (annotType != null) {
@@ -749,8 +749,8 @@ public class BestPatterns
 		Map<String, Double> profileUseScoreMap = new HashMap<String, Double>();
 		profileFilterMap = new HashMap<String, Boolean>();
 		String rq2 = rq;
-		if (DBConnection.dbType.startsWith("sqlserver"))
-			rq2 = "";
+		//if (DBConnection.dbType.startsWith("sqlserver"))
+		//	rq2 = "";
 		
 		Map<String, Integer> useTotalMap = new HashMap<String, Integer>();
 		
