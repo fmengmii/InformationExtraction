@@ -420,12 +420,12 @@ public class GateBatch
 								insertIntoDB(annot, docID, docContent, asName);
 							
 							count++;
-						}
-				  
-						if (count % batchSize == 0) {
-							if (!dbType.equals("cassandra")) {
-								pstmt.executeBatch();
-								conn.commit();
+							
+							if (count % batchSize == 0) {
+								if (!dbType.equals("cassandra")) {
+									pstmt.executeBatch();
+									conn.commit();
+								}
 							}
 						}
 				  

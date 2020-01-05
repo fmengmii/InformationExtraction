@@ -763,10 +763,10 @@ public class IEDriver
 				profileNewCount = rs.getInt(1);
 			
 			//clear final table if there were documents with status 1 or there were new profiles that didn't finish processing
-			if (docStatusOneCount > 0 || profileNewCount > 0) {
+			//if (docStatusOneCount > 0 || profileNewCount > 0) {
 				System.out.println("delete from final table...");
 				stmt.execute("delete from " + schema2 + "final");
-			}
+			//}
 			
 			
 			//pstmtUpdateProfileGroup.setString(1, group + "##");
