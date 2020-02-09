@@ -68,6 +68,7 @@ public class ProfileMatcher
 		this.profileMatch = profileMatch;
 		sw.setProfileMatch(profileMatch);
 		sw.setMultiMatch(profileMatch);
+		sw.setVerbose(true);
 	}
 	
 	public void setMinSizeOffset(int minSizeOffset)
