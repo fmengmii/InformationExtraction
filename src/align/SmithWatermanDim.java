@@ -14,7 +14,7 @@ public class SmithWatermanDim
 	private double matchScore = 1.0;
 	public static double targetMatchScore = 1000000.0;
 	private double mismatchScore = -1.0;
-	private double gapPenalty = -0.00001;
+	private double gapPenalty = 0.0001;
 	private Map<String, Double> annotTypeScoreMap;
 	
 	private List<String> align1;
