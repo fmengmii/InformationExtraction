@@ -287,15 +287,15 @@ public class PopulateFrame
 	
 	public static void main(String[] args)
 	{
-		if (args.length != 6) {
-			System.out.println("usage: user password host dbName dbType provenance");
+		if (args.length != 7) {
+			System.out.println("usage: user password host dbName dbType schema provenance");
 			System.exit(0);
 		}
 		
 		try {
 			Connection conn = DBConnection.dbConnection(args[0], args[1], args[2], args[3], args[4]);
 			PopulateFrame pop = new PopulateFrame();
-			pop.init(conn, args[3], args[5], DBConnection.reservedQuote);
+			pop.init(conn, args[5], args[6], DBConnection.reservedQuote);
 			pop.populate();
 		}
 		catch(Exception e)
