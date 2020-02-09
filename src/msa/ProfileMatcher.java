@@ -246,7 +246,7 @@ public class ProfileMatcher
 						minSize -= minSizeOffset;
 					
 					if (found < (profileElemToks.size() - 1 - minSizeOffset) - 3) {
-						//System.out.println("skipped!");
+						System.out.println("skipped!");
 						continue;
 					}
 					
