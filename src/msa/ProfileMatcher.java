@@ -158,7 +158,7 @@ public class ProfileMatcher
 				pw.println("\n\nsent: " + i + " annotType: " + annotType + " | " + toksStr);
 			
 			//if (verbose)
-			System.out.println(grid.toString() + "\n\n");
+			//System.out.println(grid.toString() + "\n\n");
 				
 
 			int profileIndex = 0;
@@ -189,9 +189,11 @@ public class ProfileMatcher
 					AnnotationSequenceGrid profileGrid = profileGridObj.getGrid();
 					List<String> profileToks = profileGrid.getSequence().getToks();
 					
+					/*
 					MSAProfile profile2 = msaProfileMap.get(profileGrid);
 					if (profile2.getProfileID() != 86)
 						continue;
+						*/
 					
 					List<String> profileElemToks = new ArrayList<String>();
 					for (int j=0; j<profileGrid.size(); j++) {
@@ -214,7 +216,7 @@ public class ProfileMatcher
 					String profileStr = gson.toJson(profileToks);
 						
 					
-					System.out.println("profile from inverted: " + profileStr);
+					//System.out.println("profile from inverted: " + profileStr);
 					//System.out.println("profileGrid: " + profileGrid.toString());
 					
 					
