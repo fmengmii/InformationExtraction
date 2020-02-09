@@ -188,7 +188,7 @@ public class ProfileMatcher
 					AnnotationSequenceGrid profileGrid = profileGridObj.getGrid();
 					List<String> profileToks = profileGrid.getSequence().getToks();
 					
-					MSAProfile profile2 = msaProfileMap.get(profileGridObj);
+					MSAProfile profile2 = msaProfileMap.get(profileGrid);
 					if (profile2.getProfileID() != 86)
 						continue;
 					
