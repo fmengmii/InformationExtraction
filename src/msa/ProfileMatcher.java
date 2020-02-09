@@ -157,7 +157,7 @@ public class ProfileMatcher
 				pw.println("\n\nsent: " + i + " annotType: " + annotType + " | " + toksStr);
 			
 			//if (verbose)
-			//System.out.println(grid.toString() + "\n\n");
+			System.out.println(grid.toString() + "\n\n");
 				
 
 			int profileIndex = 0;
