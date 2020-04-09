@@ -30,7 +30,7 @@ public class DuplicateSentences
 			String dbName = props.getProperty("dbName");
 			String dbType = props.getProperty("dbType");
 			String docQuery = props.getProperty("docQuery");
-			String schema = props.getProperty("schema");
+			String schema = props.getProperty("schema") + ".";
 			String docNamespace = props.getProperty("docNamespace");
 			String docTable = props.getProperty("docTable");
 			
