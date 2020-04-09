@@ -68,7 +68,11 @@ public class DuplicateSentences
 				List<AnnotationSequence> seqList = getSequences(docID);
 				
 				for (AnnotationSequence seq : seqList) {
-					String sentStr = SequenceUtilities.getStrFromToks(seq.getToks()).toLowerCase();
+					List<String> toks = seq.getToks();
+					if (toks.size() < 2)
+						continue;
+					
+					String sentStr = SequenceUtilities.getStrFromToks(toks).toLowerCase();
 					
 					Boolean flag = sentMap.get(sentStr);
 					if (flag == null)
@@ -82,10 +86,10 @@ public class DuplicateSentences
 						pstmtAnnot.addBatch();
 						batchCount++;
 						
-						if (batchCount == 1000) {
+						if (batchCount == 100) {
 							batchCount = 0;
 							pstmtAnnot.executeBatch();
-							conn.commit();
+							conn2.commit();
 						}
 						
 						System.out.println("wrote duplicate: " + sentStr);
@@ -94,7 +98,7 @@ public class DuplicateSentences
 			}
 			
 			pstmtAnnot.executeBatch();
-			conn.commit();
+			conn2.commit();
 			
 			
 			pstmtSent.close();
