@@ -133,6 +133,7 @@ public class DuplicateSentences
 				}
 				
 				AnnotationSequence seq = new AnnotationSequence(docID, sentID, start, end);
+				seq.setToks(toks);
 				seqList.add(seq);
 			}
 		}
