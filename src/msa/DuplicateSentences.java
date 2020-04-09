@@ -38,9 +38,11 @@ public class DuplicateSentences
 			conn2 = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			conn2.setAutoCommit(false);
 			
-			pstmtSent = conn.prepareStatement("select id, start, end from " + schema + "annotation where document_id = ? and annotation_type = 'Sentence' order by start");
-			pstmtSentAnnots = conn.prepareStatement("select value from " + schema + "annotation where document_id = ? and start >= ? and end <= ? and annotation_type = 'Token' order by start");
-			PreparedStatement pstmtAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, end, value, features, provenance, score) "
+			String rq = DBConnection.reservedQuote;
+			
+			pstmtSent = conn.prepareStatement("select id, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = 'Sentence' order by start");
+			pstmtSentAnnots = conn.prepareStatement("select value from " + schema + "annotation where document_id = ? and start >= ? and " + rq  + "end" + rq + " <= ? and annotation_type = 'Token' order by start");
+			PreparedStatement pstmtAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance, score) "
 				+ "values (?,'" + docNamespace + "','" + docTable + "',?,'SentenceDuplicate',?,?,'','','duplicate-sentences-util',1.0)");
 			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + "annotation where document_id = ?");
 			
