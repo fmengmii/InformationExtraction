@@ -430,25 +430,14 @@ public class GenMSADriver
 				
 				
 				//relation MSAs
-				/*
-				if (targetType2 != null) {
-					gridList = new ArrayList<AnnotationSequenceGrid>();
-					for (AnnotationSequence seq : seqList2) {
-						List<AnnotationSequenceGrid> gridList2 = genGrid.toAnnotSeqGrid(seq, true, true, true, false, true);
-						gridList.addAll(gridList2);
-					}
+				//get pairs of annotations
+				
+				
+				for (AnnotationSequence seq : seqList) {
 					
-					genMSA.setGridList(gridList);
-					List<MultipleSequenceAlignment> relationMSAList = genMSA.genMSA();
-					
-					for (MultipleSequenceAlignment msa : relationMSAList) {
-						if (msaMap.get(msa.toProfileString(false)) == null)
-							msaList.add(msa);
-					}
-					
-					relationMSAList = null;
+					List<AnnotationSequenceGrid> gridList2 = genGrid.toAnnotSeqGrid(seq, true, true, true, false, false);
+					gridListAnswers.addAll(gridList2);
 				}
-				*/
 				
 				msaMap = null;
 
