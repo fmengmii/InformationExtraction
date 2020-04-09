@@ -58,6 +58,8 @@ public class DuplicateSentences
 				long docID = rs.getLong(1);
 				int patientSID = rs.getInt(2);
 				
+				System.out.println("DocID: " + docID + " PatientSID: " + patientSID);
+				
 				if (patientSID != currPatientSID) {
 					sentMap = new HashMap<String,Boolean>();
 					currPatientSID = patientSID;
@@ -66,7 +68,7 @@ public class DuplicateSentences
 				List<AnnotationSequence> seqList = getSequences(docID);
 				
 				for (AnnotationSequence seq : seqList) {
-					String sentStr = SequenceUtilities.getStrFromToks(seq.getToks());
+					String sentStr = SequenceUtilities.getStrFromToks(seq.getToks()).toLowerCase();
 					
 					Boolean flag = sentMap.get(sentStr);
 					if (flag == null)
@@ -85,6 +87,8 @@ public class DuplicateSentences
 							pstmtAnnot.executeBatch();
 							conn.commit();
 						}
+						
+						System.out.println("wrote duplicate: " + sentStr);
 					}
 				}
 			}
