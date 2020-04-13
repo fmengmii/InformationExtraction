@@ -238,6 +238,7 @@ public class GenMSADriver
 			targetMap.put("provenance", targetProvenance);
 			targetMap.put("targetStr", ":target");
 			msaAnnotFilterList.add(targetMap);
+			scoreList.add(100.0);
 			
 			if (targetType2 != null) {
 				targetMap = new HashMap<String, Object>();
@@ -251,7 +252,7 @@ public class GenMSADriver
 			
 			annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType, scoreList);
 			annotTypeNameList.add(":" + targetType.toLowerCase());
-			scoreList.add(10.0);
+			scoreList.add(100.0);
 			
 			if (docDBQuery != null) {			
 				conn = DBConnection.dbConnection(user, password, host, dbName, dbType);	
@@ -432,7 +433,7 @@ public class GenMSADriver
 				//relation MSAs
 				//get pairs of annotations
 				
-				
+				/*
 				for (AnnotationSequence seq : seqList) {
 					
 					List<AnnotationSequenceGrid> gridList2 = genGrid.toAnnotSeqGrid(seq, true, true, true, false, false);
@@ -440,6 +441,7 @@ public class GenMSADriver
 				}
 				
 				msaMap = null;
+				*/
 
 					
 				
@@ -549,8 +551,12 @@ public class GenMSADriver
 				
 				//Add empty profile in case a target is self-sufficient and doesn't need outside context
 				List<String> toks = new ArrayList<String>();
-				MSAProfile emptyProfile = new MSAProfile("[\":start|start\",\":target\",\":end|end\"]", targetType, group, 0, toks, 0.0, 1);
+				MSAProfile emptyProfile = new MSAProfile("[\":start\",\":target\",\":end\"]", targetType, group, 0, toks, 0.0, 1);
 				profileList.add(emptyProfile);
+				
+				//get full sentence profiles
+				List<MSAProfile> fullSentProfileList = genFullSentenceProfiles(seqList2);
+				profileList.addAll(fullSentProfileList);
 				
 				//write profiles
 				if (write) {
@@ -582,6 +588,73 @@ public class GenMSADriver
 		{
 			e.printStackTrace();
 		}
+	}
+	
+	
+	//type 3 profile
+	//these will have minimum of 1 occurrence to be valid
+	//this is to support annotations from repeated full sentences
+	private List<MSAProfile> genFullSentenceProfiles(List<AnnotationSequence> seqList)
+	{
+		List<MSAProfile> profileList = new ArrayList<MSAProfile>();
+		
+		for (AnnotationSequence seq : seqList) {
+			List<String> toks = seq.getToks();
+			
+			List<Annotation> tokAnnotList = seq.getAnnotList(":token|string");
+			List<Annotation> targetAnnotList = seq.getAnnotList(":target");
+			
+			for (Annotation targetAnnot : targetAnnotList) {
+				List<String> toks2 = new ArrayList<String>();
+				long annotStart = targetAnnot.getStart();
+				long annotEnd = targetAnnot.getEnd();
+				
+				boolean targetFlag = false;
+				List<String> targetToks = new ArrayList<String>();
+				StringBuilder targetStrBlder = new StringBuilder();
+				for (int i=0; i<tokAnnotList.size(); i++) {
+					Annotation tokAnnot = tokAnnotList.get(i);					
+					if (tokAnnot.getStart() >= annotStart && tokAnnot.getEnd() <= annotEnd) {
+						targetFlag = true;
+						targetToks.add(toks.get(i));
+						if (targetStrBlder.length() > 0)
+							targetStrBlder.append(",");
+						targetStrBlder.append("\":token|string|" + toks.get(i).toLowerCase() + "\"");
+					}
+					else {
+						if (targetFlag) {
+							toks2.add("\":target\"");
+							toks2.add(toks.get(i));
+							targetFlag = false;
+						}
+						else
+							toks2.add(toks.get(i));
+					}
+				}
+			
+				StringBuilder strBlder = new StringBuilder();
+				strBlder.append("[\":start\",");
+				for (String tok : toks2) {
+					if (tok.equals("\":target\""))
+						strBlder.append(tok + ",");
+					else if (tok.equals(":start") || tok.equals(":end"))
+						continue;
+					else
+						strBlder.append("\":token|string|" + tok.toLowerCase() + "\",");
+				}
+				
+				strBlder.append("\":end\"]");
+				
+				MSAProfile profile = new MSAProfile(strBlder.toString(), targetType, group, 3, toks2, 0.0, 1);
+				profileList.add(profile);
+				
+				//target profile
+				profile = new MSAProfile("[" + targetStrBlder.toString() + "]", targetType, group, 1, targetToks, 0.0, 1);
+				profileList.add(profile);
+			}
+		}
+		
+		return profileList;
 	}
 	
 	public static void main(String[] args)

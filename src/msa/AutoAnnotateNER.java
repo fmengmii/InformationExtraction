@@ -211,12 +211,12 @@ public class AutoAnnotateNER
 		this.autoProvenance = autoProvenance;
 	}
 	
-	public void init(String config)
+	public void init(String user, String password, String config)
 	{
 		try {
 			Properties props = new Properties();
 			props.load(new FileReader(config));
-			init(props);
+			init(user, password, props);
 		}
 		catch(Exception e)
 		{
@@ -224,7 +224,7 @@ public class AutoAnnotateNER
 		}
 	}
 	
-	public void init(Properties props)
+	public void init(String user, String password, Properties props)
 	{
 		try {			
 			host = props.getProperty("host");
@@ -369,42 +369,8 @@ public class AutoAnnotateNER
 			String extractionStr = props.getProperty("extraction");
 			if (extractionStr != null)
 				extraction = Boolean.parseBoolean(extractionStr);
-		}
-		catch(Exception e)
-		{
-			e.printStackTrace();
-		}
-	}
-	
-	public void close()
-	{
-		try {
-			pw.close();
-			db.close();
 			
-			if (docDBConn != null)
-				docDBConn.close();
 			
-			conn.close();
-			conn2.close();
-		}
-		catch(Exception e)
-		{
-			e.printStackTrace();
-		}
-	}
-	
-	public void annotate(String user, String password, String docUser, String docPassword)
-	{
-		System.out.println("auto annotate...");
-		
-		//extractMap = new HashMap<String, Boolean>();
-		
-		valMap = new HashMap<String, Boolean>();
-		
-		totalTP = 0;
-		
-		try {
 			//init DB connections
 			db = new MySQLDBInterface();
 			db.setDBType(dbType);
@@ -434,6 +400,75 @@ public class AutoAnnotateNER
 			pstmtDeleteAnnots = conn.prepareStatement("delete from " + schema + "annotation where annotation_type = ? and document_id = ? and provenance = '" + autoProvenance + "'");
 			
 			rq = DBConnection.reservedQuote;
+			
+			
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	public void close()
+	{
+		try {
+			pw.close();
+			db.close();
+			
+			if (docDBConn != null)
+				docDBConn.close();
+			
+			conn.close();
+			conn2.close();
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	public void annotate(String user, String password)
+	{
+		System.out.println("auto annotate...");
+		
+		//extractMap = new HashMap<String, Boolean>();
+		
+		valMap = new HashMap<String, Boolean>();
+		
+		totalTP = 0;
+		
+		try {
+			/*
+			//init DB connections
+			db = new MySQLDBInterface();
+			db.setDBType(dbType);
+			db.setSchema(schema);
+			db.init(user, password, host, dbName, dbName);
+			
+			schema = schema + ".";
+			
+			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
+			conn2 = DBConnection.dbConnection(user, password, host, dbName, dbType);
+			rq = DBConnection.reservedQuote;
+			
+			pstmt = conn.prepareStatement("select max(id) from " + schema + "annotation where document_namespace = '" + docNamespace + "' and document_table = '" + docTable + "' "
+				+ "and document_id = ?");
+			pstmt2 = conn.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance, score) "
+				+ "values (?, '" + docNamespace + "', '" + docTable + "',?,?,?,?,?,?,?,?)");
+			
+			pstmt3 = conn.prepareStatement("select distinct a.annotation_type, a.value, a.document_id, a.start, a." + rq + "end" + rq + " from " + schema + "annotation a, " + schema + "annotation b "
+				+ "where a.provenance = 'conll2003-token' and b.value = ? and a.start >= b.start and a." + rq + "end" + rq + " <= b." + rq + "end" + rq + " and a.document_id = b.document_id "
+				+ "and a.document_id in (select distinct c.document_id from ner.conll2003_document c where c.`group` = 'train')");
+			
+			pstmtWrite = conn2.prepareStatement("insert into " + autoMatchTable + " (profile_id, document_id, start, " + rq + "end" + rq + ", target_id, run_name) values (?,?,?,?,?,'" + runName + "')");
+			
+			pstmtCheck = conn2.prepareStatement("select count(*) from " + autoMatchTable + " where document_id = ? and start = ? and " + rq + "end" + rq + " = ? and run_name = '" + runName + "'");
+			
+			//pstmtDeleteFrameData = conn.prepareStatement("delete from " + schema + "frame_instance_data where document_id = ? and annotation_id in (select a.id from annotation a where a.document_id = ? and a.annotation_type = ? and provenance = '" + autoProvenance + "')");
+			pstmtDeleteAnnots = conn.prepareStatement("delete from " + schema + "annotation where annotation_type = ? and document_id = ? and provenance = '" + autoProvenance + "'");
+			
+			rq = DBConnection.reservedQuote;
+			*/
 			
 			
 
@@ -611,6 +646,7 @@ public class AutoAnnotateNER
 				
 				Map<MSAProfile, List<MSAProfile>> profileMap = reader.readFinal(targetType, profileMinTotal, profileMinPrec, schema + finalTable, schema + profileTable);
 				
+				
 				for (MSAProfile profile : profileMap.keySet()) {
 					AnnotationSequenceGrid profileSeqGrid = genGrid.toAnnotSeqGrid(profile.getToks(), false);
 					msaProfileMap.put(profileSeqGrid, profile);
@@ -653,6 +689,10 @@ public class AutoAnnotateNER
 
 				System.out.println("\n\nProfiles: " + profileGridList.size());
 				pw.println("\n\nProfiles: " + profileGridList.size());
+				
+				
+				
+				
 				for (ProfileGrid profileGrid : profileGridList) {
 					String profileStr = gson.toJson(profileGrid.getGrid().getSequence().getToks());
 					MSAProfile profile = msaProfileMap.get(profileGrid.getGrid());
@@ -1014,7 +1054,7 @@ public class AutoAnnotateNER
 	{
 		try {
 			
-			if (finalAnnotList.size() > 0) {
+			//if (finalAnnotList.size() > 0) {
 				pstmtDeleteAnnots.setString(1, annotType);
 				for (long docID : docIDList) {
 					//pstmtDeleteFrameData.setLong(1, docID);
@@ -1025,7 +1065,7 @@ public class AutoAnnotateNER
 					pstmtDeleteAnnots.setLong(2, docID);
 					pstmtDeleteAnnots.execute();
 				}
-			}
+			//}
 			
 			
 			for (Annotation annot : finalAnnotList) {
@@ -2653,8 +2693,8 @@ public class AutoAnnotateNER
 		
 		try {
 			AutoAnnotateNER auto = new AutoAnnotateNER();
-			auto.init(args[4]);
-			auto.annotate(args[0], args[1], args[2], args[3]);
+			auto.init(args[0], args[1], args[4]);
+			auto.annotate(args[0], args[1]);
 			//auto.eval();
 			
 			//if (auto.write)

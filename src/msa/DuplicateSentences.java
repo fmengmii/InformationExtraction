@@ -67,12 +67,22 @@ public class DuplicateSentences
 				
 				List<AnnotationSequence> seqList = getSequences(docID);
 				
-				for (AnnotationSequence seq : seqList) {
+				for (int i=0; i<seqList.size(); i++) {
+					AnnotationSequence seq = seqList.get(i);
 					List<String> toks = seq.getToks();
-					if (toks.size() < 2)
-						continue;
 					
-					String sentStr = SequenceUtilities.getStrFromToks(toks).toLowerCase();
+					List<String> toks2 = toks;
+
+					if (i > 0) {
+						toks2 = new ArrayList<String>();
+						for (String tok : seqList.get(i-1).getToks()) {
+							toks2.add(tok);
+						}
+						
+						toks2.addAll(toks);
+					}
+					
+					String sentStr = SequenceUtilities.getStrFromToks(toks2).toLowerCase();
 					
 					Boolean flag = sentMap.get(sentStr);
 					if (flag == null)

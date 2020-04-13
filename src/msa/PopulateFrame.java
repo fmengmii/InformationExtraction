@@ -92,7 +92,7 @@ public class PopulateFrame
 				pstmtDelete.setInt(1, frameInstanceID);
 				pstmtDelete.execute();
 				
-				System.out.println(pstmtDelete.toString());
+				//System.out.println(pstmtDelete.toString());
 				
 				pstmtDeleteElemRepeat.setInt(1, frameInstanceID);
 				pstmtDeleteElemRepeat.execute();

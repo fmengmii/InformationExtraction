@@ -189,21 +189,28 @@ public class BestPatterns
 				finalTable = finalTableList.get(index);
 				
 				
+				System.out.println("best annot type: " + annotType);
+				
+				
 				PreparedStatement pstmt = conn.prepareStatement("insert into " + schema + finalTable + " (profile_id, target_id, total, prec, true_pos, false_pos) values (?,?,?,?,?,?)");
 				PreparedStatement pstmtUpdateProfile = conn.prepareStatement("update " + schema + profileTable + " set score = ? where profile_id = ?");
 				PreparedStatement pstmtUpdateProfileCounts = conn.prepareStatement("update " + schema + profileTable + " set true_pos = ?, false_pos = ? where profile_id = ?");
-				PreparedStatement pstmtGetIndexCounts = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", count(*) "
+				PreparedStatement pstmtGetIndexCounts = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", b.profile_type, count(*) "
 					+ "from " + schema + rq + indexTable + rq + " a, " + schema + profileTable + " b "
 					+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.document_id = ? "
 					+ "group by a.profile_id, a.target_id, a.start, a." + rq + "end" + rq);
 				
 				
-				PreparedStatement pstmtGetIndexCounts2 = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", count(*) "
+				PreparedStatement pstmtGetIndexCounts2 = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", b.profile_type, count(*) "
 						+ "from " + schema + rq + indexTable + rq + " a, " + schema + profileTable + " b "
 						+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.document_id = ? and b." + rq + "group" + rq + " = '" + group + "' "
 						+ "group by a.profile_id, a.target_id, a.start, a." + rq + "end" + rq);
 				
 				Statement stmt = conn.createStatement();
+				
+				//delete from final table for this annot type
+				stmt.execute("delete from " + schema + "final where profile_id in ("
+					+ "select a.profile_id from " + schema + "profile a where a.annotation_type = '" + annotType + "')");
 				
 
 			
@@ -263,9 +270,9 @@ public class BestPatterns
 				inactiveMap = new HashMap<String, Boolean>();
 				String targetStr = "";
 				
-				System.out.println("preloading counts...");
-				preloadCounts();
-				System.out.println("finished preloading counts...");
+				//System.out.println("preloading counts...");
+				//preloadCounts();
+				//System.out.println("finished preloading counts...");
 				//preload pos and neg counts
 				//preload inactive profile/target pairs
 				
@@ -310,21 +317,25 @@ public class BestPatterns
 				//rs = stmt.executeQuery("select distinct a.profile_id, a.target_id, a.document_id, a.start, a." + rq + "end" + rq + " from " + schema + rq + indexTable + rq + " a, " + schema + profileTable + " b "
 				//	+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id");
 				
+				Map<String, Integer> profileTypeMap = new HashMap<String, Integer>();
+				
 				for (int i=0; i<docIDList.size(); i++) {
 					long docID = docIDList.get(i);
 					int status = statusList.get(i);
 					
-					if (status == 1) {
+					System.out.println("best docID: " + docID);
+					
+					//if (status == 1) {
 						pstmtGetIndexCounts.setLong(1, docID);
 						//System.out.println(pstmtGetIndexCounts.toString());
 						rs = pstmtGetIndexCounts.executeQuery();
-					}
-					else {
-						pstmtGetIndexCounts2.setLong(1, docID);
+					//}
+					//else {
+						//pstmtGetIndexCounts2.setLong(1, docID);
 						
-						rs = pstmtGetIndexCounts2.executeQuery();
-					}
-					
+						//rs = pstmtGetIndexCounts2.executeQuery();
+					//}
+
 					while (rs.next()) {
 						/*
 						long profileID = rs.getLong(1);
@@ -341,7 +352,8 @@ public class BestPatterns
 						//long docID = rs.getLong(3);
 						long start = rs.getLong(3);
 						long end = rs.getLong(4);
-						int matchCount = rs.getInt(5);
+						int profileType = rs.getInt(5);
+						int matchCount = rs.getInt(6);
 						
 						
 						if (matchCount > 1)
@@ -364,6 +376,11 @@ public class BestPatterns
 						
 						if (inactiveMap.get(key) != null)
 							continue;
+						
+						if (profileType == 3) {
+							profileTypeMap.put(key, profileType);
+							System.out.println("profile type 3: " + key);
+						}
 						
 		
 						long profileID2 = profileID;
@@ -466,6 +483,9 @@ public class BestPatterns
 					if (prec < negThreshold && (posCount + negCount) >= negMinCount) {
 						score = 1.0;
 					}
+					
+					if (profileTypeMap.get(key) != null)
+						posCount = posMinCount + 1;
 					
 					System.out.println(key + " : " + posCount + ", " + negCount + ", " + prec + ", " + score);
 					
@@ -571,7 +591,7 @@ public class BestPatterns
 			inactiveMap = new HashMap<String, Boolean>();
 		}
 		
-		preloadCounts();
+		//preloadCounts();
 		
 		System.out.println("get profile lengths...");
 		Map<Integer, Integer> profileLengthMap = new HashMap<Integer, Integer>();
@@ -743,9 +763,19 @@ public class BestPatterns
 		
 		Map<String, Integer> useTotalMap = new HashMap<String, Integer>();
 		
+		
+		rs = stmt.executeQuery("select b.document_id, b.start, a.profile_id, a.target_id, a.total from " + schema + finalTable + " a, " + schema + rq + indexTable + rq + " b, " + schema + "profile c "
+			+ "where a.profile_id = b.profile_id and a.target_id = b.target_id and a.prec >= " + posThreshold + " and a.total >= " + posMinCount + " and c.annotation_type =  '" + annotType + "'"
+			+ " and a.profile_id = c.profile_id"
+			+ " order by b.profile_id, b.target_id");
+			
+		
+		/*
 		rs = stmt.executeQuery("select b.document_id, b.start, a.profile_id, a.target_id, a.total from " + schema + finalTable + " a, " + schema + rq + indexTable + rq + " b "
-			+ "where a.profile_id = b.profile_id and a.target_id = b.target_id and a.prec >= " + posThreshold + " and a.total >= " + posMinCount +
-			" order by b.profile_id, b.target_id");
+				+ "where a.profile_id = b.profile_id and a.target_id = b.target_id"
+				+ " order by b.profile_id, b.target_id");
+				*/
+		
 		while (rs.next()) {
 			long docID = rs.getLong(1);
 			long start = rs.getLong(2);
@@ -754,9 +784,13 @@ public class BestPatterns
 			int total = rs.getInt(5);
 			//int skew = profileSkewMap.get(profileID);
 			int profileType = profileTypeMap.get(profileID);
+			if (profileType == 3)
+				profileType = 0;
 			
 			
-			double score = profileScoreMap.get(profileID);
+			Double score = profileScoreMap.get(profileID);
+			if (score == null)
+				System.out.println("score null! " + profileID);
 			//String key = docID + "|" + start + "|" + skew;
 			//String key = docID + "|" + start + "|" + targetID + "|" + profileType;
 			String key = docID + "|" + start + "|" + profileType;
@@ -783,13 +817,10 @@ public class BestPatterns
 				profileUseMap.put(key, profileID + "|" + targetID);
 				useTotalMap.put(key, total);
 				
-				if (profileID == 4642 || oldProfile.startsWith("4642"))
-					System.out.println(key + ": " + profileID + "|" + targetID + " replaces " + oldProfile + " old score:" + useScore + " new score:" + score);
+				System.out.println("filter: " + key + " " + profileID + "|" + targetID);
 
 				//profileFilterMap.put(profileID + "|" + targetID, true);
 			}
-			else if (profileID == 4642)
-				System.out.println("not used: " + key + ": " + profileID + "|" + targetID + " old: " + oldProfile + " score:" + score);
 		}
 		
 		for (String key : profileUseMap.keySet()) {
@@ -801,16 +832,19 @@ public class BestPatterns
 		
 		//filter
 		
+		/*
 		for (String key : profileFilterMap.keySet()) {
 			String[] parts = key.split("\\|");
 			int profileID = Integer.parseInt(parts[0]);
 			String profileStr = profileStringMap.get(profileID);
 			//System.out.println(key + ": " + profileStr);
 		}
+		*/
 		
 		
 		int count = 0;
-		stmt.execute("update " + schema + finalTable + " set disabled = 1");
+		stmt.execute("update " + schema + finalTable + " set disabled = 1 where profile_id in "
+			+ "(select a.profile_id from " + schema + "profile a where a.annotation_type = '" + annotType + "')");
 		PreparedStatement pstmt = conn.prepareStatement("update " + schema + finalTable + " set disabled = 0 where profile_id = ? and target_id = ?");
 		for (String key : profileFilterMap.keySet()) {
 			String[] parts = key.split("\\|");

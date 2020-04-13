@@ -93,6 +93,8 @@ public class FilterPatterns
 	private PreparedStatement pstmtInsertFilterStatus;
 	private PreparedStatement pstmtUpdateFilterStatus;
 	private PreparedStatement pstmtGetAnswers;
+	private PreparedStatement pstmtGetDocIDs;
+	
 	
 	Map<String, Boolean> ansMap;
 	
@@ -141,12 +143,12 @@ public class FilterPatterns
 		this.minDocID = minDocID;
 	}
 	
-	public void init(String config)
+	public void init(String annotUser, String annotPassword, String msaUser, String msaPassword, String config)
 	{
 		try {
 			Properties props = new Properties();
 			props.load(new FileReader(config));
-			init(props);
+			init(annotUser, annotPassword, msaUser, msaPassword, props);
 		}
 		catch(Exception e)
 		{
@@ -158,6 +160,9 @@ public class FilterPatterns
 	{
 		try {
 			//stats.close();
+			db.close();
+			conn.close();
+			conn2.close();
 		}
 		catch(Exception e)
 		{
@@ -190,7 +195,7 @@ public class FilterPatterns
 		this.targetGroup = targetGroup;
 	}
 	
-	public void init(Properties props)
+	public void init(String annotUser, String annotPassword, String msaUser, String msaPassword, Properties props)
 	{
 		try {			
 			host = props.getProperty("host");
@@ -280,6 +285,8 @@ public class FilterPatterns
 			//targetMap.put("targetStr", ":" + targetType.toLowerCase());
 			//msaAnnotFilterList.remove(msaAnnotFilterList.size()-1);
 			msaAnnotFilterList.add(targetMap);
+			scoreList.add(100.0);
+
 			
 			if (targetType2 != null) {
 				targetMap2 = new HashMap<String, Object>();
@@ -299,8 +306,7 @@ public class FilterPatterns
 			annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType, scoreList);
 			//annotTypeNameList.add(":" + targetType.toLowerCase());
 			//annotTypeNameList.add(":" + targetType.toLowerCase());
-			scoreList.add(10.0);
-			
+						
 			
 			List<Map<String, Object>> contextAnnotFilterList = new ArrayList<Map<String, Object>>();
 			contextAnnotFilterList = gson.fromJson(props.getProperty("contextAnnotFilterList"), contextAnnotFilterList.getClass());
@@ -314,6 +320,27 @@ public class FilterPatterns
 			docDBHost = props.getProperty("docDBHost");
 			docDBName = props.getProperty("docDBName");
 			docDBType = props.getProperty("docDBType");
+			
+			
+			
+			
+			db.init(annotUser, annotPassword, host, dbName, dbName);
+			
+			
+			conn = DBConnection.dbConnection(msaUser, msaPassword, host, dbName, dbType);
+			conn2 = DBConnection.dbConnection(annotUser, annotPassword, host, dbName, dbType);
+			pstmtGetFilterStatus = conn.prepareStatement("select document_id from filter_status where " + schema + ".annotation_type = ?");
+			pstmtInsertFilterStatus = conn.prepareStatement("insert into " + schema + ".filter_status (annotation_type, document_id) values (?,?)");
+			pstmtUpdateFilterStatus = conn.prepareStatement("update " + schema + ".filter_status set document_id = ? where annotation_type = ?");
+			String rq = DBConnection.reservedQuote;
+			pstmtGetAnswers = conn.prepareStatement("select distinct document_id, start, " + rq + "end" + rq
+					+ "from " + schema + ".annotation where document_id = ? and annotation_type = ?"
+					+ " and provenance = ? order by document_id, start");
+
+			
+			if (docDBQuery == null)
+				docDBQuery = "select distinct document_id from " + schema + ".document_status where annotation_type = ? and status = 1 order by document_id";
+			pstmtGetDocIDs = conn2.prepareStatement(docDBQuery);
 			
 			
 		}
@@ -342,6 +369,8 @@ public class FilterPatterns
 			
 			docIDMap = new HashMap<String, List<Long>>();
 			
+			
+			/*
 			db.init(annotUser, annotPassword, host, dbName, dbName);
 			
 			
@@ -361,6 +390,7 @@ public class FilterPatterns
 			PreparedStatement pstmtGetDocIDs = conn2.prepareStatement(docDBQuery);
 			
 			//Statement stmt = conn.createStatement();
+			 */
 			
 
 			//set parameters for stats
@@ -389,8 +419,6 @@ public class FilterPatterns
 			
 			for (int index=0; index<annotTypeList.size(); index++) {
 				
-				
-				
 				targetType = annotTypeList.get(index);
 				profileTable = profileTableList.get(index);
 				indexTable = indexTableList.get(index);
@@ -408,6 +436,7 @@ public class FilterPatterns
 				//targetMap.put("targetStr", ":" + targetType.toLowerCase());
 				msaAnnotFilterList.remove(msaAnnotFilterList.size()-1);
 				msaAnnotFilterList.add(targetMap);
+				scoreList.add(100.0);
 				
 				if (targetType2 != null) {
 					targetMap2 = new HashMap<String, Object>();
@@ -423,7 +452,7 @@ public class FilterPatterns
 				
 				List<String> annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType, scoreList);
 				annotTypeNameList.add(annotTypeNameList.size()-1, ":" + targetType.toLowerCase());
-				scoreList.add(10.0);
+				scoreList.add(100.0);
 				
 				
 				/*
@@ -613,8 +642,15 @@ public class FilterPatterns
 						
 						Map<Long, ProfileGrid> profileIDMap = new HashMap<Long, ProfileGrid>();
 						
-						profileList = reader.read(targetType, group, readStart, clusterSize, 0, schema + "." + profileTable);
+						List<MSAProfile> profileList2 = null;
+						if (profileList == null) {
+							profileList2 = reader.read(targetType, group, readStart, clusterSize, 3, schema + "." + profileTable);
+						}
+
 						
+						profileList = reader.read(targetType, group, readStart, clusterSize, 0, schema + "." + profileTable);
+						if (profileList2 != null)
+							profileList.addAll(profileList2);
 						
 						
 						//check if there are profiles
@@ -716,9 +752,11 @@ public class FilterPatterns
 			
 			pw.close();
 			
+			/*
 			db.close();
 			conn.close();
 			conn2.close();
+			*/
 		}
 		catch(Exception e)
 		{
@@ -838,7 +876,7 @@ public class FilterPatterns
 		
 		try {
 			FilterPatterns ie = new FilterPatterns();
-			ie.init(args[6]);
+			ie.init(args[0], args[1], args[4], args[5], args[6]);
 			ie.filterPatterns(args[0], args[1], args[2], args[3], args[4], args[5]);
 		}
 		catch(Exception e)

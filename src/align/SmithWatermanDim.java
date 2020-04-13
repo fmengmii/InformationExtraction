@@ -119,6 +119,8 @@ public class SmithWatermanDim
 		
 		for (int i=0; i<annotTypeNameList.size(); i++) {
 			String annotType = annotTypeNameList.get(i);
+			System.out.println("annotType: " + annotType);
+			
 			double score = scoreList.get(i);
 			
 			/*

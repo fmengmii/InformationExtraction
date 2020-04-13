@@ -143,6 +143,8 @@ public class MySQLDBInterface implements MSADBInterface
 			pstmtSents.setString(2, docTable);
 			pstmtSents.setLong(3, docID);
 			
+			System.out.println(pstmtSents.toString());
+			
 			ResultSet rs = pstmtSents.executeQuery();
 			while (rs.next()) {
 				int start = rs.getInt(2);

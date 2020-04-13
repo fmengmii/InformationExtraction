@@ -263,6 +263,7 @@ public class GenSentences
 		negSeqList = new ArrayList<AnnotationSequence>();
 		seqMap = new HashMap<String, AnnotationSequence>();
 		
+		AnnotationSequence prevSeq = null;
 		for (int i=0; i<seqList.size(); i++) {
 			//AnnotationSequence seq = new AnnotationSequence();
 			
@@ -341,7 +342,13 @@ public class GenSentences
 			
 			//seq.setFocusCoords(focusCoords);
 			
-			
+			//add previous seq?
+			if (prevSeq != null && currSeq.getToks().size() < 10) {
+				prevSeq = currSeq;
+				AnnotationSequence seq2 = prevSeq.clone();
+				seq2.append(currSeq);
+				currSeq = seq2;
+			}
 			
 		
 			if (requireTarget && currSeq.getAnnotList(":target") != null) {

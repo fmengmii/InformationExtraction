@@ -182,7 +182,8 @@ public class IEDriver
 	private PreparedStatement pstmtDeleteIncompleteFromIndex;
 	private PreparedStatement pstmtDeleteFinalTable;
 	private PreparedStatement pstmtGetFrameInstanceID;
-
+	private PreparedStatement pstmtSetDocStatusRange;
+	private PreparedStatement pstmtSetFrameInstanceStatusRange;
 	
 	private long sleep;
 	
@@ -244,6 +245,9 @@ public class IEDriver
 			annotTypeQuery = props.getProperty("annotTypeQuery");
 			
 			incrementalFlag = Boolean.parseBoolean(props.getProperty("incrementalFlag"));
+			
+			
+			String projName = props.getProperty("projectName");
 			
 			
 			//get Gate properties
@@ -338,6 +342,8 @@ public class IEDriver
 			minGlobalNegPrec = Double.parseDouble(props.getProperty("minGlobalNegPrec"));
 			minGlobalNegCount = Integer.parseInt(props.getProperty("minGlobalNegCount"));
 			
+			int autoDocLimit = Integer.parseInt(props.getProperty("autoDocLimit"));
+			
 			//get Populate properties
 			populateFlag = Boolean.parseBoolean(props.getProperty("populateFlag"));
 			
@@ -354,13 +360,25 @@ public class IEDriver
 			schema2 = schema + ".";
 			String rq = DBConnection.reservedQuote;
 			
+			
+			//get projectID
+			Statement stmt= conn.createStatement();
+			int projID = -1;
+			if (projName != null) {
+				ResultSet rs = stmt.executeQuery("select project_id from " + schema2 + "project where name = '" + projName + "'");
+				if (rs.next()) {
+					projID = rs.getInt(1);
+				}
+			}
+			
 			pstmtInsertFrameInstanceStatus = conn.prepareStatement("insert into " + schema2 + "frame_instance_status (frame_instance_id, status) values (?,0)");
 			pstmtCheckFrameInstanceStatus = conn.prepareStatement("select status from " + schema2 + "frame_instance_status where frame_instance_id = ?");
 			pstmtUpdateFrameInstanceStatus = conn.prepareStatement("update " + schema2 + "frame_instance_status set status = ? where frame_instance_id = ?");
 			pstmtInsertDocStatus = conn.prepareStatement("insert into " + schema2 + "document_status (document_namespace, document_table, document_id, status, user_id) "
 				+ "values (?,?,?,0,-1)");
 			pstmtUpdateDocStatus = conn.prepareStatement("update " + schema2 + "document_status set status = 1 where document_namespace = ? and document_table = ? and document_id = ? and status = -2");
-			pstmtGetNewDocs = conn.prepareStatement("select a.document_namespace, a.document_table, a.document_id from " + schema2 + "frame_instance_document a left join " + schema2 + "document_status b on (a.document_id = b.document_id) "
+			pstmtGetNewDocs = conn.prepareStatement("select a.document_namespace, a.document_table, a.document_id from " + schema2 + "frame_instance_document a left join " 
+				+ schema2 + "document_status b on (a.document_id = b.document_id) "
 				+ "where a.frame_instance_id = ? and (b.status is null or b.status = -2) order by a.frame_instance_id, a.document_id");
 			
 			pstmtGetDocsWithStatus = conn.prepareStatement("select document_namespace, document_table, document_id from " + schema2 + "document_status where status = ?");
@@ -382,10 +400,13 @@ public class IEDriver
 			pstmtInsertGenMSAStatus = conn.prepareStatement("insert into " + schema2 + "gen_msa_status (annotation_type, profile_count) values (?,?)");
 			pstmtUpdateGenMSAStatus = conn.prepareStatement("update " + schema2 + "gen_msa_status set profile_count = ? where annotation_type = ?");
 			//pstmtGetGenMSAStatus = conn.prepareStatement("select profile_count from " + schema2 + "gen_msa_status where annotation_type = ?");
-			pstmtGetGenMSAStatus = conn.prepareStatement("select count(*) from " + schema2 + "document_status where status = 1");
+			//pstmtGetGenMSAStatus = conn.prepareStatement("select count(*) from " + schema2 + "document_status where status = 1");
+			pstmtGetGenMSAStatus = conn.prepareStatement("select count(*) from " + schema2 + "document_status a, " + schema2 + "annotation b "
+				+ "where b.provenance = 'validation-tool' and b.annotation_type = ? and a.status = 1 and a.document_id = b.document_id");
 			pstmtGetGenFilterStatus = conn.prepareStatement("select document_id from " + schema2 + "gen_filter_status");
 			pstmtInsertGenFilterStatus = conn.prepareStatement("insert into " + schema2 + "gen_filter_status (document_id) values (?)");
 			pstmtUpdateGenFilterStatus = conn.prepareStatement("update " + schema2 + "gen_filter_status set document_id = ?");
+			
 			
 			pstmtUpdateProfileGroup = conn.prepareStatement("update " + schema2 + "profile set " + rq + "group" + rq + " = ? where " + rq + "group" + rq + " = ?");
 			
@@ -396,12 +417,30 @@ public class IEDriver
 			
 			pstmtGetFrameInstanceID = conn.prepareStatement("select frame_instance_id from " + schema2 + "frame_instance_document where document_id = ?");
 			
+			pstmtSetDocStatusRange = conn.prepareStatement("update " + schema2 + "document_status set status = 2 where document_id >= ? and document_id <= ?");
+			pstmtSetFrameInstanceStatusRange = conn.prepareStatement("update " + schema2 + "frame_instance_status set status = 1 where frame_instance_id >= ? and frame_instance_id <= ?");
 			
-			newDocQuery = "select a.frame_instance_id, b.status from " + schema2 + "frame_instance a left join " + schema2 + "frame_instance_status b on (a.frame_instance_id = b.frame_instance_id) where (b.frame_instance_id is null or b.status = -2) order by frame_instance_id";
+			
+			newDocQuery = "select a.frame_instance_id, b.status from " + schema2 + "project_frame_instance a left join " + schema2 + "frame_instance_status b on (a.frame_instance_id = b.frame_instance_id) "
+				+ "where (a.project_id = " + projID + " and b.frame_instance_id is null or b.status = -2) order by frame_instance_id";
 			gateDocQuery = "select document_id from " + schema2 + "document_status where status = 0 or status = -2 order by document_id";
 			msaDocQuery = "select document_id from " + schema2 + "document_status where (status = 1 or status = 2) order by document_id";
 			filterDocQuery = "select document_id from " + schema2 + "document_status where status = 1 or status = 2 order by document_id";
-			autoDBQuery = "select document_id from " + schema2 + "document_status where status = 0 order by document_id";
+			
+			
+			
+			if (dbType.equals("mysql"))	{
+				autoDBQuery = "select document_id from " + schema2 + "document_status where status = 0 order by document_id";
+				if (autoDocLimit > 0)
+					autoDBQuery += " limit " + autoDocLimit;
+			}
+			else if (dbType.startsWith("sqlserver")) {
+				autoDBQuery = "document_id from " + schema2 + "document_status where status = 0 order by document_id";
+				if (autoDocLimit > 0)
+					autoDBQuery = "select top(" + autoDocLimit + ") " + autoDBQuery;
+				else
+					autoDBQuery = "select " + autoDBQuery;
+			}
 			
 			pstmtGetAutoDocIDs = conn.prepareStatement(autoDBQuery);
 			pstmtGetAutoRecheckDocIDs = conn.prepareStatement("select document_id from " + schema2 + "document_status where status = 1 order by document_id");
@@ -574,7 +613,7 @@ public class IEDriver
 			pattProps.setProperty("write", Boolean.toString(write));
 			pattProps.setProperty("docBlockSize", Integer.toString(docBlockSize));
 			
-			filterPatt.init(pattProps);
+			filterPatt.init(user, password, user, password, pattProps);
 			
 			
 			//best patts props
@@ -654,7 +693,7 @@ public class IEDriver
 			autoProps.setProperty("minGlobalNegPrec", Double.toString(minGlobalNegPrec));
 			autoProps.setProperty("minGlobalNegCount", Integer.toString(minGlobalNegCount));
 			
-			autoAnnot.init(autoProps);
+			autoAnnot.init(user, password, autoProps);
 
 			
 			pop.init(conn, schema, autoProvenance, DBConnection.reservedQuote);
@@ -744,6 +783,7 @@ public class IEDriver
 			
 			
 			//clean up any previous incomplete runs
+			
 			System.out.println("clean up previous runs...");
 			stmt.execute("delete from " + schema2 + rq + "index" + rq + 
 			" where document_id in (select distinct a.document_id from " + schema2 + "document_status a where a.status = 1)");
@@ -764,8 +804,8 @@ public class IEDriver
 			
 			//clear final table if there were documents with status 1 or there were new profiles that didn't finish processing
 			//if (docStatusOneCount > 0 || profileNewCount > 0) {
-				System.out.println("delete from final table...");
-				stmt.execute("delete from " + schema2 + "final");
+				//System.out.println("delete from final table...");
+				//stmt.execute("delete from " + schema2 + "final");
 			//}
 			
 			
@@ -833,6 +873,11 @@ public class IEDriver
 									pstmtUpdateFrameInstanceStatus.setLong(2, frameInstanceID);
 									pstmtUpdateFrameInstanceStatus.execute();
 								}
+								else if (status == -3) {
+									pstmtUpdateFrameInstanceStatus.setInt(1, 0);
+									pstmtUpdateFrameInstanceStatus.setLong(2, frameInstanceID);
+									pstmtUpdateFrameInstanceStatus.execute();
+								}
 							}
 							
 							Integer docStatus = doc.getStatus();
@@ -896,14 +941,24 @@ public class IEDriver
 						
 
 						int currCount = 0;
-						//pstmtGetGenMSAStatus.setString(1, annotType);
+						pstmtGetGenMSAStatus.setString(1, annotType);
 						rs = pstmtGetGenMSAStatus.executeQuery();
-						if (rs.next()) {
+
+						while (rs.next()) {
 							currCount = rs.getInt(1);
 						}
 						
 						if (currCount == 0)
 							continue;
+						
+						
+						//if user skips over a document, set the status to 2 for now??
+						/*
+						pstmtSetDocStatusRange.setLong(1, minDocID);
+						pstmtSetDocStatusRange.setLong(2, maxDocID);
+						pstmtSetDocStatusRange.execute();
+						*/
+						
 
 						//if (annotCount > currCount) {
 						activeAnnotTypeList.add(annotType);
@@ -952,11 +1007,13 @@ public class IEDriver
 					filterPatt.filterPatterns(user, password, docUser, docPassword, user, password);
 					
 					//second incremental for existing patterns to only run on new docs (status = 1)
+					/*
 					System.out.println("** FILTER Second Pass **");
 					filterPatt.setDocDBQuery("select document_id from " + schema2 + "document_status where status = 1 order by document_id");
 					filterPatt.setGroup(group + "##");
 					filterPatt.setTargetGroup(group + "##");
 					filterPatt.filterPatterns(user, password, docUser, docPassword, user, password);
+					*/
 					
 				}
 				
@@ -965,7 +1022,8 @@ public class IEDriver
 				if (bestFlag && filterPatt.getDocIDMap().size() > 0) {
 					System.out.println("** BEST **");
 					
-					pstmtDeleteFinalTable.execute();
+					
+					//pstmtDeleteFinalTable.execute();
 					
 					bestPatt.setAnnotTypeList(activeAnnotTypeList);
 					bestPatt.setProfileTableList(profileTableList);
@@ -1039,11 +1097,11 @@ public class IEDriver
 					autoAnnot.setDocDBQuery(autoDBQuery);
 					autoAnnot.setProfileMinPrec(profileMinPrec);
 					
-					autoAnnot.annotate(user, password, docUser, docPassword);
+					autoAnnot.annotate(user, password);
 					
 					pstmtDeleteFrameInstanceLocks.execute();
 					
-					autoAnnot.close();
+					//autoAnnot.close();
 				}
 				
 				//auto recheck
@@ -1072,11 +1130,11 @@ public class IEDriver
 					autoAnnot.setDocDBQuery("select document_id from " + schema2 + "document_status where status = 1 order by document_id");
 					autoAnnot.setProfileMinPrec(0.8);
 					
-					autoAnnot.annotate(user, password, docUser, docPassword);
+					autoAnnot.annotate(user, password);
 					
 					pstmtDeleteFrameInstanceLocks.execute();
 					
-					autoAnnot.close();
+					//autoAnnot.close();
 				}
 				
 				
@@ -1105,8 +1163,10 @@ public class IEDriver
 					break;
 				
 				count++;
-				if (runIterations <= 0 || count >= runIterations)
+				if (runIterations >= 0 && count >= runIterations)
 					break;
+				else if (runIterations < 0)
+					count = 0;
 				
 			}
 			
@@ -1141,6 +1201,7 @@ public class IEDriver
 			
 			ResultSet rs2 = pstmtGetNewDocs.executeQuery();
 
+			
 			while (rs2.next()) {
 				//if (docList.size() == 30)
 				//	break;
@@ -1148,6 +1209,7 @@ public class IEDriver
 				String docNamespace = rs2.getString(1);
 				String docTable = rs2.getString(2);
 				long docID = rs2.getLong(3);
+				
 				
 				//pstmtInsertDocStatus.setString(1, docNamespace);
 				//pstmtInsertDocStatus.setString(2, docTable);
