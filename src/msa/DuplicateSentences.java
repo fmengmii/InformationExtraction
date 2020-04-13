@@ -73,7 +73,7 @@ public class DuplicateSentences
 					
 					List<String> toks2 = toks;
 
-					if (i > 0) {
+					if (toks.size() < 10 && i > 0) {
 						toks2 = new ArrayList<String>();
 						for (String tok : seqList.get(i-1).getToks()) {
 							toks2.add(tok);
