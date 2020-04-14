@@ -99,16 +99,23 @@ public class PopulateFrame
 			
 			System.out.println("pop 0");
 			
+			conn.setAutoCommit(false);
 			while (rs.next()) {
 				int frameInstanceID = rs.getInt(1);
 				pstmtDelete.setInt(1, frameInstanceID);
-				pstmtDelete.execute();
+				//pstmtDelete.execute();
+				pstmtDelete.addBatch();
 				
 				//System.out.println(pstmtDelete.toString());
 				
 				pstmtDeleteElemRepeat.setInt(1, frameInstanceID);
-				pstmtDeleteElemRepeat.execute();
+				//pstmtDeleteElemRepeat.execute();
+				pstmtDeleteElemRepeat.addBatch();
 			}
+			
+			pstmtDelete.executeBatch();
+			conn.commit();
+			conn.setAutoCommit(true);
 			
 			System.out.println("pop 1");
 			
