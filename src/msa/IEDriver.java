@@ -55,6 +55,9 @@ public class IEDriver
 	private String profileTableName;
 	private String indexTableName;
 	private String finalTableName;
+	
+	
+	private int projID;
 
 
 	
@@ -363,7 +366,7 @@ public class IEDriver
 			
 			//get projectID
 			Statement stmt= conn.createStatement();
-			int projID = -1;
+			projID = -1;
 			if (projName != null) {
 				ResultSet rs = stmt.executeQuery("select project_id from " + schema2 + "project where name = '" + projName + "'");
 				if (rs.next()) {
@@ -1141,7 +1144,7 @@ public class IEDriver
 				//populate
 				if (populateFlag) {
 					System.out.println("*** POPULATE ***");
-					pop.populate();
+					pop.populate(projID);
 				}
 				
 				
