@@ -110,6 +110,7 @@ public class IEDriver
 	
 	
 	//Best
+	private String bestDocQuery;
 	private double negThreshold;
 	private int negMinCount;
 	private double posThreshold;
@@ -434,16 +435,26 @@ public class IEDriver
 				+ "(select b.document_id from " + schema + "project_frame_instance a, " + schema + "frame_instance_document b "
 				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "
 				+ "order by document_id";
-			
+			bestDocQuery = "select document_id, status from " + schema + "document_status" + " where (status = 1 or status = 2) "
+				+ "(select b.document_id from " + schema + "project_frame_instance a, " + schema + "frame_instance_document b "
+				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "
+				+ "order by document_id";
+					
 			
 			
 			if (dbType.equals("mysql"))	{
-				autoDBQuery = "select document_id from " + schema2 + "document_status where status = 0 order by document_id";
+				autoDBQuery = "select document_id from " + schema2 + "document_status where status = 0 and document_id in "
+					+ "(select b.document_id from " + schema + "project_frame_instance a, " + schema + "frame_instance_document b "
+					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "	
+					+ "order by document_id";
 				if (autoDocLimit > 0)
 					autoDBQuery += " limit " + autoDocLimit;
 			}
 			else if (dbType.startsWith("sqlserver")) {
-				autoDBQuery = "document_id from " + schema2 + "document_status where status = 0 order by document_id";
+				autoDBQuery = "document_id from " + schema2 + "document_status where status = 0 and document_id in "
+					+ "(select b.document_id from " + schema + "project_frame_instance a, " + schema + "frame_instance_document b "
+					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "
+					+ "order by document_id";
 				if (autoDocLimit > 0)
 					autoDBQuery = "select top(" + autoDocLimit + ") " + autoDBQuery;
 				else
@@ -638,6 +649,7 @@ public class IEDriver
 			//bestProps.setProperty("finalTable", finalTable);
 			//bestProps.setProperty("indexTable", indexTableName);
 			//bestProps.setProperty("profileTable", profileTableName);
+			bestProps.setProperty("docQuery", bestDocQuery);
 			bestProps.setProperty("provenance", targetProvenance);
 			bestProps.setProperty("negThreshold", Double.toString(negThreshold));
 			bestProps.setProperty("negMinCount", Integer.toString(negMinCount));

@@ -218,7 +218,10 @@ public class BestPatterns
 				docIDList = new ArrayList<Long>();
 				//ResultSet rs = stmt.executeQuery("select distinct document_id from " + rq + indexTable + rq + " order by document_id");
 				if (docQuery == null) {
-					docQuery = "select document_id, status from " + schema + "document_status" + " where status = 1 or status = 2 order by document_id";
+					docQuery = "select document_id, status from " + schema + "document_status" + " where (status = 1 or status = 2) "
+						+ "(select b.document_id from " + schema + "project_frame_instance a, " + schema + "frame_instance_document b "
+						+ "where a.frame_instance_id = b.frame_instance_id) "
+						+ "order by document_id";
 				}
 				
 				List<Integer> statusList = new ArrayList<Integer>();
