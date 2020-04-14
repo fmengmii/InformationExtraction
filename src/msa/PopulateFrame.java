@@ -77,7 +77,7 @@ public class PopulateFrame
 			String queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type from " + schema + "annotation "
 				+ " where document_id in "
 				+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b "
-					+ "where b.project_id = " + projID + " and a.document_id = b.document_id)";
+					+ "where b.project_id = " + projID + " and a.frame_instance_id = b.frame_instance_id)";
 			
 			//queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type from " + schema + "annotation where provenance = '" + provenance + "' order by document_id, start";
 			
