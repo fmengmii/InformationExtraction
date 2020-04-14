@@ -129,6 +129,8 @@ public class PopulateFrame
 			
 			int currFrameInstanceID = -1;
 			
+			conn.setAutoCommit(false);
+			
 			while (rs.next()) {
 				int annotID = rs.getInt(1);
 				String docNamespace = rs.getString(2);
@@ -139,11 +141,13 @@ public class PopulateFrame
 				
 				int frameInstanceID = getFrameInstanceID(docID);
 				
+				System.out.println("docID: " + docID);
+				
 				if (frameInstanceID != currFrameInstanceID) {
 					currFrameInstanceID = frameInstanceID;
 				
 					//lock frame instance in one transaction
-					conn.setAutoCommit(false);
+					//conn.setAutoCommit(false);
 					pstmtCheckFrameInstanceLocked.setInt(1, frameInstanceID);
 					
 					int count = 0;
@@ -160,7 +164,7 @@ public class PopulateFrame
 					pstmtLockFrameInstance.execute();
 					
 					conn.commit();
-					conn.setAutoCommit(true);
+					//conn.setAutoCommit(true);
 				}				
 				
 				int[] ans = getElementSlotID(annotType);
@@ -194,13 +198,19 @@ public class PopulateFrame
 				pstmtInsert.setLong(8, docID);
 				pstmtInsert.setInt(9, annotID);
 				pstmtInsert.setInt(10, ans[0]);
-				pstmtInsert.execute();
+				//pstmtInsert.execute();
+				pstmtInsert.addBatch();
 				
 				
 				//release lock
 				pstmtDeleteFrameInstanceLock.setInt(1, frameInstanceID);
 				pstmtDeleteFrameInstanceLock.execute();
 			}
+			
+			pstmtInsert.executeBatch();
+			conn.commit();
+			
+			conn.setAutoCommit(true);
 			
 			System.out.println("pop 3");
 			
