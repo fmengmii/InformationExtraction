@@ -54,7 +54,7 @@ public class PopulateFrame
 		}
 	}
 	
-	public void populate()
+	public void populate(int projID)
 	{
 		try {
 			
@@ -74,19 +74,31 @@ public class PopulateFrame
 			stmt.execute(queryStr);
 			*/
 			
-			String queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type from " + schema + "annotation where provenance = '" + provenance + "'";
+			String queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type from " + schema + "annotation "
+				+ " where document_id in "
+				+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b "
+					+ "where b.project_id = " + projID + " and a.document_id and b.document_id)";
 			
 			//queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type from " + schema + "annotation where provenance = '" + provenance + "' order by document_id, start";
 			
+			/*
 			if (DBConnection.dbType.startsWith("sqlserver")) {
 				queryStr = "select a.id, a.document_namespace, a.document_table, a.document_id, a.value, a.annotation_type from " + schema + "annotation a where provenance = '" + provenance + "' and not exists "
 					+ "(select b.* from " + schema + "frame_instance_data b where "
 					+ "a.document_namespace = b.document_namespace and a.document_table = b.document_table and a.document_id = b.document_id and "
 					+ "a.id = b.annotation_id)";
 			}
+			*/
 			
 			
-			ResultSet rs = stmt.executeQuery("select frame_instance_id from " + schema + "frame_instance_status where status = 0");
+			System.out.println("pop start");
+			
+			
+			ResultSet rs = stmt.executeQuery("select a.frame_instance_id from " + schema + "frame_instance_status a, " + schema + "project_frame_instance b "
+				+ "where a.status = 0 and b.project_id = " + projID + " and a.frame_instance_id = b.frame_instance_id");
+			
+			System.out.println("pop 0");
+			
 			while (rs.next()) {
 				int frameInstanceID = rs.getInt(1);
 				pstmtDelete.setInt(1, frameInstanceID);
@@ -304,7 +316,7 @@ public class PopulateFrame
 			Connection conn = DBConnection.dbConnection(args[0], args[1], args[2], args[3], args[4]);
 			PopulateFrame pop = new PopulateFrame();
 			pop.init(conn, args[5], args[6], DBConnection.reservedQuote);
-			pop.populate();
+			pop.populate(1);
 		}
 		catch(Exception e)
 		{
