@@ -216,8 +216,8 @@ public class ProfileMatcher
 					String profileStr = gson.toJson(profileToks);
 						
 					
-					System.out.println("profile from inverted: " + profileStr);
-					System.out.println("profileGrid: " + profileGrid.toString());
+					//System.out.println("profile from inverted: " + profileStr);
+					//System.out.println("profileGrid: " + profileGrid.toString());
 					
 					
 					//if (profileStr.equals("[\":start|start\",\":target\",\":i-org\"]") || 
