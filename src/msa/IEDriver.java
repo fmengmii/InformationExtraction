@@ -699,7 +699,7 @@ public class IEDriver
 			autoAnnot.init(user, password, autoProps);
 
 			
-			pop.init(conn, schema, autoProvenance, DBConnection.reservedQuote);
+			pop.init(user, password, host, dbName, dbType, schema, autoProvenance, DBConnection.reservedQuote);
 			
 			
 			//Cleanup

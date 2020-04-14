@@ -8,6 +8,7 @@ import utils.db.DBConnection;
 public class PopulateFrame
 {
 	private Connection conn;
+	private Connection conn2;
 	private PreparedStatement pstmtInsert;
 	private PreparedStatement pstmtDelete;
 	private PreparedStatement pstmtCountDelete;
@@ -26,15 +27,16 @@ public class PopulateFrame
 	{
 	}
 	
-	public void init(Connection conn, String schema, String provenance, String rq)
+	public void init(String user, String password, String host, String dbName, String dbType, String schema, String provenance, String rq)
 	{
 		this.schema = schema + ".";
 		this.provenance = provenance;
 		this.rq = rq;
 		
 		try {
-			this.conn = conn;
-			pstmtInsert = conn.prepareStatement("insert into " + this.schema + "frame_instance_data (frame_instance_id, slot_id, value, section_slot_number, element_slot_number, document_namespace, "
+			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
+			conn2 = DBConnection.dbConnection(user, password, host, dbName, dbType);
+			pstmtInsert = conn2.prepareStatement("insert into " + this.schema + "frame_instance_data (frame_instance_id, slot_id, value, section_slot_number, element_slot_number, document_namespace, "
 				+ "document_table, document_id, annotation_id, provenance, element_id, v_scroll_pos, scroll_height, scroll_width) values (?,?,?,?,?,?,?,?,?,'" + provenance + "',?,null,null,null)");
 			pstmtDelete = conn.prepareStatement("delete from " + this.schema + "frame_instance_data where frame_instance_id = ? and provenance = '" + provenance + "'");
 			//pstmtCountDelete = conn.prepareStatement("select element_id, count(*) from " + this.schema + "frame_instance_data where frame_instance_id = ? and provenance = ? group by element_id");
@@ -75,7 +77,7 @@ public class PopulateFrame
 			*/
 			
 			String queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type from " + schema + "annotation "
-				+ " where document_id in "
+				+ " where provenance = '" + provenance + "' and document_id in "
 				+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b "
 					+ "where b.project_id = " + projID + " and a.frame_instance_id = b.frame_instance_id)";
 			
@@ -147,7 +149,7 @@ public class PopulateFrame
 					currFrameInstanceID = frameInstanceID;
 				
 					//lock frame instance in one transaction
-					//conn.setAutoCommit(false);
+					conn.setAutoCommit(false);
 					pstmtCheckFrameInstanceLocked.setInt(1, frameInstanceID);
 					
 					int count = 0;
@@ -164,7 +166,7 @@ public class PopulateFrame
 					pstmtLockFrameInstance.execute();
 					
 					conn.commit();
-					//conn.setAutoCommit(true);
+					conn.setAutoCommit(true);
 				}				
 				
 				int[] ans = getElementSlotID(annotType);
@@ -208,9 +210,8 @@ public class PopulateFrame
 			}
 			
 			pstmtInsert.executeBatch();
-			conn.commit();
+			conn2.commit();
 			
-			conn.setAutoCommit(true);
 			
 			System.out.println("pop 3");
 			
@@ -332,7 +333,7 @@ public class PopulateFrame
 		try {
 			Connection conn = DBConnection.dbConnection(args[0], args[1], args[2], args[3], args[4]);
 			PopulateFrame pop = new PopulateFrame();
-			pop.init(conn, args[5], args[6], DBConnection.reservedQuote);
+			pop.init(args[0], args[1], args[2], args[3], args[4], args[5], args[6], DBConnection.reservedQuote);
 			pop.populate(1);
 		}
 		catch(Exception e)
