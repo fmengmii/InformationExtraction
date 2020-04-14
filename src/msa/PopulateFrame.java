@@ -98,11 +98,15 @@ public class PopulateFrame
 				pstmtDeleteElemRepeat.execute();
 			}
 			
+			System.out.println("pop 1");
+			
 			
 			Map<String, Integer> map = new HashMap<String, Integer>();
 			Map<Integer, Integer> sectionSlotMap = new HashMap<Integer, Integer>();			
 						
 			rs = stmt.executeQuery(queryStr);
+			
+			System.out.println("pop 2");
 			
 			int currFrameInstanceID = -1;
 			
@@ -179,6 +183,8 @@ public class PopulateFrame
 				pstmtDeleteFrameInstanceLock.execute();
 			}
 			
+			System.out.println("pop 3");
+			
 			for (String key : map.keySet()) {
 				int repeatNum = map.get(key) + 1;
 				
@@ -212,6 +218,8 @@ public class PopulateFrame
 				
 				System.out.println(key + ": " + repeatNum + repeat);
 			}
+			
+			System.out.println("pop 4");
 			
 			
 			
