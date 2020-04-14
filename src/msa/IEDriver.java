@@ -427,8 +427,13 @@ public class IEDriver
 			newDocQuery = "select a.frame_instance_id, b.status from " + schema2 + "project_frame_instance a left join " + schema2 + "frame_instance_status b on (a.frame_instance_id = b.frame_instance_id) "
 				+ "where (a.project_id = " + projID + " and b.frame_instance_id is null or b.status = -2) order by frame_instance_id";
 			gateDocQuery = "select document_id from " + schema2 + "document_status where status = 0 or status = -2 order by document_id";
-			msaDocQuery = "select document_id from " + schema2 + "document_status where (status = 1 or status = 2) order by document_id";
-			filterDocQuery = "select document_id from " + schema2 + "document_status where status = 1 or status = 2 order by document_id";
+			msaDocQuery = "select document_id from " + schema2 + "document_status where (status = 1 or status = 2) and document_id in "
+				+ "(select b.document_id from " + schema + "project_frame_instance a, " + schema + "frame_instance_document b "
+				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") order by document_id";
+			filterDocQuery = "select document_id from " + schema2 + "document_status where (status = 1 or status = 2) and document_id in "
+				+ "(select b.document_id from " + schema + "project_frame_instance a, " + schema + "frame_instance_document b "
+				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "
+				+ "order by document_id";
 			
 			
 			
