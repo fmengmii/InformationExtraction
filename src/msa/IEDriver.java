@@ -435,7 +435,7 @@ public class IEDriver
 				+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "
 				+ "order by document_id";
-			bestDocQuery = "select document_id, status from " + schema + "document_status" + " where (status = 1 or status = 2) "
+			bestDocQuery = "select document_id, status from " + schema2 + "document_status" + " where (status = 1 or status = 2) "
 				+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "
 				+ "order by document_id";
