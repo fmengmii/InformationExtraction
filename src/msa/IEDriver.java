@@ -429,14 +429,14 @@ public class IEDriver
 				+ "where (a.project_id = " + projID + " and b.frame_instance_id is null or b.status = -2) order by frame_instance_id";
 			gateDocQuery = "select document_id from " + schema2 + "document_status where status = 0 or status = -2 order by document_id";
 			msaDocQuery = "select document_id from " + schema2 + "document_status where (status = 1 or status = 2) and document_id in "
-				+ "(select b.document_id from " + schema + "project_frame_instance a, " + schema + "frame_instance_document b "
+				+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") order by document_id";
 			filterDocQuery = "select document_id from " + schema2 + "document_status where (status = 1 or status = 2) and document_id in "
-				+ "(select b.document_id from " + schema + "project_frame_instance a, " + schema + "frame_instance_document b "
+				+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "
 				+ "order by document_id";
 			bestDocQuery = "select document_id, status from " + schema + "document_status" + " where (status = 1 or status = 2) "
-				+ "(select b.document_id from " + schema + "project_frame_instance a, " + schema + "frame_instance_document b "
+				+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "
 				+ "order by document_id";
 					
@@ -444,7 +444,7 @@ public class IEDriver
 			
 			if (dbType.equals("mysql"))	{
 				autoDBQuery = "select document_id from " + schema2 + "document_status where status = 0 and document_id in "
-					+ "(select b.document_id from " + schema + "project_frame_instance a, " + schema + "frame_instance_document b "
+					+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "	
 					+ "order by document_id";
 				if (autoDocLimit > 0)
@@ -452,7 +452,7 @@ public class IEDriver
 			}
 			else if (dbType.startsWith("sqlserver")) {
 				autoDBQuery = "document_id from " + schema2 + "document_status where status = 0 and document_id in "
-					+ "(select b.document_id from " + schema + "project_frame_instance a, " + schema + "frame_instance_document b "
+					+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "
 					+ "order by document_id";
 				if (autoDocLimit > 0)
