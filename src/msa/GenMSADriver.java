@@ -631,6 +631,9 @@ public class GenMSADriver
 							toks2.add(toks.get(i));
 					}
 				}
+				
+				if (toks2.indexOf("\":target\"") < 0)
+					continue;
 			
 				StringBuilder strBlder = new StringBuilder();
 				strBlder.append("[\":start\",");
