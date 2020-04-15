@@ -487,8 +487,18 @@ public class BestPatterns
 						score = 1.0;
 					}
 					
-					if (profileTypeMap.get(key) != null)
+					//subtract one from negcount to correct for human errors
+					//or unannotated retrospective cases (status 1)
+					
+					negCount--;
+					
+					
+					if (profileTypeMap.get(key) != null) {
 						posCount = posMinCount + 1;
+						negCount = 0;
+					}
+					
+					
 					
 					System.out.println(key + " : " + posCount + ", " + negCount + ", " + prec + ", " + score);
 					
