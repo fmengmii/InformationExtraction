@@ -1106,7 +1106,7 @@ public class IEDriver
 				int docStatusCount = 0;
 				rs = stmt.executeQuery("select count(*) from " + schema + "document_status where status = 2 and document_id in "
 					+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema + "frame_instance_document b "
-					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID);
+					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
 				if (rs.next()) {
 					docStatusCount = rs.getInt(1);
 				}
