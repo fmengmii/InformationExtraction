@@ -406,7 +406,9 @@ public class IEDriver
 			//pstmtGetGenMSAStatus = conn.prepareStatement("select profile_count from " + schema2 + "gen_msa_status where annotation_type = ?");
 			//pstmtGetGenMSAStatus = conn.prepareStatement("select count(*) from " + schema2 + "document_status where status = 1");
 			pstmtGetGenMSAStatus = conn.prepareStatement("select count(*) from " + schema2 + "document_status a, " + schema2 + "annotation b "
-				+ "where b.provenance = 'validation-tool' and b.annotation_type = ? and a.status = 1 and a.document_id = b.document_id");
+				+ "where b.provenance = 'validation-tool' and b.annotation_type = ? and a.status = 1 and a.document_id = b.document_id and a.document_id in "
+				+ "(select d.document_id from " + schema2 + "project_frame_instance c, " + schema2 + "frame_instance_document d "
+				+ "where c.frame_instance_id = d.frame_instance_id and c.project_id = " + projID + ")");
 			pstmtGetGenFilterStatus = conn.prepareStatement("select document_id from " + schema2 + "gen_filter_status");
 			pstmtInsertGenFilterStatus = conn.prepareStatement("insert into " + schema2 + "gen_filter_status (document_id) values (?)");
 			pstmtUpdateGenFilterStatus = conn.prepareStatement("update " + schema2 + "gen_filter_status set document_id = ?");
@@ -1060,7 +1062,10 @@ public class IEDriver
 				}
 				
 				
+				
+				
 				//set document status
+				/*
 				if (docList.size() > 0) {
 					conn.setAutoCommit(false);
 					
@@ -1077,14 +1082,6 @@ public class IEDriver
 					//updateDocsWithStatusDocID(1, 3, docListSmall);
 					//pstmtResetGenMSAStatus.execute();
 					
-					/*
-					for (DocBean doc : docListSmall) {
-						long frameInstanceID = doc.getFrameInstanceID();
-						pstmtUpdateFrameInstanceStatus.setInt(1, newStatus);
-						pstmtUpdateFrameInstanceStatus.setLong(2, frameInstanceID);
-						pstmtUpdateFrameInstanceStatus.execute();
-					}
-					*/
 					
 					//update profile group so that profiles already filtered will not be filtered again
 					pstmtUpdateProfileGroup.setString(1, group + "##");
@@ -1094,7 +1091,33 @@ public class IEDriver
 					conn.commit();
 					conn.setAutoCommit(true);
 				}
+				 */
 				
+
+				stmt.execute("update " + schema2 + "frame_instance_status set status = 2 where status = 1 and frame_instance_id in "
+					+ "(select distinct a.frame_instance_id from " + schema2 + "project_frame_instance a "
+					+ "where a.project_id = " + projID + ")");
+				
+				stmt.execute("update " + schema2 + "document_status set status = 2 where status = 1 and document_id in "
+						+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
+						+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
+				
+				
+				int docStatusCount = 0;
+				rs = stmt.executeQuery("select count(*) from " + schema + "document_status where status = 2 and document_id in "
+					+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema + "frame_instance_document b "
+					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID);
+				if (rs.next()) {
+					docStatusCount = rs.getInt(1);
+				}
+				
+				if (docStatusCount >= blockSize) {
+					stmt.execute("update " + schema + "frame_instance_status set status = 3 where frame_instance_id in "
+						+ "(select distinct a.frame_instance_id from " + schema2 + "project_frame_instance a where a.project_id = " + projID + ")");
+					stmt.execute("update " + schema2 + "document_status set status = 3 where status = 2 and document_id in "
+						+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
+						+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
+				}
 
 				
 				
