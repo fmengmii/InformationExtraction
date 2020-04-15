@@ -1301,6 +1301,9 @@ public class IEDriver
 			if (rs.next()) {
 				frameInstanceID = rs.getLong(1);
 			}
+			
+			System.out.println("frameInstanceID: " + frameInstanceID + "status: " + newStatus); 
+			
 			if (frameInstanceMap.get(frameInstanceID) == null) {
 				frameInstanceMap.put(frameInstanceID, true);
 				//pstmtUpdateFrameInstanceStatus.setLong(1, newStatus);
@@ -1310,6 +1313,7 @@ public class IEDriver
 			}
 				
 			
+			System.out.println("docID: " + docBean.getDocID() + "status: " + newStatus); 
 			pstmtUpdateDocsWithStatusDocID.setLong(3, docBean.getDocID());
 			pstmtUpdateDocsWithStatusDocID.execute();
 		}

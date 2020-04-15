@@ -158,7 +158,6 @@ public class GenSentences
 		try {	
 			for (long docID : docIDList) {
 				//get doc name
-				String docName = docNamespace + "-" + docTable + "-" + docID;
 				
 				System.out.println("\n\n");
 				List<AnnotationSequence> docSeqList = db.getSentsInDoc(docNamespace, docTable, docID);
@@ -169,7 +168,7 @@ public class GenSentences
 				int lastSentIndex = 0;
 
 				for (AnnotationSequence seq : docSeqList) {
-					//System.out.println("before get sent annots");
+
 					List<Annotation> annotList = db.getSentAnnots(docNamespace, docTable, docID, lastSentIndex, seq.getEnd(), punct);
 					if (annotList.size() == 0)
 						continue;
@@ -177,11 +176,9 @@ public class GenSentences
 					long seqStart = seq.getStart();
 					lastSentIndex = seq.getEnd();
 					
-					boolean hasTarget = false;
 					long currMaxEnd = -1;
-					//System.out.println("after get sent annots");
+
 					for (Annotation annot : annotList) {
-						//System.out.println(annot.toString());
 						
 						if (annot.getEnd() > currMaxEnd) {
 							currMaxEnd = annot.getEnd();
@@ -214,16 +211,8 @@ public class GenSentences
 						if (featureList == null)
 							target = true;
 						
-						/*
-						if (featureList == null && !target)
-							continue;
-							*/
-						
-						//if (!maskTarget)
 						seq.addAnnotation(annot, featureList, target, targetStr);
 						
-						if (target)
-							hasTarget = true;
 					}
 					
 					
@@ -364,6 +353,19 @@ public class GenSentences
 			//System.out.println("i=" + i + ", minStart=" + minStart + ", endIndex=" + endIndex);
 		}
 		
+	}
+	
+	private void addTargets()
+	{
+		for (AnnotationSequence seq : seqList) {
+			
+			//remove any existing targets
+			seq.removeAnnotType(":target");
+			
+			Map<String, Object> annotMap = annotFilterMap.get("target");
+			String targetType = (String) annotMap.get("annotType");
+			List<Annotation> annotList = seq.getAnnotList();
+		}
 	}
 	
 	public void genTargetPhrases(String docNamespace, String docTable, String targetType, String targetProvenance) throws MSADBException
