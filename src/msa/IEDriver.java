@@ -464,7 +464,7 @@ public class IEDriver
 			}
 			
 			
-			autoDBQuery += " union select document_id from " + schema + "document_status where status = 1 and document_id in "
+			autoDBQuery += " union select document_id from " + schema2 + "document_status where status = 1 and document_id in "
 				+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "
 				+ "order by document_id";
