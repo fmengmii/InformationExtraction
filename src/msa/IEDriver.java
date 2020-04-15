@@ -1104,15 +1104,15 @@ public class IEDriver
 				
 				
 				int docStatusCount = 0;
-				rs = stmt.executeQuery("select count(*) from " + schema + "document_status where status = 2 and document_id in "
-					+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema + "frame_instance_document b "
+				rs = stmt.executeQuery("select count(*) from " + schema2 + "document_status where status = 2 and document_id in "
+					+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
 				if (rs.next()) {
 					docStatusCount = rs.getInt(1);
 				}
 				
 				if (docStatusCount >= blockSize) {
-					stmt.execute("update " + schema + "frame_instance_status set status = 3 where frame_instance_id in "
+					stmt.execute("update " + schema2 + "frame_instance_status set status = 3 where frame_instance_id in "
 						+ "(select distinct a.frame_instance_id from " + schema2 + "project_frame_instance a where a.project_id = " + projID + ")");
 					stmt.execute("update " + schema2 + "document_status set status = 3 where status = 2 and document_id in "
 						+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
