@@ -447,16 +447,16 @@ public class IEDriver
 			if (dbType.equals("mysql"))	{
 				autoDBQuery = "select document_id from " + schema2 + "document_status where status = 0 and document_id in "
 					+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
-					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "	
-					+ "order by document_id";
+					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") ";
+					//+ "order by document_id";
 				if (autoDocLimit > 0)
 					autoDBQuery += " limit " + autoDocLimit;
 			}
 			else if (dbType.startsWith("sqlserver")) {
 				autoDBQuery = "document_id from " + schema2 + "document_status where status = 0 and document_id in "
 					+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
-					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "
-					+ "order by document_id";
+					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") ";
+					//+ "order by document_id";
 				if (autoDocLimit > 0)
 					autoDBQuery = "select top(" + autoDocLimit + ") " + autoDBQuery;
 				else
