@@ -112,10 +112,12 @@ public class MSAUtils
 		
 		for (Map<String, Object> map : annotFilterList) {
 			String annotType = (String) map.get("annotType");
+			String targetStr = (String) map.get("targetStr");
 			List<String> features = (List<String>) map.get("features");
 			
 			if (features == null) {
-				annotTypeNameList.add(":target");
+				//annotTypeNameList.add(":target");
+				annotTypeNameList.add(targetStr);
 				continue;
 			}
 

@@ -144,7 +144,6 @@ public class GenAnnotationGrid
 		for (int i=0; i<annotTypeNameList.size(); i++) {
 			String annotType = annotTypeNameList.get(i);
 			
-			//System.out.println("annotType: " + annotType);
 			
 			
 			List<Annotation> annotList = annotMap.get(annotType);

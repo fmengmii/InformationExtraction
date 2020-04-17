@@ -62,7 +62,7 @@ public class PopulateFrame
 			
 			Statement stmt = conn.createStatement();
 			
-			
+			conn2.setAutoCommit(false);
 			
 			/*
 			String queryStr = "delete from " + schema + "frame_instance_data where (document_id, annotation_id) in (select distinct a.document_id, a.id from " + schema + "annotation a," + schema + "document_status b where a.provenance = '" + provenance + "'"

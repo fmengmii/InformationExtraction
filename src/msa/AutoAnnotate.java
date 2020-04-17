@@ -440,7 +440,7 @@ public class AutoAnnotate
 				genSent.setVerbose(verbose);
 				genSent.setTokenType(tokType);
 				//genSent.setMaskTarget(true);
-				genSent.init(db, msaAnnotFilterList, targetType, targetProvenance);
+				genSent.init(db, msaAnnotFilterList, targetProvenance);
 				
 				System.out.println("gen sents...");
 				if (docIDList == null)

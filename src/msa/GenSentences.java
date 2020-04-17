@@ -107,7 +107,16 @@ public class GenSentences
 		return seqMap;
 	}
 	
-	public void init(MSADBInterface db, List<Map<String, Object>> annotFilterList, String targetType, String targetProvenance)
+	public void setTarget(Map<String, Object> targetMap)
+	{
+		String annotType = (String) targetMap.get("annotType");
+		//System.out.println("annotType: " + annotType);
+		List<String> features = (List<String>) targetMap.get("features");
+		annotFilterMap.put(annotType, targetMap);
+		annotFeatureMap.put(annotType, features);
+	}
+	
+	public void init(MSADBInterface db, List<Map<String, Object>> annotFilterList, String targetProvenance)
 	{
 		this.db = db;
 		
@@ -117,18 +126,20 @@ public class GenSentences
 		
 		for (Map<String, Object> map : annotFilterList) {
 			String annotType = (String) map.get("annotType");
-			System.out.println("annotType: " + annotType);
+			//System.out.println("annotType: " + annotType);
 			List<String> features = (List<String>) map.get("features");
 			annotFilterMap.put(annotType, map);
 			annotFeatureMap.put(annotType, features);
 		}
 		
+		
+		seqMap = new HashMap<String, AnnotationSequence>();
 	}
 	
 	public void genSentences(String docNamespace, String docTable, String where, int limit)
 	{
 		try {
-			StringBuilder docQueryStrBlder = new StringBuilder("select document_id from " + docTable);
+			StringBuilder docQueryStrBlder = new StringBuilder("select document_id from " + docNamespace + "." + docTable);
 			
 			if (where != null) {
 				docQueryStrBlder.append(" where " + where);
@@ -168,6 +179,20 @@ public class GenSentences
 				int lastSentIndex = 0;
 
 				for (AnnotationSequence seq : docSeqList) {
+					
+					//check to see if this sentence was cached
+					AnnotationSequence seq2 = seqMap.get(docID + "|" + seq.getStart());
+					if (seq2 != null) {
+						System.out.println("cached sentence!");
+						seqList.add(seq2);
+						continue;
+					}
+							
+					//add to the cache
+					String key = seq.getDocID() + "|" + seq.getStart();
+					seqMap.put(key, seq);
+					
+					
 
 					List<Annotation> annotList = db.getSentAnnots(docNamespace, docTable, docID, lastSentIndex, seq.getEnd(), punct);
 					if (annotList.size() == 0)
@@ -190,17 +215,25 @@ public class GenSentences
 						
 						Map<String, Object> annotFilter = annotFilterMap.get(annotType);
 						
+						
+						
 						if (annotFilter == null)
 							continue;
 						
 						String prov = (String) annotFilter.get("provenance");
 						
+						if (annotType.startsWith("lung")) {
+							//System.out.println("annotType: " + annotType);
+							//System.out.println("prov: " + prov + " annotProv: " + annot.getProvenance());
+						}
+						
 						if (prov != null && annot.getProvenance() != null && !annot.getProvenance().equals(prov))
 							continue;
 						
-
+						
 						List<String> featureList = annotFeatureMap.get(annotType);
 						
+						/*
 						String targetStr = ":target";
 						Boolean target = (Boolean) annotFilter.get("target");
 						if (featureList != null && (!requireTarget || target == null))
@@ -210,8 +243,14 @@ public class GenSentences
 						
 						if (featureList == null)
 							target = true;
+						*/
 						
-						seq.addAnnotation(annot, featureList, target, targetStr);
+						boolean target = false;
+						if (featureList == null)
+							target = true;
+						
+						seq.addAnnotation(annot, featureList, target, annotType);
+						
 						
 					}
 					
@@ -250,8 +289,9 @@ public class GenSentences
 	{
 		posSeqList = new ArrayList<AnnotationSequence>();
 		negSeqList = new ArrayList<AnnotationSequence>();
-		seqMap = new HashMap<String, AnnotationSequence>();
+		//seqMap = new HashMap<String, AnnotationSequence>();
 		
+
 		AnnotationSequence prevSeq = null;
 		for (int i=0; i<seqList.size(); i++) {
 			//AnnotationSequence seq = new AnnotationSequence();
@@ -347,25 +387,47 @@ public class GenSentences
 			else
 				negSeqList.add(currSeq);
 			
-			String key = currSeq.getDocID() + "|" + currSeq.getStart();
-			seqMap.put(key, currSeq);
 			
-			//System.out.println("i=" + i + ", minStart=" + minStart + ", endIndex=" + endIndex);
 		}
-		
+
+		System.out.println("posSeqList:" + posSeqList.size() + " negSeqList: " + negSeqList.size());
 	}
 	
-	private void addTargets()
+	public void addTargets(String targetType)
 	{
 		for (AnnotationSequence seq : seqList) {
 			
 			//remove any existing targets
 			seq.removeAnnotType(":target");
 			
-			Map<String, Object> annotMap = annotFilterMap.get("target");
-			String targetType = (String) annotMap.get("annotType");
-			List<Annotation> annotList = seq.getAnnotList();
+			Map<String, Object> annotFilter = annotFilterMap.get(targetType);
+			List<Annotation> annotList = seq.getAnnotList(targetType);
+			
+			//System.out.println("targetType: " + targetType);
+			
+			if (annotList == null) {
+				//System.out.println("annotlist null");
+				continue;
+			}
+			
+			//System.out.println("annotList: " + annotList.size());
+			
+			for (Annotation annot : annotList) {
+				String annotType = annot.getAnnotationType();
+				
+				if (annotType.equals(targetType)) {
+					List<String> featureList = annotFeatureMap.get(annotType);
+					
+					String targetStr = ":target";
+					//Boolean target = (Boolean) annotFilter.get("target");
+					targetStr = (String) annotFilter.get("targetStr");
+					
+					seq.addAnnotation(annot, featureList, true, targetStr);
+				}
+			}
 		}
+		
+		genExtractionSequences();
 	}
 	
 	public void genTargetPhrases(String docNamespace, String docTable, String targetType, String targetProvenance) throws MSADBException

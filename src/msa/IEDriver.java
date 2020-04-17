@@ -433,40 +433,38 @@ public class IEDriver
 			msaDocQuery = "select document_id from " + schema2 + "document_status where (status = 1 or status = 2) and document_id in "
 				+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") order by document_id";
-			filterDocQuery = "select document_id from " + schema2 + "document_status where (status = 1 or status = 2) and document_id in "
+			filterDocQuery = "select document_id from " + schema2 + "document_status where status = 1 and document_id in "
 				+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "
 				+ "order by document_id";
-			bestDocQuery = "select document_id, status from " + schema2 + "document_status" + " where (status = 1 or status = 2) "
-				+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
-				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "
+			bestDocQuery = "select document_id, status from " + schema2 + "document_status" + " where ((status > 0 and status < 4) or status = -4) "
 				+ "order by document_id";
 					
 			
 			
 			if (dbType.equals("mysql"))	{
-				autoDBQuery = "select document_id from " + schema2 + "document_status where status = 0 and document_id in "
+				autoDBQuery = "(select document_id from " + schema2 + "document_status where status = 0 and document_id in "
 					+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") ";
 					//+ "order by document_id";
 				if (autoDocLimit > 0)
-					autoDBQuery += " limit " + autoDocLimit;
+					autoDBQuery += " limit " + autoDocLimit + ")";
 			}
 			else if (dbType.startsWith("sqlserver")) {
 				autoDBQuery = "document_id from " + schema2 + "document_status where status = 0 and document_id in "
 					+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
-					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") ";
+					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")) ";
 					//+ "order by document_id";
 				if (autoDocLimit > 0)
-					autoDBQuery = "select top(" + autoDocLimit + ") " + autoDBQuery;
+					autoDBQuery = "(select top(" + autoDocLimit + ") " + autoDBQuery;
 				else
-					autoDBQuery = "select " + autoDBQuery;
+					autoDBQuery = "(select " + autoDBQuery;
 			}
 			
 			
-			autoDBQuery += " union select document_id from " + schema2 + "document_status where status = 1 and document_id in "
+			autoDBQuery += " union (select document_id from " + schema2 + "document_status where (status = 1 or status = -4) and document_id in "
 				+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
-				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "
+				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")) "
 				+ "order by document_id";
 			
 			
@@ -956,12 +954,15 @@ public class IEDriver
 				//long minDocID = -1;
 				int lastDocIndex = -1;
 				
+				GenSentences genSent = null;
+				
 				//gen MSAs
 				if (msaFlag) {
 					System.out.println("** Gen MSA **");
 					//run MSA generator
 					
 					
+					genMSADriver.getSentences(user, password, annotTypeList);
 					
 					for (int i=0; i<annotTypeList.size(); i++) {
 					//for (int i=0; i<2; i++) {
@@ -1025,10 +1026,24 @@ public class IEDriver
 				}
 				
 				
+				genSent = genMSADriver.getGenSent();
+				
+				
 				//filter patterns
 				if (filterFlag) {
 					System.out.println("** FILTER **");
 					//run filter patterns
+					
+					filterPatt.setGenSent(genSent);
+					filterPatt.readDocIDList();
+					
+					//set status
+					stmt.execute("update " + schema2 + "frame_instance_status set status = -4 where status = 1 and frame_instance_id in "
+						+ "(select distinct a.frame_instance_id from " + schema2 + "project_frame_instance a where a.project_id = " + projID + ")");
+					stmt.execute("update " + schema2 + "document_status set status = -4 where status = 1 and document_id in "
+							+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, frame_instance_document b "
+							+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
+					
 					
 					filterPatt.setAnnotTypeList(activeAnnotTypeList);
 					filterPatt.setProfileTableList(profileTableList);
@@ -1045,6 +1060,9 @@ public class IEDriver
 					*/
 					
 				}
+				
+				
+				
 				
 				
 				//best patterns
@@ -1094,31 +1112,6 @@ public class IEDriver
 				 */
 				
 
-				stmt.execute("update " + schema2 + "frame_instance_status set status = 2 where status = 1 and frame_instance_id in "
-					+ "(select distinct a.frame_instance_id from " + schema2 + "project_frame_instance a "
-					+ "where a.project_id = " + projID + ")");
-				
-				stmt.execute("update " + schema2 + "document_status set status = 2 where status = 1 and document_id in "
-						+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
-						+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
-				
-				
-				int docStatusCount = 0;
-				rs = stmt.executeQuery("select count(*) from " + schema2 + "document_status where status = 2 and document_id in "
-					+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
-					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
-				if (rs.next()) {
-					docStatusCount = rs.getInt(1);
-				}
-				
-				if (docStatusCount >= blockSize) {
-					stmt.execute("update " + schema2 + "frame_instance_status set status = 3 where frame_instance_id in "
-						+ "(select distinct a.frame_instance_id from " + schema2 + "project_frame_instance a where a.project_id = " + projID + ")");
-					stmt.execute("update " + schema2 + "document_status set status = 3 where status = 2 and document_id in "
-						+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
-						+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
-				}
-
 				
 				
 				//auto annotate
@@ -1140,6 +1133,7 @@ public class IEDriver
 						}
 					}
 					
+					autoAnnot.setGenSent(genSent);
 					autoAnnot.setAnnotTypeList(activeAnnotTypeList);
 					autoAnnot.setProfileTableList(profileTableList);
 					autoAnnot.setFinalTableList(finalTableList);
@@ -1185,6 +1179,35 @@ public class IEDriver
 					pstmtDeleteFrameInstanceLocks.execute();
 					
 					//autoAnnot.close();
+				}
+				
+				
+				
+				
+				//reset status to 2
+				stmt.execute("update " + schema2 + "frame_instance_status set status = 2 where status = -4 and frame_instance_id in "
+						+ "(select distinct a.frame_instance_id from " + schema2 + "project_frame_instance a "
+						+ "where a.project_id = " + projID + ")");
+					
+				stmt.execute("update " + schema2 + "document_status set status = 2 where status = -4 and document_id in "
+						+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
+						+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
+				
+				
+				int docStatusCount = 0;
+				rs = stmt.executeQuery("select count(*) from " + schema2 + "document_status where status = 2 and document_id in "
+					+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
+					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
+				if (rs.next()) {
+					docStatusCount = rs.getInt(1);
+				}
+				
+				if (docStatusCount >= blockSize) {
+					stmt.execute("update " + schema2 + "frame_instance_status set status = 3 where status = 2 and frame_instance_id in "
+						+ "(select distinct a.frame_instance_id from " + schema2 + "project_frame_instance a where a.project_id = " + projID + ")");
+					stmt.execute("update " + schema2 + "document_status set status = 3 where status = 2 and document_id in "
+						+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
+						+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
 				}
 				
 				

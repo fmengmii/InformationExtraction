@@ -107,7 +107,7 @@ public class FilterPatterns
 	
 	public FilterPatterns()
 	{
-		genSent = new GenSentences();
+		//genSent = new GenSentences();
 		stats = new ProfileStats();
 		
 		gson = new Gson();
@@ -141,6 +141,11 @@ public class FilterPatterns
 	public void setMinDocID(long minDocID)
 	{
 		this.minDocID = minDocID;
+	}
+	
+	public void setGenSent(GenSentences genSent)
+	{
+		this.genSent = genSent;
 	}
 	
 	public void init(String annotUser, String annotPassword, String msaUser, String msaPassword, String config)
@@ -259,9 +264,6 @@ public class FilterPatterns
 			db.setSchema(schema);
 				
 			
-			genSent.setVerbose(verbose);
-			genSent.setTokenType(tokType);
-			
 			msaAnnotFilterList = new ArrayList<Map<String, Object>>();
 			msaAnnotFilterList = gson.fromJson(props.getProperty("msaAnnotFilterList"), msaAnnotFilterList.getClass());
 			
@@ -350,6 +352,23 @@ public class FilterPatterns
 		}
 	}
 	
+	public void readDocIDList()
+	{
+		try {
+			docIDList = new ArrayList<Long>();
+			
+			Statement stmt = conn.createStatement();
+			ResultSet rs = stmt.executeQuery(docDBQuery);
+			while (rs.next()) {
+				docIDList.add(rs.getLong(1));
+			}
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
 	public void filterPatterns(String annotUser, String annotPassword, String docUser, String docPassword, String msaUser, String msaPassword)
 	{
 		System.out.println("start filter patterns!");
@@ -417,6 +436,56 @@ public class FilterPatterns
 			reader.init(msaUser, msaPassword, host, dbType, dbName);
 			
 			
+			
+			
+			for (String targetType : annotTypeList) {
+				Map<String, Object> targetMap = new HashMap<String, Object>();
+				targetMap.put("annotType", targetType);
+				targetMap.put("target", true);
+				targetMap.put("provenance", targetProvenance);
+				targetMap.put("targetStr", ":target");
+				msaAnnotFilterList.add(targetMap);
+				scoreList.add(100.0);
+			}
+			
+			
+			if (genSent == null) {
+				genSent = new GenSentences();
+				genSent.setVerbose(verbose);
+				genSent.setPunct(punct);
+				genSent.setTokenType(tokType);
+				genSent.init(db, msaAnnotFilterList, targetProvenance);
+			}
+			
+			genSent.setRequireTarget(false);
+
+			if (docIDList == null)
+				genSent.genSentences(docNamespace, docTable, null, limit);
+			else {
+				genSent.setDocIDList(docIDList);
+				genSent.genSentenceAnnots(docNamespace, docTable);
+			}
+			
+			
+			
+			//gen new gridlist without targets
+			//these are the sentences to be processed
+			//genSent.setRequireTarget(false);
+			//genSent.genExtractionSequences();
+			
+			GenAnnotationGrid genGrid = new GenAnnotationGrid(annotTypeNameList, tokType);
+			
+			List<AnnotationSequence> negSeqList = genSent.getNegSeqList();
+			
+			List<AnnotationSequenceGrid> gridList = new ArrayList<AnnotationSequenceGrid>();
+			for (AnnotationSequence negSeq : negSeqList) {
+				List<AnnotationSequenceGrid> negGridList2 = genGrid.toAnnotSeqGrid(negSeq, false, false, true, true, false);
+				gridList.addAll(negGridList2);
+			}
+			
+			
+			
+			
 			for (int index=0; index<annotTypeList.size(); index++) {
 				
 				targetType = annotTypeList.get(index);
@@ -448,6 +517,7 @@ public class FilterPatterns
 					profileType = 2;
 				}
 				
+				System.out.println("filter targetType: :" + targetType);
 				
 				
 				List<String> annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType, scoreList);
@@ -514,7 +584,7 @@ public class FilterPatterns
 				}
 				
 				
-				GenAnnotationGrid genGrid = new GenAnnotationGrid(annotTypeNameList, tokType);
+				//GenAnnotationGrid genGrid = new GenAnnotationGrid(annotTypeNameList, tokType);
 				
 				
 				for (MSAProfile targetProfile : targetProfileList) {
@@ -559,12 +629,20 @@ public class FilterPatterns
 
 				//main loop through blocks of doc IDs
 				
-				ResultSet docRS = pstmtGetDocIDs.executeQuery();
+				//ResultSet docRS = pstmtGetDocIDs.executeQuery();
 				
-				while (true) {
-					docIDList = new ArrayList<Long>();
+				int currIndex = 0;
+				for (long docID : docIDList) {
+					List<Long> docIDListBlock = new ArrayList<Long>();
 					
 					int docCount = 0;
+					for (int i=currIndex; i<docIDList.size() && docCount < docBlockSize; i++) {
+						docIDListBlock.add(docIDList.get(i));
+						docCount++;
+						currIndex++;
+					}
+					
+					/*
 					boolean flag = docRS.next();
 					while (flag && docCount < docBlockSize -1) {
 						docIDList.add(docRS.getLong(1));
@@ -574,6 +652,7 @@ public class FilterPatterns
 					
 					if (flag)
 						docIDList.add(docRS.getLong(1));
+						*/
 					
 					if (docCount == 0)
 						break;
@@ -582,14 +661,14 @@ public class FilterPatterns
 					
 					docIDMap.put(targetType, docIDList);
 					
-					stats.setDocIDList(docIDList);
+					stats.setDocIDList(docIDListBlock);
 					
 				
 					//read answers
 					System.out.println("reading answers...");
 					ansMap = new HashMap<String, Boolean>();
-					for (long docID : docIDList)
-						readAnswers(targetType, targetProvenance, docID);
+					for (long docID2 : docIDListBlock)
+						readAnswers(targetType, targetProvenance, docID2);
 					
 					stats.setAnsMap(ansMap);
 					
@@ -597,9 +676,8 @@ public class FilterPatterns
 					
 					
 					//generate the sentences
-					genSentences(docIDList, docNamespace, docTable, requireTarget, punct, limit);
-					//List<AnnotationSequence> posSeqList = genSent.getPosSeqList();
-					List<AnnotationSequence> negSeqList = genSent.getNegSeqList();
+					//genSentences(docIDListBlock, docNamespace, docTable, requireTarget, punct, limit);
+					//List<AnnotationSequence> negSeqList = genSent.getNegSeqList();
 					
 					
 					//loop generating blocks of grids no more than size msaBlockSize
@@ -611,19 +689,7 @@ public class FilterPatterns
 										
 		
 					
-										
 					
-					//gen new gridlist without targets
-					//these are the sentences to be processed
-					genSent.setRequireTarget(false);
-					genSent.genExtractionSequences();
-					negSeqList = genSent.getNegSeqList();
-					
-					List<AnnotationSequenceGrid> gridList = new ArrayList<AnnotationSequenceGrid>();
-					for (AnnotationSequence negSeq : negSeqList) {
-						List<AnnotationSequenceGrid> negGridList2 = genGrid.toAnnotSeqGrid(negSeq, false, false, true, true, false);
-						gridList.addAll(negGridList2);
-					}
 					
 					
 					
@@ -744,7 +810,6 @@ public class FilterPatterns
 					
 				}
 				
-				docRS.close();
 			}
 			
 			reader.close();
@@ -770,7 +835,7 @@ public class FilterPatterns
 			//gen sentences
 			genSent.setRequireTarget(requireTarget);
 			genSent.setPunct(punct);
-			genSent.init(db, msaAnnotFilterList, targetType, targetProvenance);
+			genSent.init(db, msaAnnotFilterList, targetProvenance);
 			
 			if (docIDList == null)
 				genSent.genSentences(docNamespace, docTable, null, limit);
@@ -877,6 +942,7 @@ public class FilterPatterns
 		try {
 			FilterPatterns ie = new FilterPatterns();
 			ie.init(args[0], args[1], args[4], args[5], args[6]);
+			ie.readDocIDList();
 			ie.filterPatterns(args[0], args[1], args[2], args[3], args[4], args[5]);
 		}
 		catch(Exception e)

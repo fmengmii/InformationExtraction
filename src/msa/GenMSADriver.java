@@ -121,6 +121,11 @@ public class GenMSADriver
 		this.group = group;
 	}
 	
+	public GenSentences getGenSent()
+	{
+		return genSent;
+	}
+	
 	public void init(String config)
 	{
 		try {
@@ -186,10 +191,14 @@ public class GenMSADriver
 			db = new MySQLDBInterface();
 			db.setDBType(dbType);
 			db.setSchema(schema);
+			
 				
 			
 			genSent.setVerbose(verbose);
 			genSent.setTokenType(tokType);
+			genSent.setRequireTarget(requireTarget);
+			genSent.setPunct(punct);
+			//genSent.init(db, msaAnnotFilterList, targetProvenance);
 			
 			
 			scoreList = new ArrayList<Double>();
@@ -208,6 +217,7 @@ public class GenMSADriver
 			docDBHost = props.getProperty("docDBHost");
 			docDBName = props.getProperty("docDBName");
 			docDBType = props.getProperty("docDBType");
+			
 		}
 		catch(Exception e)
 		{
@@ -226,11 +236,83 @@ public class GenMSADriver
 		}
 	}
 	
+	public void getSentences(String user, String password)
+	{
+		List<String> targetTypeList = new ArrayList<String>();
+		targetTypeList.add(targetType);
+		getSentences(user, password, targetTypeList);
+	}
+	
+	public void getSentences(String user, String password, List<String> annotTypeList)
+	{
+		try {
+			if (docDBQuery != null) {			
+				conn = DBConnection.dbConnection(user, password, host, dbName, dbType);	
+				//docIDList = getDocIDList(docDBQuery);
+				//docIDList = MSAUtils.getDocIDList(docDBConn, docDBQuery);
+				
+				PreparedStatement pstmtGetDocIDs = conn.prepareStatement(docDBQuery);
+				//pstmtGetDocIDs.setString(1, targetType);
+				
+				docIDList = new ArrayList<Long>();
+				ResultSet rs = pstmtGetDocIDs.executeQuery();
+				while (rs.next()) {
+					docIDList.add(rs.getLong(1));
+				}
+				
+				conn.close();
+			}
+			
+			db.init(user, password, host, dbName, dbName);
+	
+			//generate the sentences
+			//System.out.println("requireTarget: " + requireTarget + " targetType: " + targetType);
+			
+			
+			msaAnnotFilterList = new ArrayList<Map<String, Object>>();
+			msaAnnotFilterList = gson.fromJson(msaAnnotFilterStr, msaAnnotFilterList.getClass());
+
+			
+			for (String annotType : annotTypeList) {
+				Map<String, Object> targetMap = new HashMap<String, Object>();
+				targetMap.put("annotType", annotType);
+				targetMap.put("target", false);
+				targetMap.put("provenance", targetProvenance);
+				targetMap.put("targetStr", ":" + annotType);
+				msaAnnotFilterList.add(targetMap);
+				scoreList.add(100.0);
+				
+				//annotTypeNameList.add(":" + annotType.toLowerCase());
+			}
+			
+			//annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType, scoreList);
+
+			
+			
+			genSent.init(db, msaAnnotFilterList, targetProvenance);
+			
+			if (docIDList == null)
+				genSent.genSentences(docNamespace, docTable, null, limit);
+			else {
+				genSent.setDocIDList(docIDList);
+				genSent.genSentenceAnnots(docNamespace, docTable);
+			}
+			
+			
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
 	public void run(String user, String password, String docUser, String docPassword)
 	{
 		try {
-			msaAnnotFilterList = new ArrayList<Map<String, Object>>();
-			msaAnnotFilterList = gson.fromJson(msaAnnotFilterStr, msaAnnotFilterList.getClass());
+			//msaAnnotFilterList = new ArrayList<Map<String, Object>>();
+			//msaAnnotFilterList = gson.fromJson(msaAnnotFilterStr, msaAnnotFilterList.getClass());
+			
+			System.out.println("genmsa targetType: " + targetType);
 			
 			Map<String, Object> targetMap = new HashMap<String, Object>();
 			targetMap.put("annotType", targetType);
@@ -251,9 +333,10 @@ public class GenMSADriver
 			
 			
 			annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType, scoreList);
-			annotTypeNameList.add(":" + targetType.toLowerCase());
-			scoreList.add(100.0);
 			
+			
+			
+			/*
 			if (docDBQuery != null) {			
 				conn = DBConnection.dbConnection(user, password, host, dbName, dbType);	
 				//docIDList = getDocIDList(docDBQuery);
@@ -270,23 +353,31 @@ public class GenMSADriver
 				
 				conn.close();
 			}
+			*/
 			
 			/*
 			Statement stmt = conn.createStatement();
 			ResultSet rs = stmt.executeQuery("select max(cluster) from " + schema + "document_status");
-			int maxCluster = -1;
+			int maxCluster = -1;                             
 			if (rs.next())
 				maxCluster = rs.getInt(1) + 1;
 			*/
 			
-			db.init(user, password, host, dbName, dbName);
+			//db.init(user, password, host, dbName, dbName);
 			
 			//generate the sentences
-			System.out.println("requireTarget: " + requireTarget + " targetType: " + targetType);
+			System.out.println("requireTarget: " + requireTarget);
 			
+			
+			
+			/*
 			genSent.setRequireTarget(requireTarget);
 			genSent.setPunct(punct);
-			genSent.init(db, msaAnnotFilterList, targetType, targetProvenance);
+			genSent.init(db, msaAnnotFilterList, targetProvenance);
+			
+			
+			genSent.init(db, msaAnnotFilterList, targetProvenance);
+			
 			
 			if (docIDList == null)
 				genSent.genSentences(docNamespace, docTable, null, limit);
@@ -294,6 +385,10 @@ public class GenMSADriver
 				genSent.setDocIDList(docIDList);
 				genSent.genSentenceAnnots(docNamespace, docTable);
 			}	
+			*/
+			
+			genSent.setTarget(targetMap);
+			genSent.addTargets(targetType);
 			
 			List<AnnotationSequence> posSeqList = genSent.getPosSeqList();
 			List<AnnotationSequence> negSeqList = genSent.getNegSeqList();
@@ -581,8 +676,8 @@ public class GenMSADriver
 			}
 			
 			
-			genMSA.close();
-			db.close();
+			//genMSA.close();
+			//db.close();
 		}
 		catch(Exception e)
 		{
@@ -669,6 +764,7 @@ public class GenMSADriver
 		
 		GenMSADriver genMSA = new GenMSADriver();
 		genMSA.init(args[4]);
+		genMSA.getSentences(args[0], args[1]);
 		genMSA.run(args[0], args[1], args[2], args[3]);
 	}
 }

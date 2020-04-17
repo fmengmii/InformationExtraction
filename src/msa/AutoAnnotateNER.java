@@ -140,6 +140,8 @@ public class AutoAnnotateNER
 	private boolean entity;
 	private boolean prior;
 	
+	private GenSentences genSent;
+	
 	private String probTable;
 	private String probEntityTable;
 	
@@ -209,6 +211,11 @@ public class AutoAnnotateNER
 	public void setAutoProvenance(String autoProvenance)
 	{
 		this.autoProvenance = autoProvenance;
+	}
+	
+	public void setGenSent(GenSentences genSent)
+	{
+		this.genSent = genSent;
 	}
 	
 	public void init(String user, String password, String config)
@@ -495,6 +502,80 @@ public class AutoAnnotateNER
 			//genValProbMap();
 			
 			
+			//gen sentences
+			if (genSent == null) {
+				genSent = new GenSentences();
+				genSent.setRequireTarget(requireTarget);
+				genSent.setPunct(punct);
+				genSent.setVerbose(verbose);
+				genSent.setTokenType(tokType);
+				//genSent.setMaskTarget(true);
+				genSent.init(db, msaAnnotFilterList, targetProvenance);
+			}
+			
+			System.out.println("gen sents...");
+			if (docIDList == null)
+				genSent.genSentences(docNamespace, docTable, null, limit);
+			else {
+				genSent.setDocIDList(docIDList);
+				genSent.genSentenceAnnots(docNamespace, docTable);
+			}
+			
+			
+			//get sequences
+			//posSeqList = genSent.getPosSeqList();
+			negSeqList = genSent.getNegSeqList();
+			seqMap = genSent.getSeqMap();
+			
+			//filter all caps sentences because all words get tagged as NNP
+			if (filterAllCaps) {
+				for (int i=0; i<negSeqList.size(); i++) {
+					AnnotationSequence seq = negSeqList.get(i);
+					List<Annotation> orthList = seq.getAnnotList(":token|orth");
+					
+					if (orthList == null)
+						continue;
+					
+					boolean allCaps = true;
+					for (int j=0; j<orthList.size(); j++) {
+						Annotation orthAnnot = orthList.get(j);
+						
+						String orth = (String) orthAnnot.getFeature("orth");
+						String root = (String) orthAnnot.getFeature("root");
+						if (Character.isLetter(root.charAt(0)) && !orth.equals("allCaps")) {
+							allCaps = false;
+							break;
+						}
+					}
+					
+					if (allCaps) {
+						negSeqList.remove(i);
+						i--;
+					}
+				}
+			}
+			
+			
+			//get grids
+			System.out.println("getting grids...");
+			
+			List<String> annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType, scoreList);
+			for (String targetType : annotTypeList) {
+				annotTypeNameList.add(annotTypeNameList.size()-1, ":" + targetType.toLowerCase());
+				scoreList.add(100.0);
+			}
+			
+			genGrid = new GenAnnotationGrid(annotTypeNameList, tokType);
+			List<AnnotationSequenceGrid> negGridList = new ArrayList<AnnotationSequenceGrid>();
+			
+			
+			
+			for (AnnotationSequence seq : negSeqList) {
+				List<AnnotationSequenceGrid> gridList = genGrid.toAnnotSeqGrid(seq, false, false, false, true, false);
+				negGridList.addAll(gridList);
+			}
+			
+			
 			
 			for (int index=0; index<annotTypeList.size(); index++) {
 				finalAnnotList = new ArrayList<Annotation>();
@@ -531,11 +612,15 @@ public class AutoAnnotateNER
 				ansRangeMap = new HashMap<Long, List<int[]>>();
 				ansSeqMap = new HashMap<String, AnnotationSequence>();
 				
+				
+				/*
 				List<String> annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType, scoreList);
 				annotTypeNameList.add(annotTypeNameList.size()-1, ":" + targetType.toLowerCase());
 				scoreList.add(10.0);
 				
 				genGrid = new GenAnnotationGrid(annotTypeNameList, tokType);
+				*/
+				
 				
 				sw.setScoreMap(annotTypeNameList, scoreList);
 				//sw.setVerbose(true);
@@ -545,14 +630,15 @@ public class AutoAnnotateNER
 				
 				profileMatcher.setTargetProbMap(valCountMap);
 				
-
+				/*
 				GenSentences genSent = new GenSentences();
 				genSent.setRequireTarget(requireTarget);
 				genSent.setPunct(punct);
 				genSent.setVerbose(verbose);
 				genSent.setTokenType(tokType);
 				//genSent.setMaskTarget(true);
-				genSent.init(db, msaAnnotFilterList, targetType, targetProvenance);
+				genSent.init(db, msaAnnotFilterList, targetProvenance);
+				
 				
 				System.out.println("gen sents...");
 				if (docIDList == null)
@@ -561,40 +647,8 @@ public class AutoAnnotateNER
 					genSent.setDocIDList(docIDList);
 					genSent.genSentenceAnnots(docNamespace, docTable);
 				}
+				*/
 				
-				//get sequences
-				//posSeqList = genSent.getPosSeqList();
-				negSeqList = genSent.getNegSeqList();
-				seqMap = genSent.getSeqMap();
-				
-				
-				//filter all caps sentences because all words get tagged as NNP
-				if (filterAllCaps) {
-					for (int i=0; i<negSeqList.size(); i++) {
-						AnnotationSequence seq = negSeqList.get(i);
-						List<Annotation> orthList = seq.getAnnotList(":token|orth");
-						
-						if (orthList == null)
-							continue;
-						
-						boolean allCaps = true;
-						for (int j=0; j<orthList.size(); j++) {
-							Annotation orthAnnot = orthList.get(j);
-							
-							String orth = (String) orthAnnot.getFeature("orth");
-							String root = (String) orthAnnot.getFeature("root");
-							if (Character.isLetter(root.charAt(0)) && !orth.equals("allCaps")) {
-								allCaps = false;
-								break;
-							}
-						}
-						
-						if (allCaps) {
-							negSeqList.remove(i);
-							i--;
-						}
-					}
-				}
 				
 				
 				System.out.println("reading answers...");
@@ -602,33 +656,6 @@ public class AutoAnnotateNER
 					readAnswers(targetType, targetProvenance, docID);
 	
 	
-				
-				//get grids
-				System.out.println("getting grids...");
-				/*
-				List<AnnotationSequenceGrid> posGridList = new ArrayList<AnnotationSequenceGrid>();
-				for (AnnotationSequence seq : posSeqList) {
-					List<AnnotationSequenceGrid> gridList = genGrid.toAnnotSeqGrid(seq, true, false);
-					posGridList.addAll(gridList);
-				}
-				*/
-				
-				//append previous sentence??
-				
-				List<AnnotationSequenceGrid> negGridList = new ArrayList<AnnotationSequenceGrid>();
-				AnnotationSequence prevSeq = null;
-				for (AnnotationSequence seq : negSeqList) {
-					AnnotationSequence seq2 = seq;
-					if (prevSeq != null) {
-						seq2 = prevSeq.clone();
-						seq2.append(seq);
-					}
-					
-					List<AnnotationSequenceGrid> gridList = genGrid.toAnnotSeqGrid(seq2, false, false, false, true, false);
-					negGridList.addAll(gridList);
-					//prevSeq = seq;
-				}
-				
 				
 				
 				//read profiles

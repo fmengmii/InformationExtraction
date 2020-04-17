@@ -310,7 +310,7 @@ public class GenMSA
 		genSent.setPunct(punct);
 		genSent.setTokenType(tokType);
 		genSent.setVerbose(verbose);
-		genSent.init(db, annotFilterList, targetType, targetProvenance);
+		genSent.init(db, annotFilterList, targetProvenance);
 		
 		if (docIDList == null)
 			genSent.genSentences(docNamespace, docTable, null, limit);
@@ -331,7 +331,7 @@ public class GenMSA
 		genSent.setTokenType(tokType);
 		genSent.setVerbose(verbose);
 		genSent.setDocIDList(docIDList);
-		genSent.init(db, annotFilterList, targetType, targetProvenance);
+		genSent.init(db, annotFilterList, targetProvenance);
 		
 		genSent.genTargetPhrases(docNamespace, docTable, targetType, targetProvenance);
 		
@@ -347,6 +347,7 @@ public class GenMSA
 				gridList = new ArrayList<AnnotationSequenceGrid>();
 				for (AnnotationSequence seq : seqList) {
 					List<AnnotationSequenceGrid> seqGridList = genGrid.toAnnotSeqGrid(seq, requireTarget, true, false, true, false);
+					
 					gridList.addAll(seqGridList);
 				}
 			}
@@ -372,6 +373,8 @@ public class GenMSA
 				AnnotationSequenceGrid grid1 = gridList.get(i);
 				AnnotationSequence seq1 = grid1.getSequence();
 				int size1 = grid1.size();
+				
+				//System.out.println("grid1: " + grid1.toString());
 				
 				//List<String> toks1 = seq1.getToks(tokType);
 				List<String> toks1 = seq1.getToks();
