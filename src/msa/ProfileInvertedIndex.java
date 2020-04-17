@@ -109,7 +109,7 @@ public class ProfileInvertedIndex
 		Map<AnnotationSequenceGrid, Integer> targetCountMap = new HashMap<AnnotationSequenceGrid, Integer>();
 		Map<String, Boolean> matchMap = new HashMap<String, Boolean>();
 		
-		//System.out.println(grid.toString());
+		System.out.println(grid.toString());
 		
 		//check tok matches for grids and targets
 		for (int i=0; i<grid.size(); i++) {
@@ -130,7 +130,7 @@ public class ProfileInvertedIndex
 				
 				Map<ProfileGrid, Integer> gridMap = wordMap.get(tok);
 				if (gridMap != null) {
-					//System.out.println("matched: " + tok);
+					System.out.println("matched: " + tok);
 					
 					for (ProfileGrid profileGrid : gridMap.keySet()) {
 						int gridCount = gridMap.get(profileGrid);

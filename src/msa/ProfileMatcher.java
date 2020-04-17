@@ -223,7 +223,7 @@ public class ProfileMatcher
 					//if (profileStr.equals("[\":start|start\",\":target\",\":i-org\"]") || 
 						//profileStr.equals("[\":target\",\":i-org\",\":token|string|(!:token|root|(!:token|category|(!:syntaxtreenode|cat|-lrb-\",\":i-org\",\":token|string|)!:token|root|)!:token|category|)!:syntaxtreenode|cat|-rrb-\"]")) {
 						//System.out.println("HERE: " + profileGrid.size() + ", " + grid.getActiveSize());
-						System.out.println("grid: " + grid.toString());
+						//System.out.println("grid: " + grid.toString());
 						//System.out.println("profileGrid: " + profileGrid.toString());
 					//}
 					
