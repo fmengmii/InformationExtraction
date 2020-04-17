@@ -34,7 +34,7 @@ public class CleanDocs
 			
 			int count = 0;
 			
-			ResultSet rs = stmt.executeQuery("select " + idCol + ", " + textCol + " from " + docTable);
+			ResultSet rs = stmt.executeQuery("select " + idCol + ", " + textCol + " from " + docTable + " order by " + idCol);
 			while (rs.next()) {
 				long docID = rs.getLong(1);
 				String text = rs.getString(2);
@@ -44,7 +44,7 @@ public class CleanDocs
 				
 				if (!text.equals(text2)) {
 					System.out.println("trimmed!");
-					pstmt.setString(1, text);
+					pstmt.setString(1, text2);
 					pstmt.setLong(2, docID);
 					pstmt.addBatch();
 					count++;
