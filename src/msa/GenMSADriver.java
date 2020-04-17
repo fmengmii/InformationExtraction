@@ -733,10 +733,39 @@ public class GenMSADriver
 				if (toks2.indexOf("\":target\"") < 0) {
 					
 					System.out.println("full sent rejected: " + SequenceUtilities.getStrFromToks(toks2) + " docID:" + seq.getDocID() + " start: " + seq.getStart());
-					for (Annotation tokAnnot : tokAnnotList)
-						System.out.println("tok annot: " + tokAnnot.toString());
 					
 					System.out.println("target: " + targetAnnot.toString());
+					
+					
+					for (int i=0; i<tokAnnotList.size(); i++) {
+						Annotation tokAnnot = tokAnnotList.get(i);	
+						System.out.println("tok: " + tokAnnot.getValue() + " start: " + tokAnnot.getStart() + " end: " + tokAnnot.getEnd());
+						if ((tokAnnot.getStart() >= annotStart && tokAnnot.getEnd() <= annotEnd) || 
+							(annotStart >= tokAnnot.getStart() && annotEnd <= tokAnnot.getEnd()) ||
+							(tokAnnot.getStart() <= annotStart && tokAnnot.getEnd() >= annotStart) ||
+							(tokAnnot.getStart() >= annotStart && tokAnnot.getStart() <= annotEnd)) {
+							
+							System.out.println("found target!");
+							targetFlag = true;
+							targetToks.add(toks.get(i));
+							if (targetStrBlder.length() > 0)
+								targetStrBlder.append(",");
+							targetStrBlder.append("\":token|string|" + toks.get(i).toLowerCase() + "\"");
+							System.out.println(SequenceUtilities.getStrFromToks(toks2));
+						}
+						else {
+							System.out.println("non-target");
+							if (targetFlag) {
+								System.out.println("adding target");
+								toks2.add("\":target\"");
+								toks2.add(toks.get(i));
+								targetFlag = false;
+								System.out.println(SequenceUtilities.getStrFromToks(toks2));
+							}
+							else
+								toks2.add(toks.get(i));
+						}
+					}
 					
 					
 					continue;
