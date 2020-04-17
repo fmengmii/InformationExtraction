@@ -727,8 +727,10 @@ public class GenMSADriver
 					}
 				}
 				
-				if (toks2.indexOf("\":target\"") < 0)
+				if (toks2.indexOf("\":target\"") < 0) {
+					System.out.println("full sent rejected: " + SequenceUtilities.getStrFromToks(toks2));
 					continue;
+				}
 			
 				StringBuilder strBlder = new StringBuilder();
 				strBlder.append("[\":start\",");

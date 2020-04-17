@@ -8,6 +8,7 @@ import java.sql.*;
 public class ProfileWriter
 {
 	private Connection conn;
+	private Connection conn2;
 	private PreparedStatement pstmtInsert;
 	private PreparedStatement pstmtUpdate;
 	private PreparedStatement pstmtExists;
@@ -26,10 +27,11 @@ public class ProfileWriter
 	public void init(String user, String password, String host, String dbType, String keyspace) throws SQLException, ClassNotFoundException
 	{
 		conn = DBConnection.dbConnection(user, password, host, keyspace, dbType);
+		conn2 = DBConnection.dbConnection(user, password, host, keyspace, dbType);
 		String rq = DBConnection.reservedQuote;
-		pstmtInsert = conn.prepareStatement("insert into " + msaTable + " (profile, annotation_type, " + rq + "group" + rq + ", profile_type, score, true_pos, false_pos, " + rq + "rows" + rq + ") "
+		pstmtInsert = conn2.prepareStatement("insert into " + msaTable + " (profile, annotation_type, " + rq + "group" + rq + ", profile_type, score, true_pos, false_pos, " + rq + "rows" + rq + ") "
 			+ "values (?,?,?,?,?,?,?,?)");
-		pstmtUpdate = conn.prepareStatement("update " + msaTable + " set score=?,true_pos=?,false_pos=?," + rq + "rows" + rq + "=? where profile=? and annotation_type=? "
+		pstmtUpdate = conn2.prepareStatement("update " + msaTable + " set score=?,true_pos=?,false_pos=?," + rq + "rows" + rq + "=? where profile=? and annotation_type=? "
 			+ "and " + rq + "group" + rq + "=? and profile_type=?");
 		pstmtExists = conn.prepareStatement("select count(*) from " + msaTable + " where profile = ? and annotation_type = ? "
 				+ "and profile_type = ?");		
@@ -41,12 +43,13 @@ public class ProfileWriter
 		pstmtUpdate.close();
 		pstmtExists.close();
 		conn.close();
+		conn2.close();
 	}
 	
 	public void write(List<MSAProfile> profileList, boolean duplicates) throws SQLException
 	{
 		//for (MSAProfile profile : profileList) {
-		conn.setAutoCommit(false);
+		conn2.setAutoCommit(false);
 		int queryCount = 0;
 		for (int i=0; i<profileList.size(); i++) {
 			MSAProfile profile = profileList.get(i);
@@ -78,7 +81,7 @@ public class ProfileWriter
 				queryCount++;
 				if (queryCount == 100) {
 					pstmtInsert.executeBatch();
-					conn.commit();
+					conn2.commit();
 					queryCount = 0;
 				}
 					
@@ -99,7 +102,7 @@ public class ProfileWriter
 				queryCount++;
 				if (queryCount == 100) {
 					pstmtUpdate.executeBatch();
-					conn.commit();
+					conn2.commit();
 					queryCount = 0;
 				}
 				
@@ -112,8 +115,7 @@ public class ProfileWriter
 		
 		pstmtInsert.executeBatch();
 		pstmtUpdate.executeBatch();
-		conn.commit();
-		conn.setAutoCommit(true);
+		conn2.commit();
 	}
 	
 	private String toSQL(String str)

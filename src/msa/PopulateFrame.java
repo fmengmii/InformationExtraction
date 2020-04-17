@@ -38,7 +38,7 @@ public class PopulateFrame
 			conn2 = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			pstmtInsert = conn2.prepareStatement("insert into " + this.schema + "frame_instance_data (frame_instance_id, slot_id, value, section_slot_number, element_slot_number, document_namespace, "
 				+ "document_table, document_id, annotation_id, provenance, element_id, v_scroll_pos, scroll_height, scroll_width) values (?,?,?,?,?,?,?,?,?,'" + provenance + "',?,null,null,null)");
-			pstmtDelete = conn.prepareStatement("delete from " + this.schema + "frame_instance_data where frame_instance_id = ? and provenance = '" + provenance + "'");
+			pstmtDelete = conn.prepareStatement("delete from " + this.schema + "frame_instance_data where frame_instance_id = ?");
 			//pstmtCountDelete = conn.prepareStatement("select element_id, count(*) from " + this.schema + "frame_instance_data where frame_instance_id = ? and provenance = ? group by element_id");
 			
 			pstmtCheckElemRepeat = conn.prepareStatement("select repeat_num from " + this.schema + "frame_instance_element_repeat where frame_instance_id = ? and element_id = ? and section_slot_num = ?");
@@ -79,7 +79,7 @@ public class PopulateFrame
 			String queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type from " + schema + "annotation "
 				+ " where provenance = '" + provenance + "' and document_id in "
 				+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b "
-					+ "where b.project_id = " + projID + " and a.frame_instance_id = b.frame_instance_id)";
+					+ "where b.project_id = " + projID + " and a.frame_instance_id = b.frame_instance_id) order by document_id";
 			
 			//queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type from " + schema + "annotation where provenance = '" + provenance + "' order by document_id, start";
 			
@@ -93,13 +93,11 @@ public class PopulateFrame
 			*/
 			
 			
-			System.out.println("pop start");
 			
 			
 			ResultSet rs = stmt.executeQuery("select a.frame_instance_id from " + schema + "frame_instance_status a, " + schema + "project_frame_instance b "
 				+ "where a.status = 0 and b.project_id = " + projID + " and a.frame_instance_id = b.frame_instance_id");
 			
-			System.out.println("pop 0");
 			
 			conn.setAutoCommit(false);
 			while (rs.next()) {
@@ -116,10 +114,10 @@ public class PopulateFrame
 			}
 			
 			pstmtDelete.executeBatch();
+			pstmtDeleteElemRepeat.executeBatch();
 			conn.commit();
 			conn.setAutoCommit(true);
 			
-			System.out.println("pop 1");
 			
 			
 			Map<String, Integer> map = new HashMap<String, Integer>();
@@ -127,7 +125,6 @@ public class PopulateFrame
 						
 			rs = stmt.executeQuery(queryStr);
 			
-			System.out.println("pop 2");
 			
 			int currFrameInstanceID = -1;
 			
@@ -143,7 +140,7 @@ public class PopulateFrame
 				
 				int frameInstanceID = getFrameInstanceID(docID);
 				
-				System.out.println("docID: " + docID);
+				//System.out.println("docID: " + docID);
 				
 				if (frameInstanceID != currFrameInstanceID) {
 					currFrameInstanceID = frameInstanceID;
@@ -213,8 +210,6 @@ public class PopulateFrame
 			conn2.commit();
 			
 			
-			System.out.println("pop 3");
-			
 			for (String key : map.keySet()) {
 				int repeatNum = map.get(key) + 1;
 				
@@ -249,7 +244,6 @@ public class PopulateFrame
 				System.out.println(key + ": " + repeatNum + repeat);
 			}
 			
-			System.out.println("pop 4");
 			
 			
 			
