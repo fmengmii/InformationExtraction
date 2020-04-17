@@ -992,7 +992,7 @@ public class BestPatterns
 		
 		//adjust user annotations to align with Token boundaries
 		PreparedStatement pstmt = annotConn.prepareStatement("select start, " + rq + "end" + rq + " from " + schema + "annotation where annotation_type = 'Token' and "
-			+ "start <= ? and " + rq + "end" + rq + " >= ?");
+			+ "start <= ? and " + rq + "end" + rq + " >= ? and document_id = " + docID);
 		
 		
 		ResultSet rs = stmt.executeQuery("select distinct document_id, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = " + docID + " and annotation_type = '" + annotType + 
