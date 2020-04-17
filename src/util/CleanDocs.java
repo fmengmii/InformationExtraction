@@ -64,4 +64,14 @@ public class CleanDocs
 		}
 	}
 	
+	public static void main(String[] args)
+	{
+		if (args.length != 3) {
+			System.out.println("usage: user password config");
+			System.exit(0);
+		}
+		
+		CleanDocs clean = new CleanDocs();
+		clean.clean(args[0], args[1], args[2]);
+	}
 }
