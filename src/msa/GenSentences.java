@@ -183,7 +183,7 @@ public class GenSentences
 					//check to see if this sentence was cached
 					AnnotationSequence seq2 = seqMap.get(docID + "|" + seq.getStart());
 					if (seq2 != null) {
-						System.out.println("cached sentence!");
+						//System.out.println("cached sentence!");
 						seqList.add(seq2);
 						continue;
 					}

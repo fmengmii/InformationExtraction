@@ -119,9 +119,10 @@ public class PopulateFrame
 			conn.setAutoCommit(true);
 			
 			//no overlap with user created annotations
-			rs = stmt.executeQuery("select document_id, start from " + schema + "frame_instance_data where provenance = 'validation-tool' and document_id in "
-				+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b "
-				+ "where b.project_id = " + projID + " and a.frame_instance_id = b.frame_instance_id) order by document_id");
+			rs = stmt.executeQuery("select a.document_id, b.start from " + schema + "frame_instance_data a, " + schema + "annotation b "
+				+ "where a.provenance = 'validation-tool' and a.annotation_id = b.id and a.document_id = b.document_id and a.document_id in "
+				+ "(select c.document_id from " + schema + "frame_instance_document c, " + schema + "project_frame_instance d "
+				+ "where d.project_id = " + projID + " and c.frame_instance_id = d.frame_instance_id) order by document_id");
 			
 			Map<String, Boolean> userMap = new HashMap<String, Boolean>();
 			while (rs.next()) {
