@@ -32,6 +32,9 @@ public class CleanDocs
 			
 			conn2.setAutoCommit(false);
 			
+			
+			Map<Long, String> textMap = new HashMap<Long, String>();
+			
 			int count = 0;
 			
 			ResultSet rs = stmt.executeQuery("select " + idCol + ", " + textCol + " from " + docTable + " order by " + idCol);
@@ -55,17 +58,21 @@ public class CleanDocs
 					System.out.println("trimmed!");
 					//System.out.println("text:" + text);
 					//System.out.println("text2:" + text2);
-					
-					pstmt.setString(1, text2);
-					pstmt.setLong(2, docID);
-					pstmt.addBatch();
-					count++;
-					
-					if (count == 100) {
-						pstmt.executeBatch();
-						conn2.commit();
-						count = 0;
-					}
+					textMap.put(docID, text2);
+				}
+			}
+			
+			for (long docID : textMap.keySet()) {
+				String text = textMap.get(docID);
+				pstmt.setString(1, text);
+				pstmt.setLong(2, docID);
+				pstmt.addBatch();
+				count++;
+				
+				if (count == 100) {
+					pstmt.executeBatch();
+					conn2.commit();
+					count = 0;
 				}
 			}
 			
