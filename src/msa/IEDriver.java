@@ -430,7 +430,7 @@ public class IEDriver
 			newDocQuery = "select a.frame_instance_id, b.status from " + schema2 + "project_frame_instance a left join " + schema2 + "frame_instance_status b on (a.frame_instance_id = b.frame_instance_id) "
 				+ "where (a.project_id = " + projID + " and b.frame_instance_id is null or b.status = -2) order by frame_instance_id";
 			gateDocQuery = "select document_id from " + schema2 + "document_status where status = 0 or status = -2 order by document_id";
-			msaDocQuery = "select document_id from " + schema2 + "document_status where (status = 1 or status = 2) and document_id in "
+			msaDocQuery = "select document_id, status from " + schema2 + "document_status where (status = 1 or status = 2) and document_id in "
 				+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") order by document_id";
 			filterDocQuery = "select document_id from " + schema2 + "document_status where status = 1 and document_id in "
@@ -963,67 +963,81 @@ public class IEDriver
 					System.out.println("** Gen MSA **");
 					//run MSA generator
 					
+					rs = stmt.executeQuery("select count(*) from " + schema2 + "document_status where status = 1 and document_id in "
+						+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
+						+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
 					
-					genMSADriver.getSentences(user, password, annotTypeList);
-					
-					for (int i=0; i<annotTypeList.size(); i++) {
-					//for (int i=0; i<2; i++) {
-						String annotType = annotTypeList.get(i);
-						String profileTable = profileTableList.get(i);
-						
-
-						int currCount = 0;
-						pstmtGetGenMSAStatus.setString(1, annotType);
-						rs = pstmtGetGenMSAStatus.executeQuery();
-
-						while (rs.next()) {
-							currCount = rs.getInt(1);
-						}
-						
-						if (currCount == 0)
-							continue;
-						
-						
-						//if user skips over a document, set the status to 2 for now??
-						/*
-						pstmtSetDocStatusRange.setLong(1, minDocID);
-						pstmtSetDocStatusRange.setLong(2, maxDocID);
-						pstmtSetDocStatusRange.execute();
-						*/
-						
-
-						//if (annotCount > currCount) {
-						activeAnnotTypeList.add(annotType);
-						genMSADriver.setTargetType(annotType);
-						genMSADriver.setProfileTable(profileTable);
-						//genMSADriver.setRequireTarget(requireTargetMap.get(annotType));
-						//genMSADriver.setGroup(Integer.toString(count));
-						genMSADriver.run(user, password, docUser, docPassword);
-						
-						
-						/*
-						pstmtUpdateGenMSAStatus.setInt(1, annotCount);
-						pstmtUpdateGenMSAStatus.setString(2, annotType);
-						pstmtUpdateGenMSAStatus.execute();
-						*/
-						
-						
-						
-						docList = genMSADriver.getDocList();
-						lastDocIndex = genMSADriver.getLastDocIndex();
-						
-						
-						/*
-						if (docList.size() > msaBlockSize) {
-							updateDocsWithStatusDocID(1, 2, docList);
-							pstmtResetGenMSAStatus.execute();
-						}
-						*/
-							
-						//}
+					int msaDocCount = 0;
+					if (rs.next()) {
+						msaDocCount= rs.getInt(1);
 					}
 					
+					
+					//only run if there are docs with status = 1
+					if (msaDocCount > 0) {
+					
+					
+						genMSADriver.getSentences(user, password, annotTypeList);
+						
+						for (int i=0; i<annotTypeList.size(); i++) {
+						//for (int i=0; i<2; i++) {
+							String annotType = annotTypeList.get(i);
+							String profileTable = profileTableList.get(i);
+							
+	
+							int currCount = 0;
+							pstmtGetGenMSAStatus.setString(1, annotType);
+							rs = pstmtGetGenMSAStatus.executeQuery();
+	
+							while (rs.next()) {
+								currCount = rs.getInt(1);
+							}
+							
+							if (currCount == 0)
+								continue;
+							
+							
+							//if user skips over a document, set the status to 2 for now??
+							/*
+							pstmtSetDocStatusRange.setLong(1, minDocID);
+							pstmtSetDocStatusRange.setLong(2, maxDocID);
+							pstmtSetDocStatusRange.execute();
+							*/
+							
+	
+							//if (annotCount > currCount) {
+							activeAnnotTypeList.add(annotType);
+							genMSADriver.setTargetType(annotType);
+							genMSADriver.setProfileTable(profileTable);
+							//genMSADriver.setRequireTarget(requireTargetMap.get(annotType));
+							//genMSADriver.setGroup(Integer.toString(count));
+							genMSADriver.run(user, password, docUser, docPassword);
+							
+							
+							/*
+							pstmtUpdateGenMSAStatus.setInt(1, annotCount);
+							pstmtUpdateGenMSAStatus.setString(2, annotType);
+							pstmtUpdateGenMSAStatus.execute();
+							*/
+							
+							
+							
+							docList = genMSADriver.getDocList();
+							lastDocIndex = genMSADriver.getLastDocIndex();
+							
+							
+							/*
+							if (docList.size() > msaBlockSize) {
+								updateDocsWithStatusDocID(1, 2, docList);
+								pstmtResetGenMSAStatus.execute();
+							}
+							*/
+								
+							//}
+						}
+					
 					//gen relation patterns
+					}
 					
 				}
 				
