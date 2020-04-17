@@ -501,6 +501,13 @@ public class AutoAnnotateNER
 			
 			//genValProbMap();
 			
+			docIDList = new ArrayList<Long>();
+			//ResultSet rs = stmt.executeQuery("select distinct document_id from document_status where status = 0 order by document_id");
+			ResultSet rs = stmt.executeQuery(docDBQuery);
+			while (rs.next()) {
+				docIDList.add(rs.getLong(1));
+			}
+			
 			
 			//gen sentences
 			if (genSent == null) {
@@ -599,13 +606,6 @@ public class AutoAnnotateNER
 					msaAnnotFilterList.add(targetMap);
 				}
 
-				
-				docIDList = new ArrayList<Long>();
-				//ResultSet rs = stmt.executeQuery("select distinct document_id from document_status where status = 0 order by document_id");
-				ResultSet rs = stmt.executeQuery(docDBQuery);
-				while (rs.next()) {
-					docIDList.add(rs.getLong(1));
-				}
 			
 				ansMap = new TreeMap<String, String>();
 				negAnsMap = new TreeMap<String, String>();

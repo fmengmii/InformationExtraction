@@ -449,6 +449,8 @@ public class IEDriver
 					//+ "order by document_id";
 				if (autoDocLimit > 0)
 					autoDBQuery += " limit " + autoDocLimit + ")";
+				else
+					autoDBQuery += ")";
 			}
 			else if (dbType.startsWith("sqlserver")) {
 				autoDBQuery = "document_id from " + schema2 + "document_status where status = 0 and document_id in "
@@ -1133,6 +1135,7 @@ public class IEDriver
 						}
 					}
 					
+										
 					autoAnnot.setGenSent(genSent);
 					autoAnnot.setAnnotTypeList(activeAnnotTypeList);
 					autoAnnot.setProfileTableList(profileTableList);
