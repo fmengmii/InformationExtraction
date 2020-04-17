@@ -38,14 +38,23 @@ public class CleanDocs
 			while (rs.next()) {
 				long docID = rs.getLong(1);
 				String text = rs.getString(2);
-				String text2 = text.trim();
+				
+				int index = 0;
+				char ch = text.charAt(index);
+				while (ch == ' ') {
+					index++;
+					ch = text.charAt(index);
+				}
+				
+				String text2 = text.substring(index);
+				
 				
 				System.out.println("docID: " + docID);
 				
 				if (!text.equals(text2)) {
 					System.out.println("trimmed!");
-					System.out.println("text:" + text);
-					System.out.println("text2:" + text2);
+					//System.out.println("text:" + text);
+					//System.out.println("text2:" + text2);
 					
 					pstmt.setString(1, text2);
 					pstmt.setLong(2, docID);
