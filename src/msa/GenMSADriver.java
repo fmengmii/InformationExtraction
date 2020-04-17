@@ -730,6 +730,10 @@ public class GenMSADriver
 					}
 				}
 				
+				if (targetFlag) {
+					toks2.add("\":target\"");
+				}
+				
 				if (toks2.indexOf("\":target\"") < 0) {
 					
 					System.out.println("full sent rejected: " + SequenceUtilities.getStrFromToks(toks2) + " docID:" + seq.getDocID() + " start: " + seq.getStart());
