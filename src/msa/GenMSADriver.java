@@ -733,8 +733,8 @@ public class GenMSADriver
 				if (toks2.indexOf("\":target\"") < 0) {
 					
 					System.out.println("full sent rejected: " + SequenceUtilities.getStrFromToks(toks2) + " docID:" + seq.getDocID() + " start: " + seq.getStart());
-					for (String tok : toks2)
-						System.out.println("tok: " + tok);
+					for (Annotation tokAnnot : tokAnnotList)
+						System.out.println("tok annot: " + tokAnnot.toString());
 					
 					System.out.println("target: " + targetAnnot.toString());
 					
