@@ -44,6 +44,9 @@ public class CleanDocs
 				
 				if (!text.equals(text2)) {
 					System.out.println("trimmed!");
+					System.out.println("text:" + text);
+					System.out.println("text2:" + text2);
+					
 					pstmt.setString(1, text2);
 					pstmt.setLong(2, docID);
 					pstmt.addBatch();
