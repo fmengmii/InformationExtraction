@@ -990,6 +990,10 @@ public class BestPatterns
 			+ "b.provenance = '" + provenance + "' and a.document_id = b.document_id and a.document_id < 1163 order by start");
 			*/
 		
+		//adjust user annotations to align with Token boundaries
+		PreparedStatement pstmt = annotConn.prepareStatement("select start, end from " + schema + "annotation where annotation_type = 'Token' and "
+			+ "start <= ? and end >= ?");
+		
 		
 		ResultSet rs = stmt.executeQuery("select distinct document_id, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = " + docID + " and annotation_type = '" + annotType + 
 			"' and provenance = '" + provenance + "' order by document_id, start");
@@ -997,6 +1001,21 @@ public class BestPatterns
 		while (rs.next()) {
 			int start = rs.getInt(2);
 			int end = rs.getInt(3);
+			
+			pstmt.setInt(1, start);
+			pstmt.setInt(2, start);
+			ResultSet rs2 = pstmt.executeQuery();
+			if (rs2.next()) {
+				start = rs2.getInt(1);
+			}
+			
+			pstmt.setInt(1, end);
+			pstmt.setInt(2, end);
+			rs2 = pstmt.executeQuery();
+			if (rs2.next()) {
+				end = rs2.getInt(2);
+			}
+			
 			ansMap.put(docID + "|" + start + "|" + end, true);
 		}
 		
