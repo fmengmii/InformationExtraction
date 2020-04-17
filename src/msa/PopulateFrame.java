@@ -76,7 +76,7 @@ public class PopulateFrame
 			stmt.execute(queryStr);
 			*/
 			
-			String queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type from " + schema + "annotation "
+			String queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type, start from " + schema + "annotation "
 				+ " where provenance = '" + provenance + "' and document_id in "
 				+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b "
 					+ "where b.project_id = " + projID + " and a.frame_instance_id = b.frame_instance_id) order by document_id";
@@ -118,6 +118,17 @@ public class PopulateFrame
 			conn.commit();
 			conn.setAutoCommit(true);
 			
+			//no overlap with user created annotations
+			rs = stmt.executeQuery("select document_id, start from " + schema + "frame_instance_data where provenance = 'validation-tool' and document_id in "
+				+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b "
+				+ "where b.project_id = " + projID + " and a.frame_instance_id = b.frame_instance_id) order by document_id");
+			
+			Map<String, Boolean> userMap = new HashMap<String, Boolean>();
+			while (rs.next()) {
+				long docID = rs.getLong(1);
+				int start = rs.getInt(2);
+				userMap.put(docID + "|" + start, true);
+			}
 			
 			
 			Map<String, Integer> map = new HashMap<String, Integer>();
@@ -137,6 +148,10 @@ public class PopulateFrame
 				long docID = rs.getLong(4);
 				String value = rs.getString(5);
 				String annotType = rs.getString(6);
+				int start = rs.getInt(7);
+				
+				if (userMap.get(docID + "|" + start) != null)
+					continue;
 				
 				int frameInstanceID = getFrameInstanceID(docID);
 				
