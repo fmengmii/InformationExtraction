@@ -46,6 +46,8 @@ public class ProfileWriter
 	public void write(List<MSAProfile> profileList, boolean duplicates) throws SQLException
 	{
 		//for (MSAProfile profile : profileList) {
+		conn.setAutoCommit(false);
+		int queryCount = 0;
 		for (int i=0; i<profileList.size(); i++) {
 			MSAProfile profile = profileList.get(i);
 			pstmtExists.setString(1, profile.getProfileStr());
@@ -71,7 +73,16 @@ public class ProfileWriter
 				
 				//System.out.println("query: " + pstmtInsert.toString());
 				
-				pstmtInsert.execute();
+				//pstmtInsert.execute();
+				pstmtInsert.addBatch();
+				queryCount++;
+				if (queryCount == 100) {
+					pstmtInsert.executeBatch();
+					conn.commit();
+					queryCount = 0;
+				}
+					
+				
 			}
 			//update
 			else {
@@ -83,12 +94,26 @@ public class ProfileWriter
 				pstmtUpdate.setString(6, profile.getAnnotType());
 				pstmtUpdate.setString(7, profile.getGroup());
 				pstmtUpdate.setInt(8, profile.getType());
-				pstmtUpdate.execute();
+				
+				pstmtUpdate.addBatch();
+				queryCount++;
+				if (queryCount == 100) {
+					pstmtUpdate.executeBatch();
+					conn.commit();
+					queryCount = 0;
+				}
+				
+				//pstmtUpdate.execute();
 				
 				profileList.remove(i);
 				i--;
 			}
 		}
+		
+		pstmtInsert.executeBatch();
+		pstmtUpdate.executeBatch();
+		conn.commit();
+		conn.setAutoCommit(true);
 	}
 	
 	private String toSQL(String str)
