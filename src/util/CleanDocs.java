@@ -38,17 +38,22 @@ public class CleanDocs
 			while (rs.next()) {
 				long docID = rs.getLong(1);
 				String text = rs.getString(2);
-				text = text.trim();
+				String text2 = text.trim();
 				
-				pstmt.setString(1, text);
-				pstmt.setLong(2, docID);
-				pstmt.addBatch();
-				count++;
+				System.out.println("docID: " + docID);
 				
-				if (count == 100) {
-					pstmt.executeBatch();
-					conn2.commit();
-					count = 0;
+				if (!text.equals(text2)) {
+					System.out.println("trimmed!");
+					pstmt.setString(1, text);
+					pstmt.setLong(2, docID);
+					pstmt.addBatch();
+					count++;
+					
+					if (count == 100) {
+						pstmt.executeBatch();
+						conn2.commit();
+						count = 0;
+					}
 				}
 			}
 			
