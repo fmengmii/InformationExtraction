@@ -709,7 +709,10 @@ public class GenMSADriver
 				StringBuilder targetStrBlder = new StringBuilder();
 				for (int i=0; i<tokAnnotList.size(); i++) {
 					Annotation tokAnnot = tokAnnotList.get(i);					
-					if (tokAnnot.getStart() >= annotStart && tokAnnot.getEnd() <= annotEnd) {
+					if ((tokAnnot.getStart() >= annotStart && tokAnnot.getEnd() <= annotEnd) || 
+						(annotStart >= tokAnnot.getStart() && annotEnd <= tokAnnot.getEnd()) ||
+						(tokAnnot.getStart() <= annotStart && tokAnnot.getEnd() >= annotStart) ||
+						(tokAnnot.getStart() >= annotStart && tokAnnot.getStart() <= annotEnd)) {
 						targetFlag = true;
 						targetToks.add(toks.get(i));
 						if (targetStrBlder.length() > 0)
@@ -728,11 +731,13 @@ public class GenMSADriver
 				}
 				
 				if (toks2.indexOf("\":target\"") < 0) {
+					
 					System.out.println("full sent rejected: " + SequenceUtilities.getStrFromToks(toks2) + " docID:" + seq.getDocID() + " start: " + seq.getStart());
 					for (String tok : toks2)
 						System.out.println("tok: " + tok);
 					
 					System.out.println("target: " + targetAnnot.toString());
+					
 					
 					continue;
 				}
