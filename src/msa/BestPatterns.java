@@ -496,6 +496,7 @@ public class BestPatterns
 					if (profileTypeMap.get(key) != null) {
 						posCount = posMinCount + 1;
 						negCount = 0;
+						prec = 1.0;
 					}
 					
 					
