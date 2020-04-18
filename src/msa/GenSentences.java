@@ -331,32 +331,6 @@ public class GenSentences
 				}
 			}
 			
-			//maxEnd += contextSize;
-			
-			/*
-			int minStart = i;
-			for (int j=i-1; j>=0; j--) {
-				AnnotationSequence prevSeq = seqList.get(j);
-				
-				if (prevSeq.getStart() <= start && start - prevSeq.getStart() > contextSize) {
-					minStart = j;
-					break;
-				}
-			}
-			*/
-			
-			
-			/*
-			for (int j=minStart; j<i; j++) {
-				seq.append(seqList.get(j));
-			}
-			
-			seq.removeAnnotType(":target");
-			
-			seq.append(currSeq);
-			seq.setDocID(currSeq.getDocID());
-			*/
-			
 			
 			int endIndex = -1;
 			AnnotationSequence endSeq = new AnnotationSequence();
@@ -382,6 +356,7 @@ public class GenSentences
 				prevSeq = currSeq;
 				AnnotationSequence seq2 = prevSeq.clone();
 				seq2.append(currSeq);
+				prevSeq = currSeq;
 				currSeq = seq2;
 			}
 			
@@ -392,7 +367,6 @@ public class GenSentences
 			}
 			else
 				negSeqList.add(currSeq);
-			
 			
 		}
 

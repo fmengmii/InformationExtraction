@@ -817,7 +817,7 @@ public class IEDriver
 			stmt.execute("delete from " + schema2 + rq + "index" + rq + 
 			" where document_id in (select distinct a.document_id from " + schema2 + "document_status a where a.status = 1)");
 			
-			stmt.execute("delete from " + schema2 + rq + "index" + rq + " where profile_id in (select a.profile_id from " + schema2 + "profile a where a." + rq + "group" + rq + " = '" + group + "')");
+			//stmt.execute("delete from " + schema2 + rq + "index" + rq + " where profile_id in (select a.profile_id from " + schema2 + "profile a where a." + rq + "group" + rq + " = '" + group + "')");
 			
 			stmt.execute("delete from " + schema2 + "annotation where provenance = '" + gateProvenance + "' and not exists (select a.document_id from " + schema2 + "document_status a where a.document_id = document_id)");
 			
