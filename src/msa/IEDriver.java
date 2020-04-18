@@ -1078,7 +1078,7 @@ public class IEDriver
 				}
 				
 				
-				if (genSent == null)
+				if (genSent.getDB() == null)
 					genSent = filterPatt.getGenSent();
 				
 				

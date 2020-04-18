@@ -9,6 +9,7 @@ import com.google.gson.Gson;
 
 import msa.db.MSADBException;
 import msa.db.MSADBInterface;
+import msa.db.MySQLDBInterface;
 import nlputils.sequence.SequenceUtilities;
 
 public class GenSentences
@@ -105,6 +106,11 @@ public class GenSentences
 	public Map<String, AnnotationSequence> getSeqMap()
 	{
 		return seqMap;
+	}
+	
+	public MSADBInterface getDB()
+	{
+		return db;
 	}
 	
 	public void setTarget(Map<String, Object> targetMap)
