@@ -42,14 +42,7 @@ public class CleanDocs
 				long docID = rs.getLong(1);
 				String text = rs.getString(2);
 				
-				int index = 0;
-				char ch = text.charAt(index);
-				while (ch == ' ') {
-					index++;
-					ch = text.charAt(index);
-				}
-				
-				String text2 = text.substring(index);
+				String text2 = text.trim();
 				
 				
 				System.out.println("docID: " + docID);
