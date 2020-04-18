@@ -353,7 +353,7 @@ public class GenSentences
 			
 			//add previous seq?
 			if (prevSeq != null && currSeq.getToks().size() < 10) {
-				prevSeq = currSeq;
+				//prevSeq = currSeq;
 				AnnotationSequence seq2 = prevSeq.clone();
 				seq2.append(currSeq);
 				prevSeq = currSeq;
