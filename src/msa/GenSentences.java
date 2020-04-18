@@ -360,6 +360,8 @@ public class GenSentences
 				currSeq = seq2;
 			}
 			
+			System.out.println("seq: " + SequenceUtilities.getStrFromToks(currSeq.getToks()));
+			
 		
 			if (requireTarget && currSeq.getAnnotList(":target") != null) {
 				//System.out.println("has target!");
