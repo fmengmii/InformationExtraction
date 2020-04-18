@@ -359,6 +359,9 @@ public class GenSentences
 				prevSeq = currSeq;
 				currSeq = seq2;
 			}
+			else
+				prevSeq = currSeq;
+
 			
 			System.out.println("seq: " + SequenceUtilities.getStrFromToks(currSeq.getToks()));
 			
