@@ -200,6 +200,11 @@ public class FilterPatterns
 		this.targetGroup = targetGroup;
 	}
 	
+	public GenSentences getGenSent()
+	{
+		return genSent;
+	}
+	
 	public void init(String annotUser, String annotPassword, String msaUser, String msaPassword, Properties props)
 	{
 		try {			

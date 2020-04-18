@@ -1078,7 +1078,8 @@ public class IEDriver
 				}
 				
 				
-				
+				if (genSent == null)
+					genSent = filterPatt.getGenSent();
 				
 				
 				//best patterns
