@@ -299,6 +299,7 @@ public class GenSentences
 		
 
 		AnnotationSequence prevSeq = null;
+		boolean prevFlag = false;
 		for (int i=0; i<seqList.size(); i++) {
 			//AnnotationSequence seq = new AnnotationSequence();
 			
@@ -352,12 +353,17 @@ public class GenSentences
 			//seq.setFocusCoords(focusCoords);
 			
 			//add previous seq?
-			if (prevSeq != null && currSeq.getToks().size() < 10) {
+			if ((prevSeq != null && currSeq.getToks().size() < 10) || prevFlag) {
 				//prevSeq = currSeq;
 				AnnotationSequence seq2 = prevSeq.clone();
 				seq2.append(currSeq);
 				prevSeq = currSeq;
 				currSeq = seq2;
+				
+				if (currSeq.getToks().size() < 10)
+					prevFlag = true;
+				else
+					prevFlag = false;
 			}
 			else
 				prevSeq = currSeq;
