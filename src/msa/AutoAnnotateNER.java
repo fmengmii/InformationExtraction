@@ -510,7 +510,7 @@ public class AutoAnnotateNER
 			
 			
 			//gen sentences
-			if (genSent == null) {
+			if (genSent == null || genSent.getDB() == null) {
 				genSent = new GenSentences();
 				genSent.setRequireTarget(requireTarget);
 				genSent.setPunct(punct);

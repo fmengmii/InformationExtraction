@@ -1078,9 +1078,6 @@ public class IEDriver
 				}
 				
 				
-				if (genSent.getDB() == null)
-					genSent = filterPatt.getGenSent();
-				
 				
 				//best patterns
 				if (bestFlag && filterPatt.getDocIDMap().size() > 0) {
