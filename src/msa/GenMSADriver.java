@@ -82,7 +82,7 @@ public class GenMSADriver
 	public GenMSADriver()
 	{
 		gson = new Gson();
-		genSent = new GenSentences();
+		//genSent = new GenSentences();
 		genMSA = new GenMSA();
 	}
 	
@@ -193,7 +193,7 @@ public class GenMSADriver
 			db.setSchema(schema);
 			
 				
-			
+			genSent = new GenSentences();
 			genSent.setVerbose(verbose);
 			genSent.setTokenType(tokType);
 			genSent.setRequireTarget(requireTarget);
