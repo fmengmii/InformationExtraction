@@ -54,11 +54,15 @@ public class DuplicateSentences
 			
 			
 			ResultSet rs = stmt.executeQuery(docQuery);
+			long currDocID = -1;
+			int annotID = -1;
 			while (rs.next()) {
 				long docID = rs.getLong(1);
 				int patientSID = rs.getInt(2);
 				
 				System.out.println("DocID: " + docID + " PatientSID: " + patientSID);
+				
+				annotID = getAnnotID(docID) + 1;
 				
 				if (patientSID != currPatientSID) {
 					sentMap = new HashMap<String,Boolean>();
@@ -96,7 +100,7 @@ public class DuplicateSentences
 					if (flag == null)
 						sentMap.put(sentStr, true);
 					else {
-						int annotID = getAnnotID(docID);
+						//int annotID = getAnnotID(docID);
 						pstmtAnnot.setInt(1, annotID);
 						pstmtAnnot.setLong(2, docID);
 						pstmtAnnot.setLong(3, seq.getStart());
@@ -111,6 +115,8 @@ public class DuplicateSentences
 						}
 						
 						System.out.println("wrote duplicate: " + sentStr);
+						
+						annotID++;
 					}
 				}
 			}
