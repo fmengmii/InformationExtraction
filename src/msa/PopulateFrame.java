@@ -123,20 +123,23 @@ public class PopulateFrame
 			conn.commit();
 			conn.setAutoCommit(true);
 			
-			//no overlap with user created annotations
-			/*
-			rs = stmt.executeQuery("select a.document_id, b.start from " + schema + "frame_instance_data a, " + schema + "annotation b "
-				+ "where a.provenance = 'validation-tool' and a.annotation_id = b.id and a.document_id = b.document_id and a.document_id in "
-				+ "(select c.document_id from " + schema + "frame_instance_document c, " + schema + "project_frame_instance d "
-				+ "where d.project_id = " + projID + " and c.frame_instance_id = d.frame_instance_id) order by document_id");
 			
-			Map<String, Boolean> userMap = new HashMap<String, Boolean>();
+			rs = stmt.executeQuery("select a.document_id, a.start "
+				+ "from " + schema + "annotation a, " + schema + "document_status b "
+				+ "where a.provenance = 'validation-tool' and (b.status = 0 or b.status = 1 or b.status = -4) and b.document_id = a.document_id and "
+				+ "a.document_id in "
+				+ "(select d.document_id from " + schema + "frame_instance_document d, " + schema + "project_frame_instance e "
+				+ "where e.project_id = " + projID + " and d.frame_instance_id = e.frame_instance_id) order by a.document_id, a.start");
+			
+			Map<String, Boolean> userDefinedMap = new HashMap<String, Boolean>();
 			while (rs.next()) {
 				long docID = rs.getLong(1);
 				int start = rs.getInt(2);
-				userMap.put(docID + "|" + start, true);
+				
+				userDefinedMap.put(docID + "|" + start, true);
 			}
-			*/
+			
+			
 			
 			
 			Map<String, Integer> map = new HashMap<String, Integer>();
@@ -160,19 +163,18 @@ public class PopulateFrame
 				String provenance2 = rs.getString(8);
 				int frameInstanceID = rs.getInt(9);
 				
+				
+				if (userDefinedMap.get(docID + "|" + start) != null && provenance2.equals(provenance)) {
+					continue;
+				}
+				
 				if (usedMap.get(docID + "|" + start) != null) {
-					//auto generate annotation duplicates user-defined annotation
-					if (provenance2.equals(provenance))
-						continue;
-					
 					//duplicate user-defined annotation
-					else {
-						pstmtDeleteAnnot.setLong(1, docID);
-						pstmtDeleteAnnot.setInt(2, start);
-						pstmtDeleteAnnot.setString(3, annotType);
-						pstmtDeleteAnnot.execute();
-						continue;
-					}
+					pstmtDeleteAnnot.setLong(1, docID);
+					pstmtDeleteAnnot.setInt(2, start);
+					pstmtDeleteAnnot.setString(3, annotType);
+					pstmtDeleteAnnot.execute();
+					continue;
 				}
 				else {
 					usedMap.put(docID + "|" + start, true);
