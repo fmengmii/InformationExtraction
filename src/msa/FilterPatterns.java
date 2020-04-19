@@ -718,8 +718,7 @@ public class FilterPatterns
 						profileList = reader.read(targetType, group, readStart, clusterSize, 0, schema + "." + profileTable);
 						profileList2 = reader.read(targetType, group, readStart, clusterSize, 3, schema + "." + profileTable);
 						
-						if (profileList2 != null)
-							profileList.addAll(profileList2);
+						profileList.addAll(profileList2);
 						
 						
 						//check if there are profiles
