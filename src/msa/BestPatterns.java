@@ -528,6 +528,7 @@ public class BestPatterns
 							conn.commit();
 						}
 					}
+				
 				}
 				
 				pstmt.executeBatch();
