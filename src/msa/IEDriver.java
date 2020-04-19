@@ -1197,6 +1197,12 @@ public class IEDriver
 				}
 				
 				
+				//populate
+				if (populateFlag) {
+					System.out.println("*** POPULATE ***");
+					pop.populate(projID);
+				}
+				
 				
 				
 				//reset status to 2
@@ -1225,12 +1231,6 @@ public class IEDriver
 						+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
 				}
 				
-				
-				//populate
-				if (populateFlag) {
-					System.out.println("*** POPULATE ***");
-					pop.populate(projID);
-				}
 				
 				
 				//cleanup

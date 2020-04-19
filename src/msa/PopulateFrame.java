@@ -76,10 +76,13 @@ public class PopulateFrame
 			stmt.execute(queryStr);
 			*/
 			
-			String queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type, start from " + schema + "annotation "
-				+ " where (provenance = '" + provenance + "' or provenance = 'validation-tool') and document_id in "
-				+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b "
-					+ "where b.project_id = " + projID + " and a.frame_instance_id = b.frame_instance_id) order by document_id";
+			String queryStr ="select a.id, a.document_namespace, a.document_table, a.document_id, a.value, a.annotation_type, a.start, a.provnenace, b.frame_instance_id "
+				+ "from " + schema + "annotation a, " + schema + "frame_instance_document b, " + schema + "document_status c "
+				+ " where (a.provenance = '" + provenance + "' or a.provenance = 'validation-tool') and (c.status = 0 or c.status = 1 or c.status = -4) and c.document_id = a.document_id and "
+				+ "b.document_id = a.document_id and "
+				+ "a.document_id in "
+				+ "(select d.document_id from " + schema + "frame_instance_document d, " + schema + "project_frame_instance e "
+				+ "where e.project_id = " + projID + " and d.frame_instance_id = e.frame_instance_id) order by a.document_id, a.start";
 			
 			//queryStr ="select id, document_namespace, document_table, document_id, value, annotation_type from " + schema + "annotation where provenance = '" + provenance + "' order by document_id, start";
 			
@@ -93,10 +96,12 @@ public class PopulateFrame
 			*/
 			
 			
+			PreparedStatement pstmtDeleteAnnot = conn.prepareStatement("delete from " + schema + "annotation where provenance = 'validation-tool' and "
+				+ "document_id = ? and start = ? and annotation_type = ?");
 			
 			
 			ResultSet rs = stmt.executeQuery("select a.frame_instance_id from " + schema + "frame_instance_status a, " + schema + "project_frame_instance b "
-				+ "where a.status = 0 and b.project_id = " + projID + " and a.frame_instance_id = b.frame_instance_id");
+				+ "where (a.status = 0 or a.status = 1 or a.status = -4) and b.project_id = " + projID + " and a.frame_instance_id = b.frame_instance_id");
 			
 			
 			conn.setAutoCommit(false);
@@ -119,6 +124,7 @@ public class PopulateFrame
 			conn.setAutoCommit(true);
 			
 			//no overlap with user created annotations
+			/*
 			rs = stmt.executeQuery("select a.document_id, b.start from " + schema + "frame_instance_data a, " + schema + "annotation b "
 				+ "where a.provenance = 'validation-tool' and a.annotation_id = b.id and a.document_id = b.document_id and a.document_id in "
 				+ "(select c.document_id from " + schema + "frame_instance_document c, " + schema + "project_frame_instance d "
@@ -130,15 +136,16 @@ public class PopulateFrame
 				int start = rs.getInt(2);
 				userMap.put(docID + "|" + start, true);
 			}
+			*/
 			
 			
 			Map<String, Integer> map = new HashMap<String, Integer>();
-			Map<Integer, Integer> sectionSlotMap = new HashMap<Integer, Integer>();			
+			Map<Integer, Integer> sectionSlotMap = new HashMap<Integer, Integer>();
+			Map<String, Boolean> usedMap = new HashMap<String, Boolean>();
 						
 			rs = stmt.executeQuery(queryStr);
 			
 			
-			int currFrameInstanceID = -1;
 			
 			conn.setAutoCommit(false);
 			
@@ -150,14 +157,32 @@ public class PopulateFrame
 				String value = rs.getString(5);
 				String annotType = rs.getString(6);
 				int start = rs.getInt(7);
+				String provenance2 = rs.getString(8);
+				int frameInstanceID = rs.getInt(9);
 				
-				if (userMap.get(docID + "|" + start) != null && !provenance.equals("validation-tool"))
-					continue;
+				if (usedMap.get(docID + "|" + start) != null) {
+					//auto generate annotation duplicates user-defined annotation
+					if (provenance2.equals(provenance))
+						continue;
+					
+					//duplicate user-defined annotation
+					else {
+						pstmtDeleteAnnot.setLong(1, docID);
+						pstmtDeleteAnnot.setInt(2, start);
+						pstmtDeleteAnnot.setString(3, annotType);
+						pstmtDeleteAnnot.execute();
+						continue;
+					}
+				}
+				else {
+					usedMap.put(docID + "|" + start, true);
+				}
 				
-				int frameInstanceID = getFrameInstanceID(docID);
+				//int frameInstanceID = getFrameInstanceID(docID);
 				
 				//System.out.println("docID: " + docID);
 				
+				/*
 				if (frameInstanceID != currFrameInstanceID) {
 					currFrameInstanceID = frameInstanceID;
 				
@@ -180,7 +205,9 @@ public class PopulateFrame
 					
 					conn.commit();
 					conn.setAutoCommit(true);
-				}				
+				}
+				*/				
+
 				
 				int[] ans = getElementSlotID(annotType);
 				String key = frameInstanceID + "|" + ans[0] + "|" + ans[1];
@@ -218,8 +245,8 @@ public class PopulateFrame
 				
 				
 				//release lock
-				pstmtDeleteFrameInstanceLock.setInt(1, frameInstanceID);
-				pstmtDeleteFrameInstanceLock.execute();
+				//pstmtDeleteFrameInstanceLock.setInt(1, frameInstanceID);
+				//pstmtDeleteFrameInstanceLock.execute();
 			}
 			
 			pstmtInsert.executeBatch();
