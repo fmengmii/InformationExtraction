@@ -42,7 +42,8 @@ public class PopulateFrame
 			//pstmtCountDelete = conn.prepareStatement("select element_id, count(*) from " + this.schema + "frame_instance_data where frame_instance_id = ? and provenance = ? group by element_id");
 			
 			pstmtCheckElemRepeat = conn.prepareStatement("select repeat_num from " + this.schema + "frame_instance_element_repeat where frame_instance_id = ? and element_id = ? and section_slot_num = ?");
-			pstmtInsertElemRepeat = conn.prepareStatement("insert into " + this.schema + "frame_instance_element_repeat (frame_instance_id, element_id, section_slot_num, repeat_num) values (?,?,?,?)");
+			pstmtInsertElemRepeat = conn.prepareStatement("insert into " + this.schema + "frame_instance_element_repeat (frame_instance_id, element_id, section_slot_num, repeat_num) "
+				+ "values (?,?,?,?)");
 			pstmtUpdateElemRepeat = conn.prepareStatement("update " + this.schema + "frame_instance_element_repeat set repeat_num = ? where frame_instance_id = ? and "
 				+ "element_id = ?");
 			pstmtDeleteElemRepeat = conn.prepareStatement("delete from " + this.schema + "frame_instance_element_repeat where frame_instance_id = ?");
@@ -97,7 +98,7 @@ public class PopulateFrame
 			
 			
 			PreparedStatement pstmtDeleteAnnot = conn.prepareStatement("delete from " + schema + "annotation where provenance = 'validation-tool' and "
-				+ "document_id = ? and start = ? and annotation_type = ?");
+				+ "document_id = ? and start = ? and annotation_type = ? and id = ?");
 			
 			
 			ResultSet rs = stmt.executeQuery("select a.frame_instance_id from " + schema + "frame_instance_status a, " + schema + "project_frame_instance b "
@@ -150,7 +151,7 @@ public class PopulateFrame
 			
 			
 			
-			conn.setAutoCommit(false);
+			//conn.setAutoCommit(false);
 			
 			while (rs.next()) {
 				int annotID = rs.getInt(1);
@@ -173,6 +174,7 @@ public class PopulateFrame
 					pstmtDeleteAnnot.setLong(1, docID);
 					pstmtDeleteAnnot.setInt(2, start);
 					pstmtDeleteAnnot.setString(3, annotType);
+					pstmtDeleteAnnot.setInt(4, annotID);
 					pstmtDeleteAnnot.execute();
 					continue;
 				}
