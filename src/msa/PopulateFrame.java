@@ -364,7 +364,7 @@ public class PopulateFrame
 	
 	public static void main(String[] args)
 	{
-		if (args.length != 7) {
+		if (args.length != 8) {
 			System.out.println("usage: user password host dbName dbType schema provenance projID");
 			System.exit(0);
 		}
