@@ -175,7 +175,7 @@ public class DuplicateSentences
 			pstmtAnnotID.setLong(1, docID);
 			ResultSet rs = pstmtAnnotID.executeQuery();
 			if (rs.next())
-				annotID = rs.getInt(1);
+				annotID = rs.getInt(1) + 1;
 		}
 		catch(Exception e)
 		{
