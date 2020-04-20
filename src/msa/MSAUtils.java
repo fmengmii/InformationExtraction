@@ -154,7 +154,7 @@ public class MSAUtils
 	
 	public static boolean matchGrids(AnnotationSequenceGrid grid1, AnnotationSequenceGrid grid2, SmithWatermanDim sw, int maxGaps, int minSize, int syntax, int phrase)
 	{
-		if (grid1.size() == 0 || grid2.size() == 0)
+		if (grid1.size() == 0 || grid2.size() == 0 || grid1.size() != grid2.size())
 			return false;
 		
 		Gson gson = new Gson();
