@@ -79,7 +79,7 @@ public class PopulateFrame
 			
 			String queryStr ="select a.id, a.document_namespace, a.document_table, a.document_id, a.value, a.annotation_type, a.start, a.provenance, b.frame_instance_id "
 				+ "from " + schema + "annotation a, " + schema + "frame_instance_document b, " + schema + "document_status c "
-				+ " where (a.provenance = '" + provenance + "' or a.provenance = 'validation-tool') and (c.status = 0 or c.status = 1 or c.status = -4) and c.document_id = a.document_id and "
+				+ " where (a.provenance = '" + provenance + "' or a.provenance like 'validation-tool%') and (c.status = 0 or c.status = 1 or c.status = -4) and c.document_id = a.document_id and "
 				+ "b.document_id = a.document_id and "
 				+ "a.document_id in "
 				+ "(select d.document_id from " + schema + "frame_instance_document d, " + schema + "project_frame_instance e "

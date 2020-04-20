@@ -2721,14 +2721,15 @@ public class AutoAnnotateNER
 	
 	public static void main(String[] args)
 	{
-		if (args.length != 5) {
-			System.out.println("usage: user password docUser docPassword config");
+		if (args.length != 6) {
+			System.out.println("usage: user password docUser docPassword config profileType");
 			System.exit(0);
 		}
 		
 		try {
 			AutoAnnotateNER auto = new AutoAnnotateNER();
 			auto.init(args[0], args[1], args[4]);
+			auto.setProfileType(Integer.parseInt(args[5]));
 			auto.annotate(args[0], args[1]);
 			//auto.eval();
 			
