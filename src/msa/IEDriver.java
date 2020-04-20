@@ -617,7 +617,7 @@ public class IEDriver
 			pattProps.setProperty("phrase", Integer.toString(phrase));
 			pattProps.setProperty("requireTarget", Boolean.toString(requireTarget));
 			//pattProps.setProperty("targetType", targetType);
-			pattProps.setProperty("targetProvenance", targetProvenance);
+			pattProps.setProperty("targetProvenance", targetProvenance + "%");
 			pattProps.setProperty("tokType", tokType);
 			
 			pattProps.setProperty("clusterSize", Integer.toString(clusterSize));
@@ -1052,7 +1052,7 @@ public class IEDriver
 					//run filter patterns
 					
 					filterPatt.setProfileType(3);
-					filterPatt.setTargetProvenance("validation-tool%");
+					//filterPatt.setTargetProvenance("validation-tool");
 					filterPatt.setGenSent(genSent);
 					filterPatt.readDocIDList();
 					
@@ -1156,7 +1156,7 @@ public class IEDriver
 							
 					*/
 					
-					
+					//filterPatt.setTargetProvenance("validation-tool%");
 					filterPatt.setProfileType(0);
 					filterPatt.setAnnotTypeList(activeAnnotTypeList);
 					filterPatt.setProfileTableList(profileTableList);
