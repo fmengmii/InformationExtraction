@@ -711,8 +711,8 @@ public class GenMSADriver
 					Annotation tokAnnot = tokAnnotList.get(i);					
 					if ((tokAnnot.getStart() >= annotStart && tokAnnot.getEnd() <= annotEnd) || 
 						(annotStart >= tokAnnot.getStart() && annotEnd <= tokAnnot.getEnd()) ||
-						(tokAnnot.getStart() < annotStart && tokAnnot.getEnd() >= annotStart) ||
-						(tokAnnot.getStart() >= annotStart && tokAnnot.getStart() <= annotEnd)) {
+						(tokAnnot.getStart() < annotStart && tokAnnot.getEnd() > annotStart) ||
+						(tokAnnot.getStart() > annotStart && tokAnnot.getStart() < annotEnd)) {
 						targetFlag = true;
 						targetToks.add(toks.get(i));
 						if (targetStrBlder.length() > 0)
