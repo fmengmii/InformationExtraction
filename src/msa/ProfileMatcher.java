@@ -302,9 +302,9 @@ public class ProfileMatcher
 							long annotIndex2 = grid.get(indexes[1]-1).get(0).getAnnot().getStart();
 							
 							if (verbose) {
-								//System.out.println("\n\nprofile matched: " + profileStr);
-								//System.out.println("indexes: " + gson.toJson(indexes) + ", focusCoords: " + gson.toJson(focusCoords));
-								//System.out.println("annotIndex1: " + annotIndex1 + ", annotIndex2: " + annotIndex2);
+								System.out.println("\n\nprofile matched: " + profileStr);
+								System.out.println("indexes: " + gson.toJson(indexes) + ", focusCoords: " + gson.toJson(focusCoords));
+								System.out.println("annotIndex1: " + annotIndex1 + ", annotIndex2: " + annotIndex2);
 							}
 									
 							List<int[]> matchCoords1 = matchCoords1List.get(j);
@@ -362,7 +362,7 @@ public class ProfileMatcher
 							AnnotationSequenceGrid targetGrid = grid.subGrid(indexes[0], indexes[1]);
 							
 							if (verbose) {
-								//System.out.println("match profile: " + align1 + ", " + align2 + ", indexes[0]:" + indexes[0] + ", indexes[1]:" + indexes[1] + ", targetgrid: " + gson.toJson(targetGrid.getSequence().getToks()));
+								System.out.println("match profile: " + align1 + ", " + align2 + ", indexes[0]:" + indexes[0] + ", indexes[1]:" + indexes[1] + ", targetgrid: " + gson.toJson(targetGrid.getSequence().getToks()));
 								//System.out.println("matchcoords1: " + gson.toJson(matchCoords1) + "\nmatchCoords2: " + gson.toJson(matchCoords2));
 								//System.out.println("targetCoords[0]: " + targetCoords[0] + " targetCoords[1]: " + targetCoords[1]);
 							}
@@ -403,7 +403,7 @@ public class ProfileMatcher
 							for (AnnotationSequenceGrid targetProfileGrid : targetProfileGridList) {		
 								targetMatch = MSAUtils.matchGrids(targetProfileGrid, targetGrid, sw, 0, targetProfileGrid.size(), syntax, phrase);
 								targetProfileStr = gson.toJson(targetProfileGrid.getSequence().getToks());
-								//System.out.println("targetProfile: " + targetProfileStr);
+								System.out.println("targetProfile: " + targetProfileStr);
 								
 								
 								//loop through because there may be multiple segments that match target profiles
