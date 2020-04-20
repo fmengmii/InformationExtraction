@@ -1011,6 +1011,7 @@ public class BestPatterns
 			int start = rs.getInt(2);
 			int end = rs.getInt(3);
 			
+			/*
 			pstmt.setInt(1, start);
 			pstmt.setInt(2, start);
 			ResultSet rs2 = pstmt.executeQuery();
@@ -1024,6 +1025,7 @@ public class BestPatterns
 			if (rs2.next()) {
 				end = rs2.getInt(2);
 			}
+			*/
 			
 			ansMap.put(docID + "|" + start + "|" + end, true);
 		}
