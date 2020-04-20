@@ -1052,6 +1052,7 @@ public class IEDriver
 					//run filter patterns
 					
 					filterPatt.setProfileType(3);
+					filterPatt.setTargetProvenance("validation-tool%");
 					filterPatt.setGenSent(genSent);
 					filterPatt.readDocIDList();
 					

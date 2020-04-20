@@ -210,6 +210,11 @@ public class FilterPatterns
 		return genSent;
 	}
 	
+	public void setTargetProvenance(String targetProvenance)
+	{
+		this.targetProvenance = targetProvenance;
+	}
+	
 	public void init(String annotUser, String annotPassword, String msaUser, String msaPassword, Properties props)
 	{
 		try {			
@@ -347,7 +352,7 @@ public class FilterPatterns
 			String rq = DBConnection.reservedQuote;
 			pstmtGetAnswers = conn.prepareStatement("select distinct document_id, start, " + rq + "end" + rq
 					+ "from " + schema + ".annotation where document_id = ? and annotation_type = ?"
-					+ " and provenance = ? order by document_id, start");
+					+ " and provenance like ? order by document_id, start");
 
 			
 			if (docDBQuery == null)
@@ -941,8 +946,8 @@ public class FilterPatterns
 	
 	public static void main(String[] args)
 	{
-		if (args.length != 7) {
-			System.out.println("usage: user password docuser docpassword msauser msapassword config");
+		if (args.length != 8) {
+			System.out.println("usage: user password docuser docpassword msauser msapassword config profileType");
 			System.exit(0);
 		}
 		
@@ -950,6 +955,7 @@ public class FilterPatterns
 			FilterPatterns ie = new FilterPatterns();
 			ie.init(args[0], args[1], args[4], args[5], args[6]);
 			ie.readDocIDList();
+			ie.setProfileType(Integer.parseInt(args[7]));
 			ie.filterPatterns(args[0], args[1], args[2], args[3], args[4], args[5]);
 		}
 		catch(Exception e)
