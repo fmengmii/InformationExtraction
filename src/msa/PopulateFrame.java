@@ -132,12 +132,12 @@ public class PopulateFrame
 				+ "(select d.document_id from " + schema + "frame_instance_document d, " + schema + "project_frame_instance e "
 				+ "where e.project_id = " + projID + " and d.frame_instance_id = e.frame_instance_id) order by a.document_id, a.start");
 			
-			Map<String, Boolean> userDefinedMap = new HashMap<String, Boolean>();
+			Map<String, Integer> userDefinedMap = new HashMap<String, Integer>();
 			while (rs.next()) {
 				long docID = rs.getLong(1);
 				int start = rs.getInt(2);
 				
-				userDefinedMap.put(docID + "|" + start, true);
+				userDefinedMap.put(docID + "|" + start, 0);
 			}
 			
 			
@@ -169,7 +169,10 @@ public class PopulateFrame
 					continue;
 				}
 				
-				if (usedMap.get(docID + "|" + start) != null) {
+				Integer userDefinedCount = userDefinedMap.get(docID + "|" + start);
+				
+				if (userDefinedCount != null && (userDefinedCount > 0 || !provenance2.equals("validation-tool"))) {
+				
 					//duplicate user-defined annotation
 					pstmtDeleteAnnot.setLong(1, docID);
 					pstmtDeleteAnnot.setInt(2, start);
@@ -179,7 +182,7 @@ public class PopulateFrame
 					continue;
 				}
 				else {
-					usedMap.put(docID + "|" + start, true);
+					userDefinedMap.put(docID + "|" + start, 1);
 				}
 				
 				//int frameInstanceID = getFrameInstanceID(docID);
