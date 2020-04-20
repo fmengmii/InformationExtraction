@@ -400,6 +400,9 @@ public class BestPatterns
 							else 
 								docCountMap.put(docKey + "|" + ansFlag, ++docCount);
 							
+							if (profileID == 2192)
+								System.out.println("inc: " + inc);
+							
 							if (inc) {
 								Integer count = posMap.get(key);
 								if (count == null)
