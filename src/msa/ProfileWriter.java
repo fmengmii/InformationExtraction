@@ -51,6 +51,7 @@ public class ProfileWriter
 		//for (MSAProfile profile : profileList) {
 		conn2.setAutoCommit(false);
 		int queryCount = 0;
+		Map<String, Boolean> usedMap = new HashMap<String, Boolean>();
 		for (int i=0; i<profileList.size(); i++) {
 			MSAProfile profile = profileList.get(i);
 			pstmtExists.setString(1, profile.getProfileStr());
@@ -62,6 +63,12 @@ public class ProfileWriter
 			if (rs.next()) {
 				count = rs.getInt(1);
 			}
+			
+			Boolean flag = usedMap.get(profile.getProfileStr());
+			if (flag != null)
+				continue;
+			
+			usedMap.put(profile.getProfileStr(), true);
 			
 			//insert
 			if (count == 0 || duplicates) {

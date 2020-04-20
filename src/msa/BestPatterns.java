@@ -385,10 +385,11 @@ public class BestPatterns
 							System.out.println("profile type 3: " + key);
 						}
 						
-		
+						
 						long profileID2 = profileID;
 						if (ansFlag != null) {
-							//System.out.println(profileID + "|" + targetID + "|" + docID + "|" + start + "|" + end + "|" + targetStr + "|" + ansFlag);
+							if (profileID == 2192)
+								System.out.println(profileID + "|" + targetID + "|" + docID + "|" + start + "|" + end + "|" + targetStr + "|" + ansFlag);
 							
 							boolean inc = true;
 							Integer docCount = docCountMap.get(docKey + "|" + ansFlag);
@@ -434,6 +435,9 @@ public class BestPatterns
 							}
 							
 							profileID2 = -profileID;
+							
+							if (profileID == 2192)
+								System.out.println("no ans: " + docID + "|" + start + "|" + end);
 						}
 						
 						
