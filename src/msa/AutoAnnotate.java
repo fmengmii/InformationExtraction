@@ -520,7 +520,7 @@ public class AutoAnnotate
 				Map<Long, ProfileGrid> profileIDMap = new HashMap<Long, ProfileGrid>();
 				Map<Long, AnnotationSequenceGrid> targetIDMap = new HashMap<Long, AnnotationSequenceGrid>();
 				
-				Map<MSAProfile, List<MSAProfile>> profileMap = reader.readFinal(targetType, profileMinTotal, profileMinPrec, finalTable, profileTable);
+				Map<MSAProfile, List<MSAProfile>> profileMap = reader.readFinal(targetType, profileMinTotal, profileMinPrec, finalTable, profileTable, 0);
 				
 				for (MSAProfile profile : profileMap.keySet()) {
 					AnnotationSequenceGrid profileSeqGrid = genGrid.toAnnotSeqGrid(profile.getToks(), false);

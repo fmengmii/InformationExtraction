@@ -177,7 +177,7 @@ public class ProfileReader
 			
 	}
 	
-	public Map<MSAProfile, List<MSAProfile>> readFinal(String annotType, int total, double prec, String finalProfileTable, String profileTable) throws SQLException
+	public Map<MSAProfile, List<MSAProfile>> readFinal(String annotType, int total, double prec, String finalProfileTable, String profileTable, int profileType) throws SQLException
 	{	
 		Map<MSAProfile, List<MSAProfile>> profileMap = new HashMap<MSAProfile, List<MSAProfile>>();
 		Map<Long, MSAProfile> targetMap = new HashMap<Long, MSAProfile>();
@@ -186,7 +186,7 @@ public class ProfileReader
 		
 		ResultSet rs = stmt.executeQuery("select a.profile_id, a.target_id, b.profile, b." + rq + "group" + rq + ", c.profile "
 			+ "from " + finalProfileTable + " a, " + profileTable + " b, " + profileTable + " c "
-			+ "where b.annotation_type = '" + annotType + "' and b.score >= 0.0 and a.profile_id = b.profile_id and a.target_id = c.profile_id and "
+			+ "where b.annotation_type = '" + annotType + "' and b.score >= 0.0 and b.profile_type = " + profileType + " a.profile_id = b.profile_id and a.target_id = c.profile_id and "
 			+ "a.disabled = 0 and a.prec >= " + prec);
 		
 		Map<Long, MSAProfile> profileMap2 = new HashMap<Long, MSAProfile>();

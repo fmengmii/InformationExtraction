@@ -1045,11 +1045,13 @@ public class IEDriver
 				genSent = genMSADriver.getGenSent();
 				
 				
+				//phase 1 for profile type 3 (repeated entire sentences)
 				//filter patterns
 				if (filterFlag) {
-					System.out.println("** FILTER **");
+					System.out.println("** FILTER 1**");
 					//run filter patterns
 					
+					filterPatt.setProfileType(3);
 					filterPatt.setGenSent(genSent);
 					filterPatt.readDocIDList();
 					
@@ -1080,8 +1082,8 @@ public class IEDriver
 				
 				
 				//best patterns
-				if (bestFlag && filterPatt.getDocIDMap().size() > 0) {
-					System.out.println("** BEST **");
+				if (bestFlag) {
+					System.out.println("** BEST 1**");
 					
 					
 					//pstmtDeleteFinalTable.execute();
@@ -1096,41 +1098,9 @@ public class IEDriver
 				
 				
 				
-				//set document status
-				/*
-				if (docList.size() > 0) {
-					conn.setAutoCommit(false);
-					
-					List<DocBean> docListSmall = docList.subList(0, lastDocIndex);
-					int newStatus = 2;
-					if (docListSmall.size() >= blockSize)
-						newStatus = 3;
-					
-					updateDocsWithStatusDocID(1, newStatus, docListSmall);
-					if (newStatus == 3)
-						updateDocsWithStatusDocID(2, 3, docListSmall);
-					
-					//docListSmall = docList.subList(lastDocIndex, docList.size());
-					//updateDocsWithStatusDocID(1, 3, docListSmall);
-					//pstmtResetGenMSAStatus.execute();
-					
-					
-					//update profile group so that profiles already filtered will not be filtered again
-					pstmtUpdateProfileGroup.setString(1, group + "##");
-					pstmtUpdateProfileGroup.setString(2, group);
-					pstmtUpdateProfileGroup.execute();
-					
-					conn.commit();
-					conn.setAutoCommit(true);
-				}
-				 */
-				
-
-				
-				
 				//auto annotate
 				if (autoFlag) {
-					System.out.println("** AUTO **");
+					System.out.println("** AUTO 1**");
 					
 					//set frame instance locks
 					ResultSet rs2 = pstmtGetAutoDocIDs.executeQuery();
@@ -1147,7 +1117,102 @@ public class IEDriver
 						}
 					}
 					
-										
+									
+					autoAnnot.setAutoProvenance("validation-tool-duplicate");
+					autoAnnot.setProfileType(3);
+					autoAnnot.setGenSent(genSent);
+					autoAnnot.setAnnotTypeList(activeAnnotTypeList);
+					autoAnnot.setProfileTableList(profileTableList);
+					autoAnnot.setFinalTableList(finalTableList);
+					autoAnnot.setDocDBQuery(autoDBQuery);
+					autoAnnot.setProfileMinPrec(profileMinPrec);
+					
+					autoAnnot.annotate(user, password);
+					
+					pstmtDeleteFrameInstanceLocks.execute();
+					
+					//autoAnnot.close();
+				}
+				
+				
+				//phase 2
+				//filter patterns
+				if (filterFlag) {
+					System.out.println("** FILTER 2**");
+					//run filter patterns
+					
+					filterPatt.setGenSent(genSent);
+					filterPatt.readDocIDList();
+					
+					
+					/*
+					//set status
+					stmt.execute("update " + schema2 + "frame_instance_status set status = -4 where status = 1 and frame_instance_id in "
+						+ "(select distinct a.frame_instance_id from " + schema2 + "project_frame_instance a where a.project_id = " + projID + ")");
+					stmt.execute("update " + schema2 + "document_status set status = -4 where status = 1 and document_id in "
+							+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
+							+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
+							
+					*/
+					
+					
+					filterPatt.setProfileType(0);
+					filterPatt.setAnnotTypeList(activeAnnotTypeList);
+					filterPatt.setProfileTableList(profileTableList);
+					filterPatt.setIndexTableList(indexTableList);
+					filterPatt.filterPatterns(user, password, docUser, docPassword, user, password);
+					
+					//second incremental for existing patterns to only run on new docs (status = 1)
+					/*
+					System.out.println("** FILTER Second Pass **");
+					filterPatt.setDocDBQuery("select document_id from " + schema2 + "document_status where status = 1 order by document_id");
+					filterPatt.setGroup(group + "##");
+					filterPatt.setTargetGroup(group + "##");
+					filterPatt.filterPatterns(user, password, docUser, docPassword, user, password);
+					*/
+					
+				}
+				
+				
+				
+				//best patterns
+				if (bestFlag) {
+					System.out.println("** BEST 2**");
+					
+					
+					//pstmtDeleteFinalTable.execute();
+					
+					bestPatt.setAnnotTypeList(activeAnnotTypeList);
+					bestPatt.setProfileTableList(profileTableList);
+					bestPatt.setIndexTableList(indexTableList);
+					bestPatt.setFinalTableList(finalTableList);					
+					bestPatt.getBestPatterns(user, password, user, password);
+				}
+				
+				
+				
+				
+				//auto annotate
+				if (autoFlag) {
+					System.out.println("** AUTO 2**");
+					
+					//set frame instance locks
+					ResultSet rs2 = pstmtGetAutoDocIDs.executeQuery();
+					while (rs2.next()) {
+						long docID = rs2.getLong(1);
+						pstmtSetFrameInstanceLocks.setLong(1, docID);
+						
+						try {
+							pstmtSetFrameInstanceLocks.execute();
+						}
+						catch(SQLException e)
+						{
+							//there is already a lock on this document
+						}
+					}
+					
+					
+					autoAnnot.setProfileType(0);
 					autoAnnot.setGenSent(genSent);
 					autoAnnot.setAnnotTypeList(activeAnnotTypeList);
 					autoAnnot.setProfileTableList(profileTableList);

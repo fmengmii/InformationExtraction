@@ -148,6 +148,11 @@ public class FilterPatterns
 		this.genSent = genSent;
 	}
 	
+	public void setProfileType(int profileType)
+	{
+		this.profileType = profileType;
+	}
+	
 	public void init(String annotUser, String annotPassword, String msaUser, String msaPassword, String config)
 	{
 		try {
@@ -713,12 +718,12 @@ public class FilterPatterns
 						
 						Map<Long, ProfileGrid> profileIDMap = new HashMap<Long, ProfileGrid>();
 						
-						List<MSAProfile> profileList2 = null;
+						//List<MSAProfile> profileList2 = null;
 						
-						profileList = reader.read(targetType, group, readStart, clusterSize, 0, schema + "." + profileTable);
-						profileList2 = reader.read(targetType, group, readStart, clusterSize, 3, schema + "." + profileTable);
+						profileList = reader.read(targetType, group, readStart, clusterSize, profileType, schema + "." + profileTable);
+						//profileList2 = reader.read(targetType, group, readStart, clusterSize, 3, schema + "." + profileTable);
 						
-						profileList.addAll(profileList2);
+						//profileList.addAll(profileList2);
 						
 						
 						//check if there are profiles

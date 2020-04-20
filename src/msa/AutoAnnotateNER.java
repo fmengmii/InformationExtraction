@@ -155,6 +155,9 @@ public class AutoAnnotateNER
 	
 	private String rq;
 	
+	private int profileType = 0;
+	
+	
 	public AutoAnnotateNER()
 	{
 		gson = new Gson();
@@ -216,6 +219,11 @@ public class AutoAnnotateNER
 	public void setGenSent(GenSentences genSent)
 	{
 		this.genSent = genSent;
+	}
+	
+	public void setProfileType(int profileType)
+	{
+		this.profileType = profileType;
 	}
 	
 	public void init(String user, String password, String config)
@@ -671,7 +679,7 @@ public class AutoAnnotateNER
 				profileIDMap = new HashMap<Long, ProfileGrid>();
 				targetIDMap = new HashMap<Long, AnnotationSequenceGrid>();
 				
-				Map<MSAProfile, List<MSAProfile>> profileMap = reader.readFinal(targetType, profileMinTotal, profileMinPrec, schema + finalTable, schema + profileTable);
+				Map<MSAProfile, List<MSAProfile>> profileMap = reader.readFinal(targetType, profileMinTotal, profileMinPrec, schema + finalTable, schema + profileTable, profileType);
 				
 				
 				for (MSAProfile profile : profileMap.keySet()) {
