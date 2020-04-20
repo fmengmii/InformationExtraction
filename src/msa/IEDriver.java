@@ -433,7 +433,7 @@ public class IEDriver
 			msaDocQuery = "select document_id, status from " + schema2 + "document_status where (status = 1 or status = 2) and document_id in "
 				+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") order by document_id";
-			filterDocQuery = "select document_id from " + schema2 + "document_status where status = 1 and document_id in "
+			filterDocQuery = "select document_id from " + schema2 + "document_status where status = -4 and document_id in "
 				+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "
 				+ "order by document_id";
@@ -1054,7 +1054,6 @@ public class IEDriver
 					filterPatt.setProfileType(3);
 					//filterPatt.setTargetProvenance("validation-tool");
 					filterPatt.setGenSent(genSent);
-					filterPatt.readDocIDList();
 					
 					//set status
 					stmt.execute("update " + schema2 + "frame_instance_status set status = -4 where status = 1 and frame_instance_id in "
@@ -1062,6 +1061,8 @@ public class IEDriver
 					stmt.execute("update " + schema2 + "document_status set status = -4 where status = 1 and document_id in "
 							+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 							+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
+					
+					filterPatt.readDocIDList();
 					
 					
 					filterPatt.setAnnotTypeList(activeAnnotTypeList);
