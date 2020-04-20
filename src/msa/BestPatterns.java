@@ -388,8 +388,6 @@ public class BestPatterns
 						
 						long profileID2 = profileID;
 						if (ansFlag != null) {
-							if (profileID == 2192)
-								System.out.println(profileID + "|" + targetID + "|" + docID + "|" + start + "|" + end + "|" + targetStr + "|" + ansFlag);
 							
 							boolean inc = true;
 							Integer docCount = docCountMap.get(docKey + "|" + ansFlag);
@@ -400,8 +398,6 @@ public class BestPatterns
 							else 
 								docCountMap.put(docKey + "|" + ansFlag, ++docCount);
 							
-							if (profileID == 2192)
-								System.out.println("inc: " + inc);
 							
 							if (inc) {
 								Integer count = posMap.get(key);
@@ -439,8 +435,6 @@ public class BestPatterns
 							
 							profileID2 = -profileID;
 							
-							if (profileID == 2192)
-								System.out.println("no ans: " + docID + "|" + start + "|" + end);
 						}
 						
 						
