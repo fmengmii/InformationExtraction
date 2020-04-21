@@ -198,7 +198,7 @@ public class BestPatterns
 				PreparedStatement pstmtGetIndexCounts = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", b.profile_type, count(*) "
 					+ "from " + schema + rq + indexTable + rq + " a, " + schema + profileTable + " b "
 					+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.document_id = ? "
-					+ "group by a.profile_id, a.target_id, a.document_id, a.start, a." + rq + "end" + rq + ", b.profile_type");
+					+ "group by a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", b.profile_type");
 				
 				
 				PreparedStatement pstmtGetIndexCounts2 = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", b.profile_type, count(*) "
@@ -352,11 +352,12 @@ public class BestPatterns
 						
 						long profileID = rs.getLong(1);
 						long targetID = rs.getLong(2);
-						//long docID = rs.getLong(3);
 						long start = rs.getLong(3);
 						long end = rs.getLong(4);
 						int profileType = rs.getInt(5);
 						int matchCount = rs.getInt(6);
+						
+						System.out.println("profileID: " + profileID + " targetID: " + targetID + " start:" + start + " profileType: " + profileType + " matchCount: " + matchCount);
 						
 						
 						if (matchCount > 1)
