@@ -998,12 +998,13 @@ public class BestPatterns
 			+ "start < ? and " + rq + "end" + rq + " > ? and document_id = " + docID);
 		
 		
-		ResultSet rs = stmt.executeQuery("select distinct document_id, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = " + docID + " and annotation_type = '" + annotType + 
+		ResultSet rs = stmt.executeQuery("select distinct document_id, start, " + rq + "end" + rq + ", value from " + schema + "annotation where document_id = " + docID + " and annotation_type = '" + annotType + 
 			"' and provenance like '" + provenance + "%' order by document_id, start");
 		
 		while (rs.next()) {
 			int start = rs.getInt(2);
 			int end = rs.getInt(3);
+			String value = rs.getString(4);
 			
 			
 			pstmt.setInt(1, start);
@@ -1020,6 +1021,8 @@ public class BestPatterns
 				end = rs2.getInt(2);
 			}
 			
+			
+			System.out.println("ans: " + docID + "|" + start + "|" + end + "|" + value);
 			
 			ansMap.put(docID + "|" + start + "|" + end, true);
 		}
