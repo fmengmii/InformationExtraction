@@ -357,7 +357,7 @@ public class BestPatterns
 						int profileType = rs.getInt(5);
 						int matchCount = rs.getInt(6);
 						
-						System.out.println("profileID: " + profileID + " targetID: " + targetID + " start:" + start + " profileType: " + profileType + " matchCount: " + matchCount);
+						//System.out.println("profileID: " + profileID + " targetID: " + targetID + " start:" + start + " profileType: " + profileType + " matchCount: " + matchCount);
 						
 						
 						if (matchCount > 1)
@@ -1023,7 +1023,7 @@ public class BestPatterns
 			}
 			
 			
-			System.out.println("ans: " + docID + "|" + start + "|" + end + "|" + value);
+			//System.out.println("ans: " + docID + "|" + start + "|" + end + "|" + value);
 			
 			ansMap.put(docID + "|" + start + "|" + end, true);
 		}
