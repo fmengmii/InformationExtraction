@@ -743,7 +743,10 @@ public class GenMSADriver
 					
 					for (int i=0; i<tokAnnotList.size(); i++) {
 						Annotation tokAnnot = tokAnnotList.get(i);	
-						System.out.println("tok: " + tokAnnot.getValue() + " start: " + tokAnnot.getStart() + " end: " + tokAnnot.getEnd());
+						//System.out.println("tok: " + tokAnnot.getValue() + " start: " + tokAnnot.getStart() + " end: " + tokAnnot.getEnd());
+						if (toks.get(i).equals("''"))
+							toks.set(i, "'");
+							
 						if ((tokAnnot.getStart() >= annotStart && tokAnnot.getEnd() <= annotEnd) || 
 							(annotStart >= tokAnnot.getStart() && annotEnd <= tokAnnot.getEnd()) ||
 							(tokAnnot.getStart() <= annotStart && tokAnnot.getEnd() >= annotStart) ||
@@ -774,6 +777,8 @@ public class GenMSADriver
 					
 					continue;
 				}
+				
+				System.out.println("adding full sent profile: " + SequenceUtilities.getStrFromToks(toks2));
 			
 				StringBuilder strBlder = new StringBuilder();
 				strBlder.append("[\":start\",");
