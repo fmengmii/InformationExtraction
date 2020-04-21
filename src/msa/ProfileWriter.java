@@ -72,7 +72,7 @@ public class ProfileWriter
 			
 			//insert
 			if (count == 0 || duplicates) {
-				pstmtInsert.setString(1, toSQL(profile.getProfileStr()));
+				pstmtInsert.setString(1, profile.getProfileStr());
 				pstmtInsert.setString(2, profile.getAnnotType());
 				pstmtInsert.setString(3, profile.getGroup());
 				pstmtInsert.setInt(4, profile.getType());
