@@ -464,7 +464,7 @@ public class FilterPatterns
 			}
 			
 			
-			if (genSent == null) {
+			if (genSent == null || genSent.getDB() == null) {
 				genSent = new GenSentences();
 				genSent.setVerbose(verbose);
 				genSent.setPunct(punct);
