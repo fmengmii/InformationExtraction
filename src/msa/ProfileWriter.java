@@ -100,7 +100,7 @@ public class ProfileWriter
 				pstmtUpdate.setInt(2, profile.getTruePos());
 				pstmtUpdate.setInt(3, profile.getFalsePos());
 				pstmtUpdate.setInt(4, profile.getRows());
-				pstmtUpdate.setString(5, toSQL(profile.getProfileStr()));
+				pstmtUpdate.setString(5, profile.getProfileStr());
 				pstmtUpdate.setString(6, profile.getAnnotType());
 				pstmtUpdate.setString(7, profile.getGroup());
 				pstmtUpdate.setInt(8, profile.getType());

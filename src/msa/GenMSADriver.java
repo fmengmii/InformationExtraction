@@ -744,8 +744,6 @@ public class GenMSADriver
 					for (int i=0; i<tokAnnotList.size(); i++) {
 						Annotation tokAnnot = tokAnnotList.get(i);	
 						//System.out.println("tok: " + tokAnnot.getValue() + " start: " + tokAnnot.getStart() + " end: " + tokAnnot.getEnd());
-						if (toks.get(i).equals("''"))
-							toks.set(i, "'");
 							
 						if ((tokAnnot.getStart() >= annotStart && tokAnnot.getEnd() <= annotEnd) || 
 							(annotStart >= tokAnnot.getStart() && annotEnd <= tokAnnot.getEnd()) ||
