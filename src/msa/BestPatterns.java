@@ -360,8 +360,10 @@ public class BestPatterns
 						//System.out.println("profileID: " + profileID + " targetID: " + targetID + " start:" + start + " profileType: " + profileType + " matchCount: " + matchCount);
 						
 						
+						/*
 						if (matchCount > 1)
 							continue;
+						*/
 						
 						
 						/*

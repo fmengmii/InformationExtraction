@@ -277,6 +277,7 @@ public class ProfileStats
 			//Map<String, Boolean> profileAddedMap = new HashMap<String, Boolean>();
 			
 			List<ProfileMatch> currMatchList = new ArrayList<ProfileMatch>();
+			//Map<String, Boolean> dupMap = new HashMap<String, Boolean>();
 			
 			while (start < gridList.size()) {
 				System.out.println("BLOCK: " + start + ", " + end);
@@ -285,6 +286,19 @@ public class ProfileStats
 					pw.println("BLOCK: " + start + ", " + end);
 				
 				List<ProfileMatch> matchList = profileMatcher.matchProfile(gridList, profileGridList, targetGridList, annotType, false, maxGaps, syntax, phrase, true, start, end, msaProfileMap, msaTargetProfileMap, invertedIndex);
+				
+				/*
+				//add to currmatchlist but remove duplicates
+				for (ProfileMatch match : matchList) {
+					for (MSAProfile target : match.getTargetList()) {
+						Boolean flag = dupMap.get(match.getProfile().getProfileID() + "|" + target.getProfileID() + "|" + match.getSequence().getDocID() + "|" + match.getSequence().getStart() + "|" + match.getSequence().getEnd());
+						if (flag == null) {
+							currMatchList.add(match);
+							dupMap.put(match.getProfile().getProfileID() + "|" + target.getProfileID() + "|" + match.getSequence().getDocID() + "|" + match.getSequence().getStart() + "|" + match.getSequence().getEnd(), true);
+						}
+					}
+				}
+				*/
 				
 				currMatchList.addAll(matchList);
 
