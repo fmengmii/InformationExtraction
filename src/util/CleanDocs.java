@@ -88,7 +88,10 @@ public class CleanDocs
 			System.exit(0);
 		}
 		
+		
 		CleanDocs clean = new CleanDocs();
 		clean.clean(args[0], args[1], args[2]);
+		
+		
 	}
 }
