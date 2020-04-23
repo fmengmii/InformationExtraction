@@ -145,7 +145,7 @@ public class ProfileReader
 				String group = rs.getString(7);
 				
 
-				//System.out.println(profileStr);
+				System.out.println(profileID + "|" + profileStr);
 				
 				
 				//remove targets with multiple elements
