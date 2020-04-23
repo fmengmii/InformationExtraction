@@ -144,6 +144,7 @@ public class ProfileReader
 				int falsePos = rs.getInt(6);
 				String group = rs.getString(7);
 				
+				profileStr.replaceAll("\"\"", "\\\"\"");
 
 				System.out.println(profileID + "|" + profileStr);
 				
