@@ -146,7 +146,7 @@ public class ProfileReader
 				
 				profileStr = profileStr.replaceAll("\"\"", "\\\\\"\"");
 
-				System.out.println(profileID + "|" + profileStr);
+				//System.out.println(profileID + "|" + profileStr);
 				
 				
 				//remove targets with multiple elements
