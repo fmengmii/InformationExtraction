@@ -144,7 +144,7 @@ public class ProfileReader
 				int falsePos = rs.getInt(6);
 				String group = rs.getString(7);
 				
-				profileStr.replaceAll("\"\"", "\\\"\"");
+				profileStr = profileStr.replaceAll("\"\"", "\\\"\"");
 
 				System.out.println(profileID + "|" + profileStr);
 				
@@ -203,6 +203,8 @@ public class ProfileReader
 			//remove targets with multiple elements
 			//if (targetStr.indexOf("\",\"") >= 0)
 			//	continue;
+			
+			profileStr = profileStr.replaceAll("\"\"", "\\\"\"");
 
 			
 			List<String> toks = new ArrayList<String>();
@@ -221,6 +223,7 @@ public class ProfileReader
 			MSAProfile target = targetMap.get(targetID);
 			if (target == null) {
 				List<String> toks2 = new ArrayList<String>();
+				targetStr = targetStr.replaceAll("\"\"", "\\\"\"");
 				toks2 = gson.fromJson(targetStr, toks2.getClass());
 				target = new MSAProfile(targetID, targetStr, annotType, group, 1, toks2);
 				targetMap.put(targetID, target);
