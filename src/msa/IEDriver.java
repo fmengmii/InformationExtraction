@@ -958,6 +958,23 @@ public class IEDriver
 				
 				GenSentences genSent = null;
 				
+				for (String annotType : annotTypeList) {
+					int currCount = 0;
+					pstmtGetGenMSAStatus.setString(1, annotType);
+					rs = pstmtGetGenMSAStatus.executeQuery();
+
+					if (rs.next()) {
+						currCount = rs.getInt(1);
+					}
+					
+					if (currCount == 0)
+						continue;
+					
+					activeAnnotTypeList.add(annotType);
+				}
+				
+				
+				
 				//gen MSAs
 				if (msaFlag) {
 					System.out.println("** Gen MSA **");
@@ -985,6 +1002,7 @@ public class IEDriver
 							String profileTable = profileTableList.get(i);
 							
 	
+							/*
 							int currCount = 0;
 							pstmtGetGenMSAStatus.setString(1, annotType);
 							rs = pstmtGetGenMSAStatus.executeQuery();
@@ -995,18 +1013,12 @@ public class IEDriver
 							
 							if (currCount == 0)
 								continue;
-							
-							
-							//if user skips over a document, set the status to 2 for now??
-							/*
-							pstmtSetDocStatusRange.setLong(1, minDocID);
-							pstmtSetDocStatusRange.setLong(2, maxDocID);
-							pstmtSetDocStatusRange.execute();
-							*/
+								*/
+
 							
 	
 							//if (annotCount > currCount) {
-							activeAnnotTypeList.add(annotType);
+							//activeAnnotTypeList.add(annotType);
 							genMSADriver.setTargetType(annotType);
 							genMSADriver.setProfileTable(profileTable);
 							//genMSADriver.setRequireTarget(requireTargetMap.get(annotType));
@@ -1014,26 +1026,10 @@ public class IEDriver
 							genMSADriver.run(user, password, docUser, docPassword);
 							
 							
-							/*
-							pstmtUpdateGenMSAStatus.setInt(1, annotCount);
-							pstmtUpdateGenMSAStatus.setString(2, annotType);
-							pstmtUpdateGenMSAStatus.execute();
-							*/
-							
-							
 							
 							docList = genMSADriver.getDocList();
 							lastDocIndex = genMSADriver.getLastDocIndex();
 							
-							
-							/*
-							if (docList.size() > msaBlockSize) {
-								updateDocsWithStatusDocID(1, 2, docList);
-								pstmtResetGenMSAStatus.execute();
-							}
-							*/
-								
-							//}
 						}
 					
 					//gen relation patterns
@@ -1098,6 +1094,7 @@ public class IEDriver
 				}
 				
 				
+				genSent = filterPatt.getGenSent();
 				
 				
 				//auto annotate
