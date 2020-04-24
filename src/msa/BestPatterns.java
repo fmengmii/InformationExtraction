@@ -206,11 +206,13 @@ public class BestPatterns
 						+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.document_id = ? and b." + rq + "group" + rq + " = '" + group + "' "
 						+ "group by a.profile_id, a.target_id, a.start, a." + rq + "end" + rq);
 				
+				PreparedStatement pstmtSetProfileDisabled = conn.prepareStatement("update " + schema + "profile set score = -1.0 where profile_id = ?");
+				
 				Statement stmt = conn.createStatement();
 				
 				//delete from final table for this annot type
-				stmt.execute("delete from " + schema + "final where profile_id in ("
-					+ "select a.profile_id from " + schema + "profile a where a.annotation_type = '" + annotType + "')");
+				//stmt.execute("delete from " + schema + "final where profile_id in ("
+				//	+ "select a.profile_id from " + schema + "profile a where a.annotation_type = '" + annotType + "')");
 				
 
 			
@@ -273,42 +275,10 @@ public class BestPatterns
 				inactiveMap = new HashMap<String, Boolean>();
 				String targetStr = "";
 				
-				//System.out.println("preloading counts...");
-				//preloadCounts();
-				//System.out.println("finished preloading counts...");
-				//preload pos and neg counts
-				//preload inactive profile/target pairs
-				
-				/*
-				rs = stmt.executeQuery("select profile_id, target_id, true_pos, false_pos, prec from " + schema + finalTable);
-				while (rs.next()) {
-					long profileID = rs.getLong(1);
-					long targetID = rs.getLong(2);
-					int posCount = rs.getInt(3);
-					int negCount = rs.getInt(4);
-					double prec = rs.getLong(5);
-					
-					if (posCount > 0)
-						posMap.put(profileID + "|" + targetID, posCount);
-					
-					if (negCount > 0)
-						negMap.put(profileID + "|" + targetID, negCount);
-					
-					if (prec < 0.0) {
-						inactiveMap.put(profileID + "|" + targetID, true);
-					}
-				}
-				*/
-				
-				
-				/*
-				Boolean flag = finalTableMap.get(finalTable);
-				if (flag == null) {
-					System.out.println("deleting...");
-					stmt.execute("delete from " + finalTable);
-					finalTableMap.put(finalTable, true);
-				}
-				*/
+				System.out.println("preloading counts...");
+				preloadCounts();
+				System.out.println("finished preloading counts...");
+
 				
 				
 				long currProfileID = -1;
@@ -377,11 +347,12 @@ public class BestPatterns
 						
 			
 						String key = profileID + "|" + targetID;
+						if (inactiveMap.get(key) != null)
+							continue;
+						
 						String docKey = profileID + "|" + targetID + "|" + docID;
 						Boolean ansFlag = ansMap.get(docID + "|" + start + "|" + end);
 						
-						if (inactiveMap.get(key) != null)
-							continue;
 						
 						if (profileType == 3) {
 							profileTypeMap.put(key, profileType);
@@ -468,14 +439,26 @@ public class BestPatterns
 				
 				conn.setAutoCommit(false);
 				int count = 0;
+				Map<Long, Boolean> profileActiveMap = new HashMap<Long, Boolean>();
+				
 				for (String key : posMap.keySet()) {
 					int posCount = posMap.get(key);
 					Integer negCount = negMap.get(key);
+					String[] parts = key.split("\\|");
+					Long profileID = Long.parseLong(parts[0]);
+					long targetID = Long.parseLong(parts[1]);
 					
 					if (negCount == null)
 						negCount = 0;
 					
 					double prec = ((double) posCount) / ((double) (posCount + negCount));
+					
+					Boolean active = profileActiveMap.get(profileID);
+					if (prec > 0.8)
+						profileActiveMap.put(profileID, true);
+					else if (prec <= 0.8 && active == null)
+						profileActiveMap.put(profileID, false);
+						
 	
 					boolean write = true;
 					int valence = 0;
@@ -507,10 +490,6 @@ public class BestPatterns
 					
 					System.out.println(key + " : " + posCount + ", " + negCount + ", " + prec + ", " + score);
 					
-					String[] parts = key.split("\\|");
-					long profileID = Long.parseLong(parts[0]);
-					long targetID = Long.parseLong(parts[1]);
-					
 					//pstmtUpdateProfile.setDouble(1, score);					
 					//pstmtUpdateProfile.setLong(2, profileID);
 					//pstmtUpdateProfile.execute();
@@ -534,6 +513,16 @@ public class BestPatterns
 					}
 				
 				}
+				
+				//profile has no target combo that exceeds 80%
+				for (long profileID : profileActiveMap.keySet()) {
+					Boolean active = profileActiveMap.get(profileID);
+					if (!active) {
+						pstmtSetProfileDisabled.setLong(1, profileID);
+						pstmtSetProfileDisabled.execute();
+					}
+				}
+				
 				
 				pstmt.executeBatch();
 				conn.commit();
@@ -655,6 +644,8 @@ public class BestPatterns
 			int profileType = rs.getInt(3);
 			
 			List<String> profileToks = new ArrayList<String>();
+			
+			profileStr = profileStr.replaceAll("\"\"", "\\\\\"\"");
 			profileToks = gson.fromJson(profileStr, profileToks.getClass());
 			int len = profileToks.size();
 			profileLengthMap.put(profileID, len);
@@ -898,23 +889,24 @@ public class BestPatterns
 		//preload inactive profile/target pairs
 		
 		Statement stmt = conn.createStatement();
-		ResultSet rs = stmt.executeQuery("select profile_id, target_id, true_pos, false_pos, prec from " + schema + finalTable);
+		ResultSet rs = stmt.executeQuery("select profile_id, target_id, true_pos, false_pos, disabled from " + schema + finalTable);
 		while (rs.next()) {
 			long profileID = rs.getLong(1);
 			long targetID = rs.getLong(2);
 			int posCount = rs.getInt(3);
 			int negCount = rs.getInt(4);
-			double prec = rs.getLong(5);
+			int disabled = rs.getInt(5);
+			
+			if (disabled == 1) {
+				inactiveMap.put(profileID + "|" + targetID, true);
+				continue;
+			}
 			
 			if (posCount > 0)
 				posMap.put(profileID + "|" + targetID, posCount);
 			
 			if (negCount > 0)
 				negMap.put(profileID + "|" + targetID, negCount);
-			
-			if (prec < 0.0) {
-				inactiveMap.put(profileID + "|" + targetID, true);
-			}
 		}
 	}
 
