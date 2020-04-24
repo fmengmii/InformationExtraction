@@ -133,6 +133,9 @@ public class ProfileInvertedIndex
 					//System.out.println("matched: " + tok);
 					
 					for (ProfileGrid profileGrid : gridMap.keySet()) {
+						if (profileGrid.getGrid().size() > grid.size())
+							continue;
+						
 						int gridCount = gridMap.get(profileGrid);
 						Integer count = countMap.get(profileGrid);
 						if (count == null)

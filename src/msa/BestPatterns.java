@@ -278,7 +278,7 @@ public class BestPatterns
 				System.out.println("preloading counts...");
 				preloadCounts();
 				System.out.println("finished preloading counts...");
-
+				
 				
 				
 				long currProfileID = -1;
@@ -453,11 +453,6 @@ public class BestPatterns
 					
 					double prec = ((double) posCount) / ((double) (posCount + negCount));
 					
-					Boolean active = profileActiveMap.get(profileID);
-					if (prec > 0.8)
-						profileActiveMap.put(profileID, true);
-					else if (prec <= 0.8 && active == null)
-						profileActiveMap.put(profileID, false);
 						
 	
 					boolean write = true;
@@ -485,6 +480,12 @@ public class BestPatterns
 						negCount = 0;
 						prec = 1.0;
 					}
+					
+					Boolean active = profileActiveMap.get(profileID);
+					if (prec > 0.8)
+						profileActiveMap.put(profileID, true);
+					else if (prec <= 0.8 && active == null)
+						profileActiveMap.put(profileID, false);
 					
 					
 					
