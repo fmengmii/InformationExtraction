@@ -19,6 +19,7 @@ public class AnnotateDuplicate
 	private Map<String, List<Integer>> indexMap;
 	private int seqIndex = 0;
 	private List<AnnotationSequence> seqList;
+	private PreparedStatement pstmtAnnot;
 	private PreparedStatement pstmtWriteAnnot;
 	private String targetType;
 	private String schema;
@@ -107,6 +108,8 @@ public class AnnotateDuplicate
 			schema += ".";
 			pstmtWriteAnnot = conn2.prepareStatement("insert into " + schema + "annotation (document_namespace, document_table, document_id, annotation_type, start, end, provenance, score) "
 					+ "values (?,?,?,?,?,?,'validation-tool-duplicate',0.0)");
+			pstmtAnnot = conn.prepareStatement(annotQuery);
+
 		}
 		catch(Exception e)
 		{
@@ -122,7 +125,8 @@ public class AnnotateDuplicate
 			//ResultSet rs = stmt.executeQuery("select a.document_id, a.start, a.end from " + schema + "annotation a, " + schema + "document_status b "
 			//	+ "where a.provenance = 'validation-tool' and b.status = -4 and a.document_id = b.document_id order by a.document_id, a.start");
 			
-			ResultSet rs = stmt.executeQuery(annotQuery);
+			pstmtAnnot.setString(1, targetType);
+			ResultSet rs = pstmtAnnot.executeQuery();
 			
 			seqList = genSent.getSeqList();
 			
