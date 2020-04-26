@@ -650,8 +650,8 @@ public class GenMSADriver
 				profileList.add(emptyProfile);
 				
 				//get full sentence profiles
-				List<MSAProfile> fullSentProfileList = genFullSentenceProfiles(seqList2);
-				profileList.addAll(fullSentProfileList);
+				//List<MSAProfile> fullSentProfileList = genFullSentenceProfiles(seqList2);
+				//profileList.addAll(fullSentProfileList);
 				
 				//write profiles
 				if (write) {

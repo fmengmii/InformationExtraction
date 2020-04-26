@@ -13,6 +13,7 @@ public class IEDriver
 {
 	private GateBatch gate;
 	private GenMSADriver genMSADriver;
+	private AnnotateDuplicate dupAnnot;
 	private FilterPatterns filterPatt;
 	private BestPatterns bestPatt;
 	private AutoAnnotateNER autoAnnot;
@@ -96,6 +97,8 @@ public class IEDriver
 	private int limit;
 	private int msaBlockSize;
 	
+	//Dup
+	private String dupQuery;
 	
 	
 	//Filter
@@ -196,6 +199,7 @@ public class IEDriver
 	{
 		gate = new GateBatch();
 		genMSADriver = new GenMSADriver();
+		dupAnnot = new AnnotateDuplicate();
 		filterPatt = new FilterPatterns();
 		bestPatt = new BestPatterns();
 		autoAnnot = new AutoAnnotateNER();
@@ -439,6 +443,12 @@ public class IEDriver
 				+ "order by document_id";
 			bestDocQuery = "select document_id, status from " + schema2 + "document_status" + " where status = -4) "
 				+ "order by document_id";
+			
+			dupQuery = "select a.document_id, a.start, a.end from " + schema + "annotation a, " + schema + "document_status b "
+				+ "where a.provenance = 'validation-tool' and b.status = -4 and a.document_id = b.document_id  and a.document_id in "
+				+ "(select d.document_id from " + schema2 + "project_frame_instance c, " + schema2 + "frame_instance_document d "
+				+ "where c.frame_instance_id = d.frame_instance_id and c.project_id = " + projID + ") "
+				+ "order by c.document_id, c.start";
 					
 			
 			
@@ -464,10 +474,10 @@ public class IEDriver
 			}
 			
 			
-			autoDBQuery += " union (select document_id from " + schema2 + "document_status where (status = 1 or status = -4) and document_id in "
-				+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
-				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")) "
-				+ "order by document_id";
+			//autoDBQuery += " union (select document_id from " + schema2 + "document_status where (status = 1 or status = -4) and document_id in "
+			//	+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
+			//	+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")) "
+			autoDBQuery	+= "order by document_id";
 			
 			
 			pstmtGetAutoDocIDs = conn.prepareStatement(autoDBQuery);
@@ -591,6 +601,20 @@ public class IEDriver
 
 			
 			
+			//init AnnotateDuplicate
+			Properties dupProps = new Properties();
+			dupProps.setProperty("host", host);
+			dupProps.setProperty("dbName", dbName);
+			dupProps.setProperty("dbType", dbType);
+			dupProps.setProperty("docNamespace", docNamespace);
+			dupProps.setProperty("docTable", docTable);
+			dupProps.setProperty("schema", schema);
+			dupProps.setProperty("annotQuery", dupQuery);
+			dupProps.setProperty("punctuation", Boolean.toString(punct));
+			dupProps.setProperty("msaAnnotFilterList", gson.toJson(msaAnnotFilterList));
+			dupProps.setProperty("tokType", tokType);
+			
+			dupAnnot.init(user, password, dupProps);
 			
 			
 			//init FilterPatterns
@@ -606,7 +630,7 @@ public class IEDriver
 			//pattProps.setProperty("msaKeyspace", msaKeyspace);
 			pattProps.setProperty("docNamespace", docNamespace);
 			pattProps.setProperty("docTable", docTable);
-						pattProps.setProperty("schema", schema);
+			pattProps.setProperty("schema", schema);
 			
 			pattProps.setProperty("group", group);
 			pattProps.setProperty("targetGroup", targetGroup);
@@ -1041,13 +1065,28 @@ public class IEDriver
 				genSent = genMSADriver.getGenSent();
 				
 				
+				
+				
+				
+				System.out.println("** Duplicate **");
+				dupAnnot.setGenSent(genSent);
+				for (String targetType : activeAnnotTypeList) {
+					dupAnnot.setTargetType(targetType);
+					dupAnnot.annotate();
+				}
+				
+				
+				
+				
+				
+				
 				//phase 1 for profile type 3 (repeated entire sentences)
 				//filter patterns
 				if (filterFlag) {
-					System.out.println("** FILTER 1**");
+					System.out.println("** FILTER**");
 					//run filter patterns
 					
-					filterPatt.setProfileType(3);
+					filterPatt.setProfileType(0);
 					//filterPatt.setTargetProvenance("validation-tool");
 					filterPatt.setGenSent(genSent);
 					
@@ -1081,7 +1120,7 @@ public class IEDriver
 				
 				//best patterns
 				if (bestFlag) {
-					System.out.println("** BEST 1**");
+					System.out.println("** BEST**");
 					
 					
 					//pstmtDeleteFinalTable.execute();
@@ -1099,7 +1138,7 @@ public class IEDriver
 				
 				//auto annotate
 				if (autoFlag) {
-					System.out.println("** AUTO 1**");
+					System.out.println("** AUTO**");
 					
 					//set frame instance locks
 					ResultSet rs2 = pstmtGetAutoDocIDs.executeQuery();
@@ -1116,8 +1155,7 @@ public class IEDriver
 						}
 					}
 					
-									
-					autoAnnot.setAutoProvenance("validation-tool-duplicate");
+
 					autoAnnot.setProfileType(3);
 					autoAnnot.setGenSent(genSent);
 					autoAnnot.setAnnotTypeList(activeAnnotTypeList);
@@ -1134,98 +1172,7 @@ public class IEDriver
 				}
 				
 				
-				//phase 2
-				//filter patterns
-				if (filterFlag) {
-					System.out.println("** FILTER 2**");
-					//run filter patterns
-					
-					filterPatt.setGenSent(genSent);
-					filterPatt.readDocIDList();
-					
-					
-					/*
-					//set status
-					stmt.execute("update " + schema2 + "frame_instance_status set status = -4 where status = 1 and frame_instance_id in "
-						+ "(select distinct a.frame_instance_id from " + schema2 + "project_frame_instance a where a.project_id = " + projID + ")");
-					stmt.execute("update " + schema2 + "document_status set status = -4 where status = 1 and document_id in "
-							+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
-							+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
-							
-					*/
-					
-					//filterPatt.setTargetProvenance("validation-tool%");
-					filterPatt.setProfileType(0);
-					filterPatt.setAnnotTypeList(activeAnnotTypeList);
-					filterPatt.setProfileTableList(profileTableList);
-					filterPatt.setIndexTableList(indexTableList);
-					filterPatt.filterPatterns(user, password, docUser, docPassword, user, password);
-					
-					//second incremental for existing patterns to only run on new docs (status = 1)
-					/*
-					System.out.println("** FILTER Second Pass **");
-					filterPatt.setDocDBQuery("select document_id from " + schema2 + "document_status where status = 1 order by document_id");
-					filterPatt.setGroup(group + "##");
-					filterPatt.setTargetGroup(group + "##");
-					filterPatt.filterPatterns(user, password, docUser, docPassword, user, password);
-					*/
-					
-				}
 				
-				
-				
-				//best patterns
-				if (bestFlag) {
-					System.out.println("** BEST 2**");
-					
-					
-					//pstmtDeleteFinalTable.execute();
-					
-					bestPatt.setAnnotTypeList(activeAnnotTypeList);
-					bestPatt.setProfileTableList(profileTableList);
-					bestPatt.setIndexTableList(indexTableList);
-					bestPatt.setFinalTableList(finalTableList);					
-					bestPatt.getBestPatterns(user, password, user, password);
-				}
-				
-				
-				
-				
-				//auto annotate
-				if (autoFlag) {
-					System.out.println("** AUTO 2**");
-					
-					//set frame instance locks
-					ResultSet rs2 = pstmtGetAutoDocIDs.executeQuery();
-					while (rs2.next()) {
-						long docID = rs2.getLong(1);
-						pstmtSetFrameInstanceLocks.setLong(1, docID);
-						
-						try {
-							pstmtSetFrameInstanceLocks.execute();
-						}
-						catch(SQLException e)
-						{
-							//there is already a lock on this document
-						}
-					}
-					
-					
-					autoAnnot.setProfileType(0);
-					autoAnnot.setGenSent(genSent);
-					autoAnnot.setAnnotTypeList(activeAnnotTypeList);
-					autoAnnot.setProfileTableList(profileTableList);
-					autoAnnot.setFinalTableList(finalTableList);
-					autoAnnot.setAutoProvenance("##auto");
-					autoAnnot.setDocDBQuery(autoDBQuery);
-					autoAnnot.setProfileMinPrec(profileMinPrec);
-					
-					autoAnnot.annotate(user, password);
-					
-					pstmtDeleteFrameInstanceLocks.execute();
-					
-					//autoAnnot.close();
-				}
 				
 				//auto recheck
 				if (autoRecheck) {
