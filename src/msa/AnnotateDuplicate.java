@@ -22,6 +22,7 @@ public class AnnotateDuplicate
 	private PreparedStatement pstmtWriteAnnot;
 	private String targetType;
 	private String schema;
+	private String docQuery;
 	private String annotQuery;
 	
 	private Gson gson;
@@ -63,6 +64,7 @@ public class AnnotateDuplicate
 			String dbType = props.getProperty("dbType");
 			schema = props.getProperty("schema");
 			targetType = props.getProperty("targetType");
+			docQuery = props.getProperty("docQuery");
 			annotQuery = props.getProperty("annotQuery");
 			String docNamespace = props.getProperty("docNamespace");
 			String docTable = props.getProperty("docTable");
@@ -91,9 +93,17 @@ public class AnnotateDuplicate
 			}
 			
 			genSent.setRequireTarget(false);
-
-			genSent.genSentences(docNamespace, docTable, null, -1);
 			
+			Statement stmt = conn.createStatement();
+			List<Long> docIDList = new ArrayList<Long>();
+			ResultSet rs = stmt.executeQuery(docQuery);
+			while (rs.next()) {
+				docIDList.add(rs.getLong(1));
+			}
+			
+			genSent.setDocIDList(docIDList);
+			genSent.genSentenceAnnots(docNamespace, docTable);
+
 			schema += ".";
 			pstmtWriteAnnot = conn2.prepareStatement("insert into " + schema + "annotation (document_namespace, document_table, document_id, annotation_type, start, end, provenance, score) "
 					+ "values (?,?,?,?,?,?,'validation-tool-duplicate',0.0)");
