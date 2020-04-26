@@ -250,7 +250,7 @@ public class AnnotateDuplicate
 				pstmtWriteAnnot.setLong(4, docID);
 				pstmtWriteAnnot.setString(5, targetType);
 				pstmtWriteAnnot.setLong(6, annotStart);
-				pstmtWriteAnnot.setLong(6, annotEnd);
+				pstmtWriteAnnot.setLong(7, annotEnd);
 				pstmtWriteAnnot.addBatch();
 				count++;
 				
