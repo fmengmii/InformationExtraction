@@ -25,6 +25,7 @@ public class AnnotateDuplicate
 	private String schema;
 	private String docQuery;
 	private String annotQuery;
+	private String rq;
 	
 	private Gson gson;
 
@@ -78,6 +79,8 @@ public class AnnotateDuplicate
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			conn2 = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			
+			rq = DBConnection.reservedQuote;
+			
 			conn2.setAutoCommit(false);
 			
 			if (genSent == null || genSent.getDB() == null) {
@@ -106,7 +109,7 @@ public class AnnotateDuplicate
 			genSent.genSentenceAnnots(docNamespace, docTable);
 
 			schema += ".";
-			pstmtWriteAnnot = conn2.prepareStatement("insert into " + schema + "annotation (document_namespace, document_table, document_id, annotation_type, start, end, provenance, score) "
+			pstmtWriteAnnot = conn2.prepareStatement("insert into " + schema + "annotation (document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq +", provenance, score) "
 					+ "values (?,?,?,?,?,?,'validation-tool-duplicate',0.0)");
 			pstmtAnnot = conn.prepareStatement(annotQuery);
 
