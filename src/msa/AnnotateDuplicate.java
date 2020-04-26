@@ -61,7 +61,7 @@ public class AnnotateDuplicate
 			String host = props.getProperty("host");
 			String dbName = props.getProperty("dbName");
 			String dbType = props.getProperty("dbType");
-			schema = props.getProperty("schema") + ".";
+			schema = props.getProperty("schema");
 			targetType = props.getProperty("targetType");
 			annotQuery = props.getProperty("annotQuery");
 			String docNamespace = props.getProperty("docNamespace");
@@ -76,9 +76,6 @@ public class AnnotateDuplicate
 			conn2 = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			
 			conn2.setAutoCommit(false);
-			
-			pstmtWriteAnnot = conn2.prepareStatement("insert into " + schema + "annotation (document_namespace, document_table, document_id, annotation_type, start, end, provenance, score) "
-				+ "values (?,?,?,?,?,?,'validation-tool-duplicate',0.0)");
 			
 			if (genSent == null || genSent.getDB() == null) {
 				MySQLDBInterface db = new MySQLDBInterface();
@@ -96,6 +93,10 @@ public class AnnotateDuplicate
 			genSent.setRequireTarget(false);
 
 			genSent.genSentences(docNamespace, docTable, null, -1);
+			
+			schema += ".";
+			pstmtWriteAnnot = conn2.prepareStatement("insert into " + schema + "annotation (document_namespace, document_table, document_id, annotation_type, start, end, provenance, score) "
+					+ "values (?,?,?,?,?,?,'validation-tool-duplicate',0.0)");
 		}
 		catch(Exception e)
 		{
