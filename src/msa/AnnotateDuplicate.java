@@ -84,7 +84,7 @@ public class AnnotateDuplicate
 				db.init(user, password, host, dbName, dbName);
 				
 				genSent = new GenSentences();
-				genSent.setVerbose(false);
+				genSent.setVerbose(true);
 				genSent.setPunct(punct);
 				genSent.setTokenType(tokType);
 				genSent.init(db, msaAnnotFilterList, "validation-tool");
