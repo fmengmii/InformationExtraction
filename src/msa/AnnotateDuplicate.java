@@ -135,7 +135,7 @@ public class AnnotateDuplicate
 							seq = seqList.get(seqIndex);
 						}
 						
-						matchSequences(subSeqList, docID);
+						matchSequences(subSeqList, currDocID);
 					}
 
 					subSeqList = new ArrayList<AnnotationSequence>();
@@ -156,12 +156,17 @@ public class AnnotateDuplicate
 				int startIndex = -1;
 				int endIndex = -1;
 				List<Integer> indexList= new ArrayList<Integer>();
+				String startStr = "";
+				String endStr = "";
 				for (int i=0; i<tokAnnotList.size(); i++) {
 					Annotation annot = tokAnnotList.get(i);
-					if (annot.getStart() <= start && annot.getEnd() > start)
+					if (annot.getStart() <= start && annot.getEnd() > start) {
 						startIndex = i;
+						startStr = annot.getValue();
+					}
 					if (annot.getStart() < end && annot.getEnd() >= end) {
 						endIndex = i;
+						endStr = annot.getValue();
 						break;
 					}
 				}
@@ -170,8 +175,17 @@ public class AnnotateDuplicate
 				indexList.add(endIndex);
 				indexMap.put(SequenceUtilities.getStrFromToks(seq.getToks()), indexList);
 				
-				System.out.println("create dup: " + docID + "|" + SequenceUtilities.getStrFromToks(seq.getToks()));
+				System.out.println("create dup: " + docID + "|" + SequenceUtilities.getStrFromToks(seq.getToks()) + "|" + startStr + " " + endStr);
 			}
+			
+			AnnotationSequence seq = seqList.get(seqIndex);
+			while (seq.getDocID() == currDocID) { 
+				subSeqList.add(seq);
+				seqIndex++;
+				seq = seqList.get(seqIndex);
+			}
+			
+			matchSequences(subSeqList, currDocID);
 			
 			
 			conn.close();
@@ -193,10 +207,13 @@ public class AnnotateDuplicate
 			List<Integer> indexList = indexMap.get(seqStr);
 			
 			if (indexList != null) {
-				System.out.println("matched dup: " + docID + "|" + seqStr);
 				Annotation tokAnnot = tokAnnotList.get(indexList.get(0));
+				Annotation tokAnnot2 = tokAnnotList.get(indexList.get(1));
 				long annotStart = tokAnnot.getStart();
-				long annotEnd = tokAnnotList.get(indexList.get(1)).getEnd();
+				long annotEnd = tokAnnot2.getEnd();
+				
+				System.out.println("matched dup: " + docID + "|" + seqStr + "|" + tokAnnot.getValue() + "|" + tokAnnot2.getValue());
+
 				
 				pstmtWriteAnnot.setString(1, tokAnnot.getDocNamespace());
 				pstmtWriteAnnot.setString(2, tokAnnot.getDocTable());
