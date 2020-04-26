@@ -21,6 +21,7 @@ public class AnnotateDuplicate
 	private List<AnnotationSequence> seqList;
 	private PreparedStatement pstmtAnnot;
 	private PreparedStatement pstmtWriteAnnot;
+	private PreparedStatement pstmtAnnotID;
 	private String targetType;
 	private String schema;
 	private String docQuery;
@@ -111,9 +112,10 @@ public class AnnotateDuplicate
 			genSent.genSentenceAnnots(docNamespace, docTable);
 
 			schema += ".";
-			pstmtWriteAnnot = conn2.prepareStatement("insert into " + schema + "annotation (document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq +", provenance, score) "
-					+ "values (?,?,?,?,?,?,'validation-tool-duplicate',0.0)");
+			pstmtWriteAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id. document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq +", provenance, score) "
+					+ "values (?,?,?,?,?,?,?,'validation-tool-duplicate',0.0)");
 			pstmtAnnot = conn.prepareStatement(annotQuery);
+			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + "annotation where document_id = ?");
 
 		}
 		catch(Exception e)
@@ -219,6 +221,13 @@ public class AnnotateDuplicate
 	
 	private void matchSequences(List<AnnotationSequence> subSeqList, long docID) throws SQLException
 	{
+		int annotID = -1;
+		pstmtAnnotID.setLong(1, docID);
+		ResultSet rs = pstmtAnnotID.executeQuery();
+		if (rs.next()) {
+			annotID = rs.getInt(1);
+		}
+
 		int count = 0;
 		for (AnnotationSequence seq : subSeqList) {
 			List<String> toks = seq.getToks();
@@ -233,13 +242,14 @@ public class AnnotateDuplicate
 				long annotEnd = tokAnnot2.getEnd();
 				
 				System.out.println("matched dup: " + docID + "|" + seqStr + "|" + tokAnnot.getValue() + "|" + tokAnnot2.getValue());
-
 				
-				pstmtWriteAnnot.setString(1, docNamespace);
-				pstmtWriteAnnot.setString(2, docTable);
-				pstmtWriteAnnot.setLong(3, docID);
-				pstmtWriteAnnot.setString(4, targetType);
-				pstmtWriteAnnot.setLong(5, annotStart);
+
+				pstmtWriteAnnot.setInt(1, ++annotID);
+				pstmtWriteAnnot.setString(2, docNamespace);
+				pstmtWriteAnnot.setString(3, docTable);
+				pstmtWriteAnnot.setLong(4, docID);
+				pstmtWriteAnnot.setString(5, targetType);
+				pstmtWriteAnnot.setLong(6, annotStart);
 				pstmtWriteAnnot.setLong(6, annotEnd);
 				pstmtWriteAnnot.addBatch();
 				count++;
