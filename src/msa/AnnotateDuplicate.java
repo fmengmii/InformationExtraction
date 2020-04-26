@@ -112,7 +112,7 @@ public class AnnotateDuplicate
 			genSent.genSentenceAnnots(docNamespace, docTable);
 
 			schema += ".";
-			pstmtWriteAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id. document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq +", provenance, score) "
+			pstmtWriteAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq +", provenance, score) "
 					+ "values (?,?,?,?,?,?,?,'validation-tool-duplicate',0.0)");
 			pstmtAnnot = conn.prepareStatement(annotQuery);
 			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + "annotation where document_id = ?");
