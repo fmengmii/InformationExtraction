@@ -26,6 +26,8 @@ public class AnnotateDuplicate
 	private String docQuery;
 	private String annotQuery;
 	private String rq;
+	private String docNamespace;
+	private String docTable;
 	
 	private Gson gson;
 
@@ -68,8 +70,8 @@ public class AnnotateDuplicate
 			targetType = props.getProperty("targetType");
 			docQuery = props.getProperty("docQuery");
 			annotQuery = props.getProperty("annotQuery");
-			String docNamespace = props.getProperty("docNamespace");
-			String docTable = props.getProperty("docTable");
+			docNamespace = props.getProperty("docNamespace");
+			docTable = props.getProperty("docTable");
 			List<Map<String, Object>> msaAnnotFilterList = new ArrayList<Map<String, Object>>();
 			msaAnnotFilterList = gson.fromJson(props.getProperty("msaAnnotFilterList"), msaAnnotFilterList.getClass());
 			//String targetProvenance = props.getProperty("targetProvenance");
@@ -233,8 +235,8 @@ public class AnnotateDuplicate
 				System.out.println("matched dup: " + docID + "|" + seqStr + "|" + tokAnnot.getValue() + "|" + tokAnnot2.getValue());
 
 				
-				pstmtWriteAnnot.setString(1, tokAnnot.getDocNamespace());
-				pstmtWriteAnnot.setString(2, tokAnnot.getDocTable());
+				pstmtWriteAnnot.setString(1, docNamespace);
+				pstmtWriteAnnot.setString(2, docTable);
 				pstmtWriteAnnot.setLong(3, docID);
 				pstmtWriteAnnot.setString(4, targetType);
 				pstmtWriteAnnot.setLong(5, annotStart);
