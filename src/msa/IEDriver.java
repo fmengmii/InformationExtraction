@@ -1071,7 +1071,7 @@ public class IEDriver
 				System.out.println("** Duplicate **");
 				for (String targetType : activeAnnotTypeList) {
 					dupAnnot.setTargetType(targetType);
-					dupAnnot.annotate();
+					dupAnnot.annotate(projID);
 				}
 				
 				
