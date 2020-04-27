@@ -26,6 +26,7 @@ public class AnnotateDuplicate
 	private String rq;
 	private String docNamespace;
 	private String docTable;
+	private Map<Long, List<AnnotationSequence>> seqMap;
 
 
 	
@@ -91,6 +92,8 @@ public class AnnotateDuplicate
 	public void annotate(int projID)
 	{
 		try {
+			seqMap = new HashMap<Long, List<AnnotationSequence>>();
+			
 			pstmtPatientDoc.setInt(2, projID);
 			
 			ResultSet rs = pstmtAnnot.executeQuery();
@@ -277,7 +280,11 @@ public class AnnotateDuplicate
 	
 	private List<AnnotationSequence> getSequences(long docID)
 	{
-		List<AnnotationSequence> seqList = new ArrayList<AnnotationSequence>();
+		List<AnnotationSequence> seqList = seqMap.get(docID);
+		if (seqList != null)
+			return seqList;
+		
+		seqList = new ArrayList<AnnotationSequence>();
 		try {
 			pstmtSent.setLong(1, docID);
 			ResultSet rs = pstmtSent.executeQuery();
@@ -353,6 +360,8 @@ public class AnnotateDuplicate
 		{
 			e.printStackTrace();
 		}
+		
+		seqMap.put(docID, seqList);
 		
 		return seqList;
 	}
