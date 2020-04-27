@@ -449,7 +449,7 @@ public class IEDriver
 				+ "a.document_id in "
 				+ "(select d.document_id from " + schema2 + "project_frame_instance c, " + schema2 + "frame_instance_document d "
 				+ "where c.frame_instance_id = d.frame_instance_id and c.project_id = " + projID + ") "
-				+ "order by c.document_id, c.start";
+				+ "order by a.document_id, a.start";
 					
 			
 			
