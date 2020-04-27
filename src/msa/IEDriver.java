@@ -445,7 +445,7 @@ public class IEDriver
 				+ "order by document_id";
 			
 			dupQuery = "select a.document_id, a.start, a." + rq + "end" + rq + ", c.PatientSID from " + schema2 + "annotation a, " + schema2 + "document_status b, " + schema2 + "documents c "
-				+ "where a.provenance = 'validation-tool' and b.status = -4 and a.annotation_type = ? and a.document_id = b.document_id  and a.document_id = c.document_id and "
+				+ "where a.provenance = 'validation-tool' and b.status = 1 and a.annotation_type = ? and a.document_id = b.document_id  and a.document_id = c.document_id and "
 				+ "a.document_id in "
 				+ "(select e.document_id from " + schema2 + "project_frame_instance d, " + schema2 + "frame_instance_document e "
 				+ "where d.frame_instance_id = e.frame_instance_id and d.project_id = " + projID + ") "
