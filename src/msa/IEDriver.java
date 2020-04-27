@@ -1130,7 +1130,7 @@ public class IEDriver
 				}
 				
 				
-				genSent = filterPatt.getGenSent();
+				genSent = null;
 				
 				
 				//auto annotate
@@ -1154,7 +1154,7 @@ public class IEDriver
 					
 
 					autoAnnot.setProfileType(0);
-					autoAnnot.setGenSent(genSent);
+					//autoAnnot.setGenSent(genSent);
 					autoAnnot.setAnnotTypeList(activeAnnotTypeList);
 					autoAnnot.setProfileTableList(profileTableList);
 					autoAnnot.setFinalTableList(finalTableList);

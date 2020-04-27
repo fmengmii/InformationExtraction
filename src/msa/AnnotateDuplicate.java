@@ -164,7 +164,7 @@ public class AnnotateDuplicate
 						indexList.add(annotType);
 						indexListList.add(indexList);
 						
-						System.out.println("create dup: " + docID + "|" + SequenceUtilities.getStrFromToks(seq.getToks()) + "|" + startStr + " " + endStr + "|" + annotType);
+						System.out.println("create dup: " + docID + "|" + sentStr + "|" + startStr + " " + endStr + "|" + annotType);
 						currDocIndex = i;
 						break;
 					}
@@ -213,6 +213,8 @@ public class AnnotateDuplicate
 				
 				if (indexListList != null) {
 					
+					System.out.println("matched seq! " + seqStr + "|" + seq.getDocID() + "|" + seq.getStart());
+					
 					for (List<Object> indexList : indexListList) {
 						List<Annotation> tokAnnotList = seq.getAnnotList();
 						List<String> toks = seq.getToks();
@@ -229,7 +231,7 @@ public class AnnotateDuplicate
 							strBlder.append(toks.get(i) + " ");
 						}
 						
-						System.out.println("matched dup: " + docID + "|" + seqStr + "|" + strBlder.toString() + "|" + annotType);
+						System.out.println("matched dup: " + docID + "|" + seqStr + "|" + strBlder.toString() + "|" + annotType + "|" + annotStart + "|" + annotEnd);
 						
 	
 						pstmtWriteAnnot.setInt(1, ++annotID);
