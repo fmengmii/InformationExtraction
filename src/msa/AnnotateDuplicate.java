@@ -23,6 +23,7 @@ public class AnnotateDuplicate
 	private String targetType;
 	private String schema;
 	private String annotQuery;
+	private String patientDocQuery;
 	private String rq;
 	private String docNamespace;
 	private String docTable;
@@ -60,8 +61,14 @@ public class AnnotateDuplicate
 			schema = props.getProperty("schema");
 			targetType = props.getProperty("targetType");
 			annotQuery = props.getProperty("annotQuery");
+			patientDocQuery = props.getProperty("patientDocQuery");
 			docNamespace = props.getProperty("docNamespace");
 			docTable = props.getProperty("docTable");
+			
+			if (patientDocQuery == null) {
+				patientDocQuery = "select document_id from " + schema + "documents where PatientSID = ? and document_id >= ? order by document_id";
+			}
+			
 			
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			conn2 = DBConnection.dbConnection(user, password, host, dbName, dbType);
@@ -71,11 +78,11 @@ public class AnnotateDuplicate
 			conn2.setAutoCommit(false);
 
 			schema += ".";
-			pstmtWriteAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq +", provenance, score) "
-					+ "values (?,?,?,?,?,?,?,'validation-tool-duplicate',0.0)");
+			pstmtWriteAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq +", value, provenance, score) "
+					+ "values (?,?,?,?,?,?,?,?,'validation-tool-duplicate',0.0)");
 			pstmtAnnot = conn.prepareStatement(annotQuery);
 			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + "annotation where document_id = ?");
-			pstmtPatientDoc = conn.prepareStatement("select document_id from " + schema + "documents where PatientSID = ? and document_id >= ? order by document_id");
+			pstmtPatientDoc = conn.prepareStatement(patientDocQuery);
 			
 			pstmtSent = conn.prepareStatement("select id, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = 'Sentence' order by start");
 			pstmtSentAnnots = conn.prepareStatement("select value, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and start >= ? and " + rq  + "end" + rq + " <= ? and annotation_type = 'Token' order by start");
@@ -211,12 +218,20 @@ public class AnnotateDuplicate
 					
 					for (List<Integer> indexList : indexListList) {
 						List<Annotation> tokAnnotList = seq.getAnnotList();
-						Annotation tokAnnot = tokAnnotList.get(indexList.get(0));
-						Annotation tokAnnot2 = tokAnnotList.get(indexList.get(1));
+						List<String> toks = seq.getToks();
+						int index1 = indexList.get(0);
+						int index2 = indexList.get(1);
+						Annotation tokAnnot = tokAnnotList.get(index1);
+						Annotation tokAnnot2 = tokAnnotList.get(index2);
 						long annotStart = tokAnnot.getStart();
 						long annotEnd = tokAnnot2.getEnd();
 						
-						System.out.println("matched dup: " + docID + "|" + seqStr + "|" + tokAnnot.getValue() + "|" + tokAnnot2.getValue());
+						StringBuilder strBlder = new StringBuilder();
+						for (int i=index1; i<=index2; i++) {
+							strBlder.append(toks.get(i) + " ");
+						}
+						
+						System.out.println("matched dup: " + docID + "|" + seqStr + "|" + strBlder.toString());
 						
 	
 						pstmtWriteAnnot.setInt(1, ++annotID);
@@ -226,6 +241,7 @@ public class AnnotateDuplicate
 						pstmtWriteAnnot.setString(5, targetType);
 						pstmtWriteAnnot.setLong(6, annotStart);
 						pstmtWriteAnnot.setLong(7, annotEnd);
+						pstmtWriteAnnot.setString(8, strBlder.toString().trim());
 						pstmtWriteAnnot.addBatch();
 						count++;
 						
