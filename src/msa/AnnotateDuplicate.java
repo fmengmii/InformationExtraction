@@ -78,7 +78,7 @@ public class AnnotateDuplicate
 			pstmtPatientDoc = conn.prepareStatement("select document_id from " + schema + "documents where PatientSID = ? ordery by document_id");
 			
 			pstmtSent = conn.prepareStatement("select id, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = 'Sentence' order by start");
-			pstmtSentAnnots = conn.prepareStatement("select value from " + schema + "annotation where document_id = ? and start >= ? and " + rq  + "end" + rq + " <= ? and annotation_type = 'Token' order by start");
+			pstmtSentAnnots = conn.prepareStatement("select value, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and start >= ? and " + rq  + "end" + rq + " <= ? and annotation_type = 'Token' order by start");
 
 		}
 		catch(Exception e)
@@ -123,7 +123,7 @@ public class AnnotateDuplicate
 					AnnotationSequence seq = docSeqList.get(i);
 					
 					if (seq.getStart() <= start && seq.getEnd() >= end) {
-						List<Annotation> tokAnnotList = seq.getAnnotList("Token");
+						List<Annotation> tokAnnotList = seq.getAnnotList();
 						int startIndex = -1;
 						int endIndex = -1;
 						List<Integer> indexList= new ArrayList<Integer>();
@@ -194,7 +194,7 @@ public class AnnotateDuplicate
 				List<Integer> indexList = profileMap.get(seqStr);
 				
 				if (indexList != null) {
-					List<Annotation> tokAnnotList = seq.getAnnotList(":token|string");
+					List<Annotation> tokAnnotList = seq.getAnnotList();
 					Annotation tokAnnot = tokAnnotList.get(indexList.get(0));
 					Annotation tokAnnot2 = tokAnnotList.get(indexList.get(1));
 					long annotStart = tokAnnot.getStart();
@@ -243,13 +243,20 @@ public class AnnotateDuplicate
 				ResultSet rs2 = pstmtSentAnnots.executeQuery();
 				
 				List<String> toks = new ArrayList<String>();
+				List<Annotation> annotList = new ArrayList<Annotation>();
 				while(rs2.next()) {
 					String tokStr = rs2.getString(1);
+					long annotStart = rs2.getLong(2);
+					long annotEnd = rs2.getLong(3);
+					
+					Annotation annot = new Annotation(-1, "Token", annotStart, annotEnd, tokStr, null);
+					annotList.add(annot);
 					toks.add(tokStr);
 				}
 				
 				AnnotationSequence seq = new AnnotationSequence(docID, sentID, start, end);
 				seq.setToks(toks);
+				seq.setAnnotList(annotList);
 				seqList.add(seq);
 			}
 		}
