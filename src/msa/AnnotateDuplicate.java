@@ -20,7 +20,6 @@ public class AnnotateDuplicate
 	private PreparedStatement pstmtAnnotID;
 	private PreparedStatement pstmtSent;
 	private PreparedStatement pstmtSentAnnots;
-	private String targetType;
 	private String schema;
 	private String annotQuery;
 	private String patientDocQuery;
@@ -32,11 +31,6 @@ public class AnnotateDuplicate
 	
 	public AnnotateDuplicate()
 	{
-	}
-	
-	public void setTargetType(String targetType)
-	{
-		this.targetType = targetType;
 	}
 	
 	public void init(String user, String password, String config)
@@ -59,7 +53,6 @@ public class AnnotateDuplicate
 			String dbName = props.getProperty("dbName");
 			String dbType = props.getProperty("dbType");
 			schema = props.getProperty("schema");
-			targetType = props.getProperty("targetType");
 			annotQuery = props.getProperty("annotQuery");
 			patientDocQuery = props.getProperty("patientDocQuery");
 			docNamespace = props.getProperty("docNamespace");
@@ -100,13 +93,12 @@ public class AnnotateDuplicate
 		try {
 			pstmtPatientDoc.setInt(2, projID);
 			
-			pstmtAnnot.setString(1, targetType);
 			ResultSet rs = pstmtAnnot.executeQuery();
 			
 			long currDocID = -1;
 			int currDocIndex = 0;
 			
-			Map<Long, Map<String, List<List<Integer>>>> patientProfileMap = new HashMap<Long, Map<String, List<List<Integer>>>>();
+			Map<Long, Map<String, List<List<Object>>>> patientProfileMap = new HashMap<Long, Map<String, List<List<Object>>>>();
 			List<AnnotationSequence> docSeqList = null;
 			Map<Long, Long> patientMinDocMap = new HashMap<Long, Long>();
 			
@@ -114,18 +106,19 @@ public class AnnotateDuplicate
 				long docID = rs.getLong(1);
 				long start = rs.getLong(2);
 				long end = rs.getLong(3);
-				long patientID = rs.getLong(4);
+				String annotType = rs.getString(4);
+				long patientID = rs.getLong(5);
 				
 				Long minDocID = patientMinDocMap.get(patientID);
 				if (minDocID == null)
 					patientMinDocMap.put(patientID, docID);
 
 				
-				System.out.println("docID: " + docID + " start: " + start + "|" + patientID + "|" + targetType);
+				System.out.println("docID: " + docID + " start: " + start + "|" + patientID + "|" + annotType);
 				
-				Map<String, List<List<Integer>>> profileMap = patientProfileMap.get(patientID);
+				Map<String, List<List<Object>>> profileMap = patientProfileMap.get(patientID);
 				if (profileMap == null) {
-					profileMap = new HashMap<String, List<List<Integer>>>();
+					profileMap = new HashMap<String, List<List<Object>>>();
 					patientProfileMap.put(patientID, profileMap);
 				}
 				
@@ -142,7 +135,7 @@ public class AnnotateDuplicate
 						List<Annotation> tokAnnotList = seq.getAnnotList();
 						int startIndex = -1;
 						int endIndex = -1;
-						List<Integer> indexList= new ArrayList<Integer>();
+						List<Object> indexList= new ArrayList<Object>();
 						String startStr = "";
 						String endStr = "";
 						
@@ -160,17 +153,18 @@ public class AnnotateDuplicate
 						}
 						
 						String sentStr = SequenceUtilities.getStrFromToks(seq.getToks());
-						List<List<Integer>> indexListList = profileMap.get(sentStr);
+						List<List<Object>> indexListList = profileMap.get(sentStr);
 						if (indexListList == null) {
-							indexListList = new ArrayList<List<Integer>>();
+							indexListList = new ArrayList<List<Object>>();
 							profileMap.put(sentStr, indexListList);
 						}
 						
 						indexList.add(startIndex);
 						indexList.add(endIndex);
+						indexList.add(annotType);
 						indexListList.add(indexList);
 						
-						System.out.println("create dup: " + docID + "|" + SequenceUtilities.getStrFromToks(seq.getToks()) + "|" + startStr + " " + endStr);
+						System.out.println("create dup: " + docID + "|" + SequenceUtilities.getStrFromToks(seq.getToks()) + "|" + startStr + " " + endStr + "|" + annotType);
 						currDocIndex = i;
 						break;
 					}
@@ -179,7 +173,7 @@ public class AnnotateDuplicate
 				
 				
 			for (long patientID : patientProfileMap.keySet()) {
-				Map<String, List<List<Integer>>> profileMap = patientProfileMap.get(patientID);
+				Map<String, List<List<Object>>> profileMap = patientProfileMap.get(patientID);
 				matchSequences(patientID, profileMap, patientMinDocMap.get(patientID));
 			}
 
@@ -194,7 +188,7 @@ public class AnnotateDuplicate
 		}
 	}
 	
-	private void matchSequences(long patientID, Map<String, List<List<Integer>>> profileMap, long minDocID) throws SQLException
+	private void matchSequences(long patientID, Map<String, List<List<Object>>> profileMap, long minDocID) throws SQLException
 	{
 		pstmtPatientDoc.setLong(1, patientID);
 
@@ -215,15 +209,16 @@ public class AnnotateDuplicate
 			
 			for (AnnotationSequence seq : docSeqList) {
 				String seqStr = SequenceUtilities.getStrFromToks(seq.getToks());
-				List<List<Integer>> indexListList = profileMap.get(seqStr);
+				List<List<Object>> indexListList = profileMap.get(seqStr);
 				
 				if (indexListList != null) {
 					
-					for (List<Integer> indexList : indexListList) {
+					for (List<Object> indexList : indexListList) {
 						List<Annotation> tokAnnotList = seq.getAnnotList();
 						List<String> toks = seq.getToks();
-						int index1 = indexList.get(0);
-						int index2 = indexList.get(1);
+						Integer index1 = (Integer) indexList.get(0);
+						Integer index2 = (Integer) indexList.get(1);
+						String annotType = (String) indexList.get(2);
 						Annotation tokAnnot = tokAnnotList.get(index1);
 						Annotation tokAnnot2 = tokAnnotList.get(index2);
 						long annotStart = tokAnnot.getStart();
@@ -234,14 +229,14 @@ public class AnnotateDuplicate
 							strBlder.append(toks.get(i) + " ");
 						}
 						
-						System.out.println("matched dup: " + docID + "|" + seqStr + "|" + strBlder.toString());
+						System.out.println("matched dup: " + docID + "|" + seqStr + "|" + strBlder.toString() + "|" + annotType);
 						
 	
 						pstmtWriteAnnot.setInt(1, ++annotID);
 						pstmtWriteAnnot.setString(2, docNamespace);
 						pstmtWriteAnnot.setString(3, docTable);
 						pstmtWriteAnnot.setLong(4, docID);
-						pstmtWriteAnnot.setString(5, targetType);
+						pstmtWriteAnnot.setString(5, annotType);
 						pstmtWriteAnnot.setLong(6, annotStart);
 						pstmtWriteAnnot.setLong(7, annotEnd);
 						pstmtWriteAnnot.setString(8, strBlder.toString().trim());
