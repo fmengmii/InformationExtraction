@@ -75,7 +75,7 @@ public class AnnotateDuplicate
 					+ "values (?,?,?,?,?,?,?,'validation-tool-duplicate',0.0)");
 			pstmtAnnot = conn.prepareStatement(annotQuery);
 			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + "annotation where document_id = ?");
-			pstmtPatientDoc = conn.prepareStatement("select document_id from " + schema + "documents where PatientSID = ? order by document_id");
+			pstmtPatientDoc = conn.prepareStatement("select document_id from " + schema + "documents where PatientSID = ? and document_id >= ? order by document_id");
 			
 			pstmtSent = conn.prepareStatement("select id, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = 'Sentence' order by start");
 			pstmtSentAnnots = conn.prepareStatement("select value, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and start >= ? and " + rq  + "end" + rq + " <= ? and annotation_type = 'Token' order by start");
@@ -98,12 +98,18 @@ public class AnnotateDuplicate
 			
 			Map<Long, Map<String, List<List<Integer>>>> patientProfileMap = new HashMap<Long, Map<String, List<List<Integer>>>>();
 			List<AnnotationSequence> docSeqList = null;
+			Map<Long, Long> patientMinDocMap = new HashMap<Long, Long>();
 			
 			while (rs.next()) {
 				long docID = rs.getLong(1);
 				long start = rs.getLong(2);
 				long end = rs.getLong(3);
 				long patientID = rs.getLong(4);
+				
+				Long minDocID = patientMinDocMap.get(patientID);
+				if (minDocID == null)
+					patientMinDocMap.put(patientID, docID);
+
 				
 				System.out.println("docID: " + docID + " start: " + start + "|" + patientID);
 				
@@ -164,7 +170,7 @@ public class AnnotateDuplicate
 				
 			for (long patientID : patientProfileMap.keySet()) {
 				Map<String, List<List<Integer>>> profileMap = patientProfileMap.get(patientID);
-				matchSequences(patientID, profileMap);
+				matchSequences(patientID, profileMap, patientMinDocMap.get(patientID));
 			}
 
 			
@@ -178,9 +184,10 @@ public class AnnotateDuplicate
 		}
 	}
 	
-	private void matchSequences(long patientID, Map<String, List<List<Integer>>> profileMap) throws SQLException
+	private void matchSequences(long patientID, Map<String, List<List<Integer>>> profileMap, long minDocID) throws SQLException
 	{
 		pstmtPatientDoc.setLong(1, patientID);
+		pstmtPatientDoc.setLong(2, minDocID);
 		ResultSet rs = pstmtPatientDoc.executeQuery();
 		
 		int count = 0;
