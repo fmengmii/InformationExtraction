@@ -1156,7 +1156,7 @@ public class IEDriver
 					}
 					
 
-					autoAnnot.setProfileType(3);
+					autoAnnot.setProfileType(0);
 					autoAnnot.setGenSent(genSent);
 					autoAnnot.setAnnotTypeList(activeAnnotTypeList);
 					autoAnnot.setProfileTableList(profileTableList);
