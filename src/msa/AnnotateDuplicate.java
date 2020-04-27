@@ -159,12 +159,28 @@ public class AnnotateDuplicate
 							profileMap.put(sentStr, indexListList);
 						}
 						
-						indexList.add(startIndex);
-						indexList.add(endIndex);
-						indexList.add(annotType);
-						indexListList.add(indexList);
+						boolean found = false;
+						for (List<Object> indexList2 : indexListList) {
+							Integer start2 = (Integer) indexList2.get(0);
+							Integer end2 = (Integer) indexList2.get(1);
+							String annotType2 = (String) indexList2.get(2);
+							
+							if (start2 == startIndex && end2 == endIndex && annotType2.equals(annotType)) {
+								found = true;
+								break;
+							}
+						}
 						
-						System.out.println("create dup: " + docID + "|" + sentStr + "|" + startStr + " " + endStr + "|" + annotType);
+						
+						if (!found)	 {
+							indexList.add(startIndex);
+							indexList.add(endIndex);
+							indexList.add(annotType);
+							indexListList.add(indexList);
+							
+							System.out.println("create dup: " + docID + "|" + sentStr + "|" + startStr + " " + endStr + "|" + annotType + "|" + startIndex + "|" + endIndex);
+						}
+						
 						currDocIndex = i;
 						break;
 					}
