@@ -79,7 +79,7 @@ public class AnnotateDuplicate
 			pstmtAnnot = conn.prepareStatement(annotQuery);
 			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + "annotation where document_id = ?");
 			pstmtPatientDoc = conn.prepareStatement("select document_id from " + schema + "documents where PatientSID = ? and document_id in "
-					+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b where a.document_id = b.document_id and "
+					+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b where a.frame_instance_id = b.frame_instance_id and "
 					+ "b.project_id = ?) "
 					+ "order by document_id");
 			
