@@ -121,7 +121,7 @@ public class AnnotateDuplicate
 					patientMinDocMap.put(patientID, docID);
 
 				
-				System.out.println("docID: " + docID + " start: " + start + "|" + patientID);
+				System.out.println("docID: " + docID + " start: " + start + "|" + patientID + "|" + targetType);
 				
 				Map<String, List<List<Integer>>> profileMap = patientProfileMap.get(patientID);
 				if (profileMap == null) {
