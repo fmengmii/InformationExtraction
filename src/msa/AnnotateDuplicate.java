@@ -75,7 +75,7 @@ public class AnnotateDuplicate
 					+ "values (?,?,?,?,?,?,?,'validation-tool-duplicate',0.0)");
 			pstmtAnnot = conn.prepareStatement(annotQuery);
 			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + "annotation where document_id = ?");
-			pstmtPatientDoc = conn.prepareStatement("select document_id from " + schema + "documents where PatientSID = ? ordery by document_id");
+			pstmtPatientDoc = conn.prepareStatement("select document_id from " + schema + "documents where PatientSID = ? order by document_id");
 			
 			pstmtSent = conn.prepareStatement("select id, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = 'Sentence' order by start");
 			pstmtSentAnnots = conn.prepareStatement("select value, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and start >= ? and " + rq  + "end" + rq + " <= ? and annotation_type = 'Token' order by start");
