@@ -123,7 +123,7 @@ public class AnnotateDuplicate
 					AnnotationSequence seq = docSeqList.get(i);
 					
 					if (seq.getStart() <= start && seq.getEnd() >= end) {
-						List<Annotation> tokAnnotList = seq.getAnnotList(":token|string");
+						List<Annotation> tokAnnotList = seq.getAnnotList("Token");
 						int startIndex = -1;
 						int endIndex = -1;
 						List<Integer> indexList= new ArrayList<Integer>();

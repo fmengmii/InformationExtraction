@@ -1069,7 +1069,6 @@ public class IEDriver
 				
 				
 				System.out.println("** Duplicate **");
-				dupAnnot.setGenSent(genSent);
 				for (String targetType : activeAnnotTypeList) {
 					dupAnnot.setTargetType(targetType);
 					dupAnnot.annotate();
