@@ -96,7 +96,7 @@ public class AnnotateDuplicate
 			long currDocID = -1;
 			int currDocIndex = 0;
 			
-			Map<Long, Map<String, List<Integer>>> patientProfileMap = new HashMap<Long, Map<String, List<Integer>>>();
+			Map<Long, Map<String, List<List<Integer>>>> patientProfileMap = new HashMap<Long, Map<String, List<List<Integer>>>>();
 			List<AnnotationSequence> docSeqList = null;
 			
 			while (rs.next()) {
@@ -107,9 +107,9 @@ public class AnnotateDuplicate
 				
 				System.out.println("docID: " + docID + " start: " + start + "|" + patientID);
 				
-				Map<String, List<Integer>> profileMap = patientProfileMap.get(patientID);
+				Map<String, List<List<Integer>>> profileMap = patientProfileMap.get(patientID);
 				if (profileMap == null) {
-					profileMap = new HashMap<String, List<Integer>>();
+					profileMap = new HashMap<String, List<List<Integer>>>();
 					patientProfileMap.put(patientID, profileMap);
 				}
 				
@@ -143,9 +143,16 @@ public class AnnotateDuplicate
 							}
 						}
 						
+						String sentStr = SequenceUtilities.getStrFromToks(seq.getToks());
+						List<List<Integer>> indexListList = profileMap.get(sentStr);
+						if (indexListList == null) {
+							indexListList = new ArrayList<List<Integer>>();
+							profileMap.put(sentStr, indexListList);
+						}
+						
 						indexList.add(startIndex);
 						indexList.add(endIndex);
-						profileMap.put(SequenceUtilities.getStrFromToks(seq.getToks()), indexList);
+						indexListList.add(indexList);
 						
 						System.out.println("create dup: " + docID + "|" + SequenceUtilities.getStrFromToks(seq.getToks()) + "|" + startStr + " " + endStr);
 						currDocIndex = i;
@@ -156,7 +163,7 @@ public class AnnotateDuplicate
 				
 				
 			for (long patientID : patientProfileMap.keySet()) {
-				Map<String, List<Integer>> profileMap = patientProfileMap.get(patientID);
+				Map<String, List<List<Integer>>> profileMap = patientProfileMap.get(patientID);
 				matchSequences(patientID, profileMap);
 			}
 
@@ -171,7 +178,7 @@ public class AnnotateDuplicate
 		}
 	}
 	
-	private void matchSequences(long patientID, Map<String, List<Integer>> profileMap) throws SQLException
+	private void matchSequences(long patientID, Map<String, List<List<Integer>>> profileMap) throws SQLException
 	{
 		pstmtPatientDoc.setLong(1, patientID);
 		ResultSet rs = pstmtPatientDoc.executeQuery();
@@ -191,32 +198,35 @@ public class AnnotateDuplicate
 			
 			for (AnnotationSequence seq : docSeqList) {
 				String seqStr = SequenceUtilities.getStrFromToks(seq.getToks());
-				List<Integer> indexList = profileMap.get(seqStr);
+				List<List<Integer>> indexListList = profileMap.get(seqStr);
 				
-				if (indexList != null) {
-					List<Annotation> tokAnnotList = seq.getAnnotList();
-					Annotation tokAnnot = tokAnnotList.get(indexList.get(0));
-					Annotation tokAnnot2 = tokAnnotList.get(indexList.get(1));
-					long annotStart = tokAnnot.getStart();
-					long annotEnd = tokAnnot2.getEnd();
+				if (indexListList != null) {
 					
-					System.out.println("matched dup: " + docID + "|" + seqStr + "|" + tokAnnot.getValue() + "|" + tokAnnot2.getValue());
-					
-
-					pstmtWriteAnnot.setInt(1, ++annotID);
-					pstmtWriteAnnot.setString(2, docNamespace);
-					pstmtWriteAnnot.setString(3, docTable);
-					pstmtWriteAnnot.setLong(4, docID);
-					pstmtWriteAnnot.setString(5, targetType);
-					pstmtWriteAnnot.setLong(6, annotStart);
-					pstmtWriteAnnot.setLong(7, annotEnd);
-					pstmtWriteAnnot.addBatch();
-					count++;
-					
-					if (count == 100) {
-						pstmtWriteAnnot.executeBatch();
-						conn2.commit();
-						count = 0;
+					for (List<Integer> indexList : indexListList) {
+						List<Annotation> tokAnnotList = seq.getAnnotList();
+						Annotation tokAnnot = tokAnnotList.get(indexList.get(0));
+						Annotation tokAnnot2 = tokAnnotList.get(indexList.get(1));
+						long annotStart = tokAnnot.getStart();
+						long annotEnd = tokAnnot2.getEnd();
+						
+						System.out.println("matched dup: " + docID + "|" + seqStr + "|" + tokAnnot.getValue() + "|" + tokAnnot2.getValue());
+						
+	
+						pstmtWriteAnnot.setInt(1, ++annotID);
+						pstmtWriteAnnot.setString(2, docNamespace);
+						pstmtWriteAnnot.setString(3, docTable);
+						pstmtWriteAnnot.setLong(4, docID);
+						pstmtWriteAnnot.setString(5, targetType);
+						pstmtWriteAnnot.setLong(6, annotStart);
+						pstmtWriteAnnot.setLong(7, annotEnd);
+						pstmtWriteAnnot.addBatch();
+						count++;
+						
+						if (count == 100) {
+							pstmtWriteAnnot.executeBatch();
+							conn2.commit();
+							count = 0;
+						}
 					}
 				}
 			}
@@ -258,6 +268,37 @@ public class AnnotateDuplicate
 				seq.setToks(toks);
 				seq.setAnnotList(annotList);
 				seqList.add(seq);
+			}
+			
+			boolean prevFlag = false;
+			for (int i=0; i<seqList.size(); i++) {
+				AnnotationSequence seq = seqList.get(i);
+				List<String> toks = seq.getToks();
+				List<Annotation> annotList = seq.getAnnotList();
+				
+				List<String> toks2 = toks;
+				List<Annotation> annotList2 = new ArrayList<Annotation>();
+
+				if ((toks.size() < 10 && i > 0) || prevFlag) {
+					toks2 = new ArrayList<String>();
+					for (String tok : seqList.get(i-1).getToks()) {
+						toks2.add(tok);
+					}
+					
+					
+					toks2.addAll(toks);
+					annotList2 = seqList.get(i-1).getAnnotList();
+					annotList2.addAll(annotList);
+					
+					seq.setToks(toks2);
+					seq.setAnnotList(annotList2);
+					
+					
+					if (toks.size() < 10)
+						prevFlag = true;
+					else
+						prevFlag = false;
+				}
 			}
 		}
 		catch(Exception e)
