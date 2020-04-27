@@ -73,7 +73,7 @@ public class AnnotateDuplicate
 			
 			conn2.setAutoCommit(false);
 			
-			System.out.println(annotQuery);
+			//System.out.println(annotQuery);
 
 			schema += ".";
 			pstmtWriteAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq +", value, provenance, score) "
