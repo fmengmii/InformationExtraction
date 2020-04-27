@@ -65,12 +65,6 @@ public class AnnotateDuplicate
 			docNamespace = props.getProperty("docNamespace");
 			docTable = props.getProperty("docTable");
 			
-			patientDocQuery = "select document_id from " + schema + "documents where PatientSID = ? and document_id in "
-				+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b where a.document_id = b.document_id and "
-				+ "b.project_id = ?) "
-				+ "order by document_id";
-
-			
 			
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			conn2 = DBConnection.dbConnection(user, password, host, dbName, dbType);
@@ -84,7 +78,10 @@ public class AnnotateDuplicate
 					+ "values (?,?,?,?,?,?,?,?,'validation-tool-duplicate',0.0)");
 			pstmtAnnot = conn.prepareStatement(annotQuery);
 			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + "annotation where document_id = ?");
-			pstmtPatientDoc = conn.prepareStatement(patientDocQuery);
+			pstmtPatientDoc = conn.prepareStatement("select document_id from " + schema + "documents where PatientSID = ? and document_id in "
+					+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b where a.document_id = b.document_id and "
+					+ "b.project_id = ?) "
+					+ "order by document_id");
 			
 			pstmtSent = conn.prepareStatement("select id, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = 'Sentence' order by start");
 			pstmtSentAnnots = conn.prepareStatement("select value, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and start >= ? and " + rq  + "end" + rq + " <= ? and annotation_type = 'Token' order by start");
