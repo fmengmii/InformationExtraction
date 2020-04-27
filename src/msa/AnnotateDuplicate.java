@@ -65,9 +65,11 @@ public class AnnotateDuplicate
 			docNamespace = props.getProperty("docNamespace");
 			docTable = props.getProperty("docTable");
 			
-			if (patientDocQuery == null) {
-				patientDocQuery = "select document_id from " + schema + "documents where PatientSID = ? and document_id >= ? order by document_id";
-			}
+			patientDocQuery = "select document_id from " + schema + "documents where PatientSID = ? and document_id in "
+				+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b where a.document_id = b.document_id and "
+				+ "b.project_id = ?) "
+				+ "order by document_id";
+
 			
 			
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
@@ -94,9 +96,11 @@ public class AnnotateDuplicate
 		}
 	}
 	
-	public void annotate()
+	public void annotate(int projID)
 	{
 		try {
+			pstmtPatientDoc.setInt(2, projID);
+			
 			pstmtAnnot.setString(1, targetType);
 			ResultSet rs = pstmtAnnot.executeQuery();
 			
@@ -194,7 +198,7 @@ public class AnnotateDuplicate
 	private void matchSequences(long patientID, Map<String, List<List<Integer>>> profileMap, long minDocID) throws SQLException
 	{
 		pstmtPatientDoc.setLong(1, patientID);
-		pstmtPatientDoc.setLong(2, minDocID);
+
 		ResultSet rs = pstmtPatientDoc.executeQuery();
 		
 		int count = 0;
@@ -335,12 +339,12 @@ public class AnnotateDuplicate
 	public static void main(String[] args)
 	{
 		if (args.length != 3) {
-			System.out.println("usage: user password config");
+			System.out.println("usage: user password config projID");
 			System.exit(0);
 		}
 		
 		AnnotateDuplicate dup = new AnnotateDuplicate();
 		dup.init(args[0], args[1], args[2]);
-		dup.annotate();
+		dup.annotate(Integer.parseInt(args[3]));
 	}
 }
