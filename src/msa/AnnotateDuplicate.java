@@ -292,24 +292,31 @@ public class AnnotateDuplicate
 			}
 			
 			boolean prevFlag = false;
+			AnnotationSequence prevSeq = null;
 			for (int i=0; i<seqList.size(); i++) {
 				AnnotationSequence seq = seqList.get(i);
+				
 				List<String> toks = seq.getToks();
 				List<Annotation> annotList = seq.getAnnotList();
 				
-				List<String> toks2 = toks;
 				List<Annotation> annotList2 = new ArrayList<Annotation>();
 
 				if ((toks.size() < 10 && i > 0) || prevFlag) {
-					toks2 = new ArrayList<String>();
-					for (String tok : seqList.get(i-1).getToks()) {
+					List<String> toks2 = new ArrayList<String>();
+					for (String tok : prevSeq.getToks()) {
 						toks2.add(tok);
 					}
 					
 					
 					toks2.addAll(toks);
-					annotList2 = seqList.get(i-1).getAnnotList();
+					annotList2 = prevSeq.getAnnotList();
+					
+					prevSeq = new AnnotationSequence();
+					prevSeq.setToks(toks);
+					prevSeq.setAnnotList(annotList);
+
 					annotList2.addAll(annotList);
+					
 					
 					seq.setToks(toks2);
 					seq.setAnnotList(annotList2);
@@ -320,6 +327,8 @@ public class AnnotateDuplicate
 					else
 						prevFlag = false;
 				}
+				else
+					prevSeq = seq;
 			}
 		}
 		catch(Exception e)
