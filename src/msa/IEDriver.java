@@ -444,7 +444,7 @@ public class IEDriver
 			bestDocQuery = "select document_id, status from " + schema2 + "document_status" + " where status = -4) "
 				+ "order by document_id";
 			
-			dupQuery = "select a.document_id, a.start, a." + rq + "end" + rq + ", c.PatientSID from " + schema + "annotation a, " + schema + "document_status b, " + schema + "documents c "
+			dupQuery = "select a.document_id, a.start, a." + rq + "end" + rq + ", c.PatientSID from " + schema2 + "annotation a, " + schema2 + "document_status b, " + schema2 + "documents c "
 				+ "where a.provenance = 'validation-tool' and b.status = -4 and a.annotation_type = ? and a.document_id = b.document_id  and a.document_id = c.document_id and "
 				+ "a.document_id in "
 				+ "(select d.document_id from " + schema2 + "project_frame_instance c, " + schema2 + "frame_instance_document d "
