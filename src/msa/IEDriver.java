@@ -154,6 +154,7 @@ public class IEDriver
 	private boolean populateFlag;
 	private boolean incrementalFlag;
 	private boolean cleanupFlag;
+	private boolean dupFlag;
 	
 	
 	private Statement stmt;
@@ -248,6 +249,7 @@ public class IEDriver
 			filterFlag = Boolean.parseBoolean(props.getProperty("filterFlag"));
 			bestFlag = Boolean.parseBoolean(props.getProperty("bestFlag"));
 			autoFlag = Boolean.parseBoolean(props.getProperty("autoFlag"));
+			dupFlag = Boolean.parseBoolean(props.getProperty("dupFlag"));
 			
 			//newDocQuery = props.getProperty("newDocQuery");
 			
@@ -1074,7 +1076,8 @@ public class IEDriver
 				
 				
 				System.out.println("** Duplicate **");
-				dupAnnot.annotate(projID);
+				if (dupFlag)
+					dupAnnot.annotate(projID);
 				
 				
 				
