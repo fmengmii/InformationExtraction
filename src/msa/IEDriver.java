@@ -110,6 +110,7 @@ public class IEDriver
 	private int blockSize;
 	private int clusterSize;
 	private int docBlockSize;
+	private int profileSizeLimit;
 	
 	
 	//Best
@@ -321,6 +322,7 @@ public class IEDriver
 			posFilterMinCount = Integer.parseInt(props.getProperty("posFilterMinCount"));
 			clusterSize = Integer.parseInt(props.getProperty("clusterSize"));
 			docBlockSize = Integer.parseInt(props.getProperty("docBlockSize"));
+			profileSizeLimit = Integer.parseInt(props.getProperty("profileSizeLimi"));
 			
 			
 			
@@ -665,6 +667,8 @@ public class IEDriver
 			pattProps.setProperty("blockSize", Integer.toString(blockSize));
 			pattProps.setProperty("write", Boolean.toString(write));
 			pattProps.setProperty("docBlockSize", Integer.toString(docBlockSize));
+			
+			pattProps.setProperty("profileSizeLimit", Integer.toString(profileSizeLimit));
 			
 			filterPatt.init(user, password, user, password, pattProps);
 			
