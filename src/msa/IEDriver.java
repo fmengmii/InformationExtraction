@@ -324,7 +324,7 @@ public class IEDriver
 			posFilterMinCount = Integer.parseInt(props.getProperty("posFilterMinCount"));
 			clusterSize = Integer.parseInt(props.getProperty("clusterSize"));
 			docBlockSize = Integer.parseInt(props.getProperty("docBlockSize"));
-			profileSizeLimit = Integer.parseInt(props.getProperty("profileSizeLimi"));
+			profileSizeLimit = Integer.parseInt(props.getProperty("profileSizeLimit"));
 			
 			
 			
