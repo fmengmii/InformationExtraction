@@ -652,6 +652,7 @@ public class FilterPatterns
 				
 				//ResultSet docRS = pstmtGetDocIDs.executeQuery();
 				
+				/*
 				int currIndex = 0;
 				for (long docID : docIDList) {
 					List<Long> docIDListBlock = new ArrayList<Long>();
@@ -663,33 +664,22 @@ public class FilterPatterns
 						currIndex++;
 					}
 					
-					/*
-					boolean flag = docRS.next();
-					while (flag && docCount < docBlockSize -1) {
-						docIDList.add(docRS.getLong(1));
-						docCount++;
-						flag = docRS.next();
-					}
-					
-					if (flag)
-						docIDList.add(docRS.getLong(1));
-						*/
-					
 					if (docCount == 0)
 						break;
+					*/
 					
 					System.out.println("Doc Block: " + docIDList.get(0) + " to " + docIDList.get(docIDList.size()-1));
 					
 					docIDMap.put(targetType, docIDList);
 					
-					stats.setDocIDList(docIDListBlock);
+					//stats.setDocIDList(docIDListBlock);
 					
 				
 					//read answers
 					System.out.println("reading answers...");
 					ansMap = new HashMap<String, Boolean>();
-					for (long docID2 : docIDListBlock)
-						readAnswers(targetType, targetProvenance, docID2);
+					for (long docID : docIDList)
+						readAnswers(targetType, targetProvenance, docID);
 					
 					stats.setAnsMap(ansMap);
 					
@@ -723,6 +713,7 @@ public class FilterPatterns
 					
 					//profile loop - read profiles in blocks
 					while (true) {
+						System.out.println("profiles: " + readStart + " to " + (readStart + clusterSize));
 						profileGridList = new ArrayList<ProfileGrid>();
 						//targetProfileGridList = new ArrayList<AnnotationSequenceGrid>();
 						//for (String ansAnnotType : ansAnnotTypeList) {
@@ -828,7 +819,7 @@ public class FilterPatterns
 					
 				}
 				
-			}
+			//}
 			
 			reader.close();
 			stats.close();
