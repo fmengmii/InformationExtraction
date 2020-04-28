@@ -144,6 +144,14 @@ public class AnnotateDuplicate
 						
 						for (int j=0; j<tokAnnotList.size(); j++) {
 							Annotation annot = tokAnnotList.get(j);
+							
+							if (startIndex == -1 && annot.getStart() > start) {
+								startIndex = j;
+							}
+							
+							if (endIndex == -1 && annot.getStart() >= end && j > 0)
+								endIndex = j-1;
+							
 							if (annot.getStart() <= start && annot.getEnd() > start) {
 								startIndex = j;
 								startStr = annot.getValue();
@@ -154,6 +162,9 @@ public class AnnotateDuplicate
 								break;
 							}
 						}
+						
+						if (startIndex == -1 || endIndex == -1)
+							break;
 						
 						String sentStr = SequenceUtilities.getStrFromToks(seq.getToks());
 						List<List<Object>> indexListList = profileMap.get(sentStr);
