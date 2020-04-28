@@ -104,6 +104,8 @@ public class FilterPatterns
 	
 	private PrintWriter pw;
 	
+	private int profileSizeLimit = -1;
+	
 	
 	public FilterPatterns()
 	{
@@ -337,6 +339,10 @@ public class FilterPatterns
 			docDBHost = props.getProperty("docDBHost");
 			docDBName = props.getProperty("docDBName");
 			docDBType = props.getProperty("docDBType");
+			
+			String profileSizeLimitStr = props.getProperty("profileSizeLimit");
+			if (profileSizeLimitStr != null)
+				profileSizeLimit = Integer.parseInt(profileSizeLimitStr);
 			
 			
 			
@@ -725,7 +731,7 @@ public class FilterPatterns
 						
 						//List<MSAProfile> profileList2 = null;
 						
-						profileList = reader.read(targetType, group, readStart, clusterSize, profileType, schema + "." + profileTable);
+						profileList = reader.read(targetType, group, readStart, clusterSize, profileType, schema + "." + profileTable, profileSizeLimit);
 						//profileList2 = reader.read(targetType, group, readStart, clusterSize, 3, schema + "." + profileTable);
 						
 						//profileList.addAll(profileList2);

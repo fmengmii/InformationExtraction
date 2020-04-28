@@ -99,10 +99,24 @@ public class ProfileReader
 		if (group != null)
 			groupList.add(group);
 		
-		return read(annotType, groupList, start, clusterSize, profileType, msaTable);
+		return read(annotType, groupList, start, clusterSize, profileType, msaTable, -1);
+	}
+	
+	public List<MSAProfile> read(String annotType, String group, int start, int clusterSize, int profileType, String msaTable, int sizeLimit) throws SQLException, ClassNotFoundException
+	{
+		List<String> groupList = new ArrayList<String>();
+		if (group != null)
+			groupList.add(group);
+		
+		return read(annotType, groupList, start, clusterSize, profileType, msaTable, sizeLimit);
 	}
 	
 	public List<MSAProfile> read(String annotType, List<String> groupList, int start, int clusterSize, int profileType, String msaTable) throws SQLException, ClassNotFoundException
+	{
+		return read(annotType, groupList, start, clusterSize, profileType, msaTable, -1);
+	}
+	
+	public List<MSAProfile> read(String annotType, List<String> groupList, int start, int clusterSize, int profileType, String msaTable, int sizeLimit) throws SQLException, ClassNotFoundException
 	{
 		List<MSAProfile> profileList = new ArrayList<MSAProfile>();
 		profileIDMap = new HashMap<Long, MSAProfile>();
@@ -158,6 +172,9 @@ public class ProfileReader
 				if (score >= minScore && score <= maxScore) {
 					List<String> toks = new ArrayList<String>();
 					toks = gson.fromJson(profileStr, toks.getClass());
+					
+					if (sizeLimit > 0 && toks.size() > sizeLimit)
+						continue;
 					
 					MSAProfile profile = new MSAProfile(profileStr, annotType, group, type, toks, score, truePos, falsePos);
 					profile.setProfileID(profileID);
