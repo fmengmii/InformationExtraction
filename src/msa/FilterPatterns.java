@@ -670,7 +670,7 @@ public class FilterPatterns
 					
 					System.out.println("Doc Block: " + docIDList.get(0) + " to " + docIDList.get(docIDList.size()-1));
 					
-					docIDMap.put(targetType, docIDList);
+					//docIDMap.put(targetType, docIDList);
 					
 					//stats.setDocIDList(docIDListBlock);
 					
@@ -731,7 +731,6 @@ public class FilterPatterns
 						//check if there are profiles
 						if (profileList.size() == 0)
 							break;
-						
 						
 						
 						msaProfileMap = new HashMap<AnnotationSequenceGrid, MSAProfile>();

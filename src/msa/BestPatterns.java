@@ -995,7 +995,7 @@ public class BestPatterns
 		
 		
 		ResultSet rs = stmt.executeQuery("select distinct document_id, start, " + rq + "end" + rq + ", value from " + schema + "annotation where document_id = " + docID + " and annotation_type = '" + annotType + 
-			"' and provenance like '" + provenance + "%' order by document_id, start");
+			"' and provenance like '" + provenance + "' order by document_id, start");
 		
 		while (rs.next()) {
 			int start = rs.getInt(2);
