@@ -445,7 +445,7 @@ public class IEDriver
 				+ "(select b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "
 				+ "order by document_id";
-			bestDocQuery = "select document_id, status from " + schema2 + "document_status" + " where status = -4) "
+			bestDocQuery = "select document_id, status from " + schema2 + "document_status" + " where status = -4 "
 				+ "order by document_id";
 			
 			dupQuery = "select a.document_id, a.start, a." + rq + "end" + rq + ", a.annotation_type, c.PatientSID from " + schema2 + "annotation a, " + schema2 + "document_status b, " + schema2 + "documents c "
@@ -1075,13 +1075,19 @@ public class IEDriver
 				
 				
 				
-				System.out.println("** Duplicate **");
-				if (dupFlag)
+				if (dupFlag) {
+					System.out.println("** Duplicate **");
 					dupAnnot.annotate(projID);
+				}
 				
 				
 				
-				
+				//set status
+				stmt.execute("update " + schema2 + "frame_instance_status set status = -4 where status = 1 and frame_instance_id in "
+					+ "(select distinct a.frame_instance_id from " + schema2 + "project_frame_instance a where a.project_id = " + projID + ")");
+				stmt.execute("update " + schema2 + "document_status set status = -4 where status = 1 and document_id in "
+						+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
+						+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
 				
 				
 				//phase 1 for profile type 3 (repeated entire sentences)
@@ -1094,12 +1100,6 @@ public class IEDriver
 					//filterPatt.setTargetProvenance("validation-tool");
 					filterPatt.setGenSent(genSent);
 					
-					//set status
-					stmt.execute("update " + schema2 + "frame_instance_status set status = -4 where status = 1 and frame_instance_id in "
-						+ "(select distinct a.frame_instance_id from " + schema2 + "project_frame_instance a where a.project_id = " + projID + ")");
-					stmt.execute("update " + schema2 + "document_status set status = -4 where status = 1 and document_id in "
-							+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
-							+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
 					
 					filterPatt.readDocIDList();
 					
