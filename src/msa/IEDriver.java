@@ -844,9 +844,10 @@ public class IEDriver
 			
 			//clean up any previous incomplete runs
 			
+			/*
 			System.out.println("clean up previous runs...");
-			stmt.execute("delete from " + schema2 + rq + "index" + rq + 
-			" where document_id in (select distinct a.document_id from " + schema2 + "document_status a where a.status = 1)");
+			//stmt.execute("delete from " + schema2 + rq + "index" + rq + 
+			//" where document_id in (select distinct a.document_id from " + schema2 + "document_status a where a.status = 1)");
 			
 			//stmt.execute("delete from " + schema2 + rq + "index" + rq + " where profile_id in (select a.profile_id from " + schema2 + "profile a where a." + rq + "group" + rq + " = '" + group + "')");
 			
@@ -861,6 +862,7 @@ public class IEDriver
 			rs = stmt.executeQuery("select count(*) from " + schema2 + "profile where " + rq + "group" + rq + " = '" + group + "'");
 			if (rs.next())
 				profileNewCount = rs.getInt(1);
+				*/
 			
 			//clear final table if there were documents with status 1 or there were new profiles that didn't finish processing
 			//if (docStatusOneCount > 0 || profileNewCount > 0) {
