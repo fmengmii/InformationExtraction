@@ -154,8 +154,8 @@ public class MSAUtils
 	
 	public static boolean matchGrids(AnnotationSequenceGrid grid1, AnnotationSequenceGrid grid2, SmithWatermanDim sw, int maxGaps, int minSize, int syntax, int phrase)
 	{
-		System.out.println("grid1: " + grid1.toString());
-		System.out.println("grid2: " + grid2.toString());
+		//System.out.println("grid1: " + grid1.toString());
+		//System.out.println("grid2: " + grid2.toString());
 		
 		
 		//if (grid1.size() == 0 || grid2.size() == 0 || grid1.size() != grid2.size())
