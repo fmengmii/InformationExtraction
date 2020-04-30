@@ -181,17 +181,6 @@ public class MSAUtils
 		int phrase1 = countPhrase(align1);
 		int phrase2 = countPhrase(align2);
 		
-		System.out.println("\nmatch grids\ngrid1:\n" + grid1.toString());
-		System.out.println("grid2:\n" + grid2.toString());
-		System.out.println("align1: " + gson.toJson(align1));
-		System.out.println("align2: " + gson.toJson(align2));
-		System.out.println("matchindexes1: " + gson.toJson(matchIndexes1));
-		System.out.println("matchindexes2: " + gson.toJson(matchIndexes2));
-		System.out.println("alignindexes1: " + gson.toJson(alignIndexes1));
-		System.out.println("alignindexes2: " + gson.toJson(alignIndexes2));
-		System.out.println("coords1: " + gson.toJson(matchCoords1));
-		System.out.println("coords2: " + gson.toJson(matchCoords2));
-		
 		if (gaps1 <= maxGaps && gaps2 <= maxGaps && syntax1 <= syntax && syntax2 <= syntax && phrase1 <= phrase && phrase2 <= phrase && 
 			matchCoords1.size() >= minSize && matchCoords2.size() >= minSize) {
 			
@@ -275,7 +264,7 @@ public class MSAUtils
 				
 				
 				
-				
+				/*
 				//if (profileStr.equals("[\":i-per\",\":target\",\":token|string|(\",\":lookup|majortype|location\",\":token|string|)\",\":number|number\"]")) {
 				//if (profileStr.equals("[\":start|start\",\":target\",\":token|category|cd!:number|number!:syntaxtreenode|cat|cd\",\":number|number\",\":token|category|cd!:number|number\"]")) {
 				//if (gaps1 == 0 && gaps2 == 0) {
@@ -292,7 +281,7 @@ public class MSAUtils
 					System.out.println("gaps1: " + gaps1 + ", gaps2: " + gaps2 + ", syntax1: " + syntax1 + ", syntax2: " + syntax2 + "\n\n");
 					
 				//}
-				 
+				 */
 				
 				
 					
@@ -374,7 +363,7 @@ public class MSAUtils
 				
 				
 				
-				
+				/*
 				//if (profileStr.equals("[\":i-per\",\":target\",\":token|string|(\",\":lookup|majortype|location\",\":token|string|)\",\":number|number\"]")) {
 				//if (profileStr.equals("[\":token|orth|lowercase\",\":token|orth|lowercase\",\":lookup|majortype|jobtitle\",\":target\",\":i-per\"]")) {
 				//	System.out.println("HERE");
@@ -391,7 +380,7 @@ public class MSAUtils
 				System.out.println("right coords2: " + gson.toJson(matchCoords2));
 				System.out.println("gaps1: " + gaps1 + ", gaps2: " + gaps2 + ", syntax1: " + syntax1 + ", syntax2: " + syntax2 + " maxGaps: " + maxGaps + "\n\n");
 				//}
-				 
+				*/ 
 				
 				
 				
