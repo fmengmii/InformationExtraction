@@ -403,7 +403,7 @@ public class ProfileMatcher
 							for (AnnotationSequenceGrid targetProfileGrid : targetProfileGridList) {
 								
 								//System.out.println("target grid: " + targetGrid.toString());
-								//System.out.println("targetProfileGrid: " + targetProfileGrid.toString());
+								System.out.println("targetProfileGrid: " + targetProfileGrid.toString());
 								
 								targetMatch = MSAUtils.matchGrids(targetProfileGrid, targetGrid, sw, 0, targetProfileGrid.size(), syntax, phrase);
 								targetProfileStr = gson.toJson(targetProfileGrid.getSequence().getToks());
