@@ -472,7 +472,8 @@ public class BestPatterns
 					//subtract one from negcount to correct for human errors
 					//or unannotated retrospective cases (status 1)
 					
-					negCount--;
+					if (negCount > 0)
+						negCount--;
 					
 					
 					if (profileTypeMap.get(key) != null) {
