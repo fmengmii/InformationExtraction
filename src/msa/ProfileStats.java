@@ -183,7 +183,7 @@ public class ProfileStats
 			
 			pstmt = msaConn.prepareStatement("select document_id, start, end from msa_profile_match_index where profile_id = ? and target_id = ?");
 			//pstmt2 = msaConn.prepareStatement("select count(*) from msa_profile_match_index where profile_id = ?");
-			pstmt2 = msaConn.prepareStatement("insert into " + schema + finalTable + " (profile_id, target_id, prec) values (?,?,?)");
+			pstmt2 = msaConn.prepareStatement("insert into " + schema + finalTable + " (profile_id, target_id, valence, true_pos, false_pos, total) values (?,?,?,?,?,?)");
 			pstmt3 = msaConn.prepareStatement("update " + schema + finalTable + " set prec = ? where profile_id = ? and target_id = ?");
 			pstmt4 = msaConn.prepareStatement("select count(*) from " + schema + finalTable + " where profile_id = ? and target_id = ?");
 			pstmt5 = msaConn.prepareStatement("select target_id from " + schema + finalTable + " where profile_id = ? and prec < 0.0");
@@ -414,7 +414,7 @@ public class ProfileStats
 			//String key = profileID + "|" + targetID;
 
 			Boolean ans = ansMap.get(docID + "|" + start + "|" + end);
-				
+			/*
 			String key = Long.toString(profileID);
 			if (ans != null) {
 				Integer count = posMap.get(key);
@@ -428,11 +428,12 @@ public class ProfileStats
 					count = 0;
 				negMap.put(key, ++count);
 			}
+			*/
 			
 			List<MSAProfile> targetList = match.getTargetList();
 			for (MSAProfile target : targetList) {
 				long targetID = target.getProfileID();
-				key = profileID + "|" + targetID;
+				String key = profileID + "|" + targetID;
 				
 				if (ans != null) {
 					Integer count = posMap.get(key);
@@ -483,11 +484,12 @@ public class ProfileStats
 				boolean posRemove = false;
 				
 				
-				
-				if (((tp + fp) >= negFilterMinCount && prec < negFilterThreshold))
+				int posNeg = 0;
+				if (((tp + fp) >= negFilterMinCount && prec < negFilterThreshold)) {
+					posNeg = 1;
 					negRemove = true;
-				
-				if ((tp + fp)  >= posFilterMinCount && prec >= posFilterThreshold)
+				}
+				else if ((tp + fp)  >= posFilterMinCount && prec >= posFilterThreshold)
 					posRemove = true;
 				
 				if (negRemove || posRemove) {
@@ -520,6 +522,8 @@ public class ProfileStats
 					negMap.remove(profileID + "|" + targetID);
 					//j--;
 					
+					
+					
 					if (write) {
 						try {
 							pstmt4.setLong(1, profileID);
@@ -535,20 +539,26 @@ public class ProfileStats
 							if (insert) {
 								pstmt2.setLong(1, profileID);
 								pstmt2.setLong(2, targetID);
-								pstmt2.setDouble(3, -1.0);
+								pstmt2.setInt(3, posNeg);
+								pstmt2.setInt(4, tp);
+								pstmt2.setInt(5, fp);
+								pstmt2.setInt(6, tp+fp);
 								pstmt2.execute();
 							}
+							/*
 							else {
 								pstmt3.setDouble(1, -1.0);
 								pstmt3.setLong(2, profileID);
 								pstmt3.setLong(3, targetID);
 								pstmt3.executeQuery();
 							}
+							*/
 						}
 						catch(SQLException e)
 						{
 						}
 					}
+					
 				}
 			}			
 		}
