@@ -158,7 +158,8 @@ public class MSAUtils
 		System.out.println("grid2: " + grid2.toString());
 		
 		
-		if (grid1.size() == 0 || grid2.size() == 0 || grid1.size() != grid2.size())
+		//if (grid1.size() == 0 || grid2.size() == 0 || grid1.size() != grid2.size())
+		if (grid1.size() == 0 || grid2.size() == 0 || grid1.size() > grid2.size())
 			return false;
 		
 		Gson gson = new Gson();
