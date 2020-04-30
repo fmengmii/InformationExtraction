@@ -176,10 +176,21 @@ public class MSAUtils
 		int phrase1 = countPhrase(align1);
 		int phrase2 = countPhrase(align2);
 		
+		System.out.println("\nmatch grids\ngrid1:\n" + grid1.toString());
+		System.out.println("grid2:\n" + grid2.toString());
+		System.out.println("align1: " + gson.toJson(align1));
+		System.out.println("align2: " + gson.toJson(align2));
+		System.out.println("matchindexes1: " + gson.toJson(matchIndexes1));
+		System.out.println("matchindexes2: " + gson.toJson(matchIndexes2));
+		System.out.println("alignindexes1: " + gson.toJson(alignIndexes1));
+		System.out.println("alignindexes2: " + gson.toJson(alignIndexes2));
+		System.out.println("coords1: " + gson.toJson(matchCoords1));
+		System.out.println("coords2: " + gson.toJson(matchCoords2));
+		
 		if (gaps1 <= maxGaps && gaps2 <= maxGaps && syntax1 <= syntax && syntax2 <= syntax && phrase1 <= phrase && phrase2 <= phrase && 
 			matchCoords1.size() >= minSize && matchCoords2.size() >= minSize) {
 			
-			
+			/*
 			System.out.println("\nmatch grids\ngrid1:\n" + grid1.toString());
 			System.out.println("grid2:\n" + grid2.toString());
 			System.out.println("align1: " + gson.toJson(align1));
@@ -190,7 +201,7 @@ public class MSAUtils
 			System.out.println("alignindexes2: " + gson.toJson(alignIndexes2));
 			System.out.println("coords1: " + gson.toJson(matchCoords1));
 			System.out.println("coords2: " + gson.toJson(matchCoords2));
-			
+			*/
 			
 			
 			return true;
