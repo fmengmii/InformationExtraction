@@ -37,7 +37,7 @@ public class PopulateFrame
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			conn2 = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			pstmtInsert = conn2.prepareStatement("insert into " + this.schema + "frame_instance_data (frame_instance_id, slot_id, value, section_slot_number, element_slot_number, document_namespace, "
-				+ "document_table, document_id, annotation_id, provenance, element_id, v_scroll_pos, scroll_height, scroll_width) values (?,?,?,?,?,?,?,?,?,'" + provenance + "',?,null,null,null)");
+				+ "document_table, document_id, annotation_id, provenance, element_id, v_scroll_pos, scroll_height, scroll_width) values (?,?,?,?,?,?,?,?,?,?,?,null,null,null)");
 			pstmtDelete = conn.prepareStatement("delete from " + this.schema + "frame_instance_data where frame_instance_id = ?");
 			//pstmtCountDelete = conn.prepareStatement("select element_id, count(*) from " + this.schema + "frame_instance_data where frame_instance_id = ? and provenance = ? group by element_id");
 			
@@ -246,7 +246,8 @@ public class PopulateFrame
 				pstmtInsert.setString(7, docTable);
 				pstmtInsert.setLong(8, docID);
 				pstmtInsert.setInt(9, annotID);
-				pstmtInsert.setInt(10, ans[0]);
+				pstmtInsert.setString(10, provenance2);
+				pstmtInsert.setInt(11, ans[0]);
 				//pstmtInsert.execute();
 				pstmtInsert.addBatch();
 				
