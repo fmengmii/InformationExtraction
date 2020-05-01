@@ -234,7 +234,7 @@ public class AnnotateDuplicate
 			pstmtAnnotID.setLong(1, docID);
 			ResultSet rs2 = pstmtAnnotID.executeQuery();
 			if (rs2.next()) {
-				annotID = rs.getInt(1);
+				annotID = rs2.getInt(1);
 			}
 			
 			for (AnnotationSequence seq : docSeqList) {
