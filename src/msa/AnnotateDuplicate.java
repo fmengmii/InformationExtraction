@@ -71,7 +71,7 @@ public class AnnotateDuplicate
 
 			schema += ".";
 			pstmtWriteAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq +", value, provenance, score) "
-					+ "values (?,?,?,?,?,?,?,?,'validation-tool-duplicate',0.0)");
+					+ "values (?,?,?,?,?,?,?,?,'validation-tool-duplicate',1.0)");
 			pstmtAnnot = conn.prepareStatement(annotQuery);
 			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + "annotation where document_id = ?");
 			pstmtPatientDoc = conn.prepareStatement("select document_id from " + schema + "documents where PatientSID = ? and document_id in "
