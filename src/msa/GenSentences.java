@@ -2,8 +2,10 @@ package msa;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.gson.Gson;
 
@@ -458,6 +460,18 @@ public class GenSentences
 					
 					System.out.println(SequenceUtilities.getStrFromToks(toks));
 				}
+			}
+		}
+	}
+	
+	public void removeDocID(long docID)
+	{
+		Set<String> keySet = new HashSet<String>(seqMap.keySet());
+		for (String key : keySet) {
+			String[] parts = key.split("\\|");
+			long docID2 = Long.parseLong(parts[0]);
+			if (docID == docID2) {
+				seqMap.remove(key);
 			}
 		}
 	}

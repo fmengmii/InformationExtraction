@@ -463,7 +463,7 @@ public class IEDriver
 					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") ";
 					//+ "order by document_id";
 				if (autoDocLimit > 0)
-					autoDBQuery += " limit " + autoDocLimit + ")";
+ 					autoDBQuery += " limit " + autoDocLimit + ")";
 				else
 					autoDBQuery += ")";
 			}
@@ -1139,7 +1139,7 @@ public class IEDriver
 				}
 				
 				
-				genSent = null;
+				//genSent = null;
 				
 				
 				//auto annotate
@@ -1247,6 +1247,22 @@ public class IEDriver
 						+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 						+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
 				}
+				
+				
+				
+				
+				
+				//clean genSent cache
+				rs = stmt.executeQuery("select document_id from " + schema2 + "document_status where status = 3 and document_id in "
+					+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
+					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
+				
+				while (rs.next()) {
+					long docID = rs.getLong(1);
+					genSent.removeDocID(docID);
+				}
+				
+				
 				
 				
 				
