@@ -485,7 +485,7 @@ public class BestPatterns
 					Boolean active = profileActiveMap.get(profileID);
 					if (prec > 0.8)
 						profileActiveMap.put(profileID, true);
-					else if (prec <= 0.8 && active == null)
+					else if (prec <= 0.8 && active == null && (posCount + negCount) >= negMinCount)
 						profileActiveMap.put(profileID, false);
 					
 					
@@ -856,7 +856,7 @@ public class BestPatterns
 		
 		int count = 0;
 		stmt.execute("update " + schema + finalTable + " set disabled = 1 where profile_id in "
-			+ "(select a.profile_id from " + schema + "profile a where a.annotation_type = '" + annotType + "')");
+			+ "(select a.profile_id from " + schema + "profile a where a.annotation_type = '" + annotType + "' and profile_type = 0)");
 		PreparedStatement pstmt = conn.prepareStatement("update " + schema + finalTable + " set disabled = 0 where profile_id = ? and target_id = ?");
 		for (String key : profileFilterMap.keySet()) {
 			String[] parts = key.split("\\|");
@@ -891,15 +891,16 @@ public class BestPatterns
 		//preload inactive profile/target pairs
 		
 		Statement stmt = conn.createStatement();
-		ResultSet rs = stmt.executeQuery("select profile_id, target_id, true_pos, false_pos, disabled from " + schema + finalTable);
+		ResultSet rs = stmt.executeQuery("select a.profile_id, a.target_id, a.true_pos, a.false_pos, a.disabled from " + schema + finalTable + " a, " + schema + profileTable + " b "
+			+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id");
 		while (rs.next()) {
 			long profileID = rs.getLong(1);
 			long targetID = rs.getLong(2);
 			int posCount = rs.getInt(3);
 			int negCount = rs.getInt(4);
-			int disabled = rs.getInt(5);
+			Integer disabled = rs.getInt(5);
 			
-			if (disabled == 1) {
+			if (disabled != null && disabled == 1) {
 				inactiveMap.put(profileID + "|" + targetID, true);
 				continue;
 			}
