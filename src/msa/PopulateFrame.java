@@ -181,7 +181,7 @@ public class PopulateFrame
 					pstmtDeleteAnnot.execute();
 					continue;
 				}
-				else {
+				else if (userDefinedCount == null && provenance2.equals("validation-tool")) {
 					userDefinedMap.put(docID + "|" + start, 1);
 				}
 				
