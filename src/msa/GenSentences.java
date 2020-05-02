@@ -466,12 +466,14 @@ public class GenSentences
 	
 	public void removeDocID(long docID)
 	{
-		Set<String> keySet = new HashSet<String>(seqMap.keySet());
-		for (String key : keySet) {
-			String[] parts = key.split("\\|");
-			long docID2 = Long.parseLong(parts[0]);
-			if (docID == docID2) {
-				seqMap.remove(key);
+		if (seqMap != null) {
+			Set<String> keySet = new HashSet<String>(seqMap.keySet());
+			for (String key : keySet) {
+				String[] parts = key.split("\\|");
+				long docID2 = Long.parseLong(parts[0]);
+				if (docID == docID2) {
+					seqMap.remove(key);
+				}
 			}
 		}
 	}
