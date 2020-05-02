@@ -169,6 +169,7 @@ public class PopulateFrame
 					continue;
 				}
 				
+				
 				Integer userDefinedCount = userDefinedMap.get(docID + "|" + start);
 				
 				if (userDefinedCount != null && (userDefinedCount > 0 || !provenance2.equals("validation-tool"))) {
@@ -184,6 +185,12 @@ public class PopulateFrame
 				else if (userDefinedCount == null && provenance2.equals("validation-tool")) {
 					userDefinedMap.put(docID + "|" + start, 1);
 				}
+				
+				if (usedMap.get(docID + "|" + start) != null)
+					continue;
+				else
+					usedMap.put(docID + "|" + start, true);
+
 				
 				//int frameInstanceID = getFrameInstanceID(docID);
 				
