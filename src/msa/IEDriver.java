@@ -870,7 +870,7 @@ public class IEDriver
 			if (dbType.equals("mysql"))
 				docQuery += "limit ?, ?";
 			else if (dbType.startsWith("sqlserver"))
-				docQuery += "offset ? fetch next ? rows only";
+				docQuery += "offset ? rows fetch next ? rows only";
 			
 			PreparedStatement pstmtFetchDocs = conn.prepareStatement(docQuery);
 			
