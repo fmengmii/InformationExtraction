@@ -824,21 +824,6 @@ public class IEDriver
 				finalTableList.add(finalTableName);
 			}
 			
-			/*
-			rs = stmt.executeQuery("select a.annotation_type, b.element_type from slot a, element b, value c, element_value d "
-					+ "where a.slot_id = c.slot_id and d.value_id = c.value_id and b.element_id = c.element_id");
-			while (rs.next()) {
-				String annotType = rs.getString(1);
-				int elementType = rs.getInt(2);
-				
-				boolean requireTarget = false;
-				if (elementType == 1)
-					requireTarget = true;
-				
-				requireTargetMap.put(annotType, requireTarget);
-			}
-			*/
-			
 			
 			
 			
@@ -876,6 +861,18 @@ public class IEDriver
 			//pstmtUpdateProfileGroup.execute();
 
 			//updateDocsWithStatus(2, 1);
+			
+			
+			String docQuery = "select distinct document_id from " + schema2 + "document_status where status = -4 and document_id in "
+				+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
+				+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") order by document_id ";
+			
+			if (dbType.equals("mysql"))
+				docQuery += "limit ?, ?";
+			else if (dbType.startsWith("sqlserver"))
+				docQuery += "offset ? fetch next ? rows only";
+			
+			PreparedStatement pstmtFetchDocs = conn.prepareStatement(docQuery);
 			
 			
 			
@@ -1008,75 +1005,9 @@ public class IEDriver
 				
 				
 				
-				//gen MSAs
-				if (msaFlag) {
-					System.out.println("** Gen MSA **");
-					//run MSA generator
-					
-					rs = stmt.executeQuery("select count(*) from " + schema2 + "document_status where status = 1 and document_id in "
-						+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
-						+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
-					
-					int msaDocCount = 0;
-					if (rs.next()) {
-						msaDocCount= rs.getInt(1);
-					}
-					
-					
-					//only run if there are docs with status = 1
-					if (msaDocCount > 0) {
-					
-					
-						genMSADriver.getSentences(user, password, annotTypeList);
-						
-						for (int i=0; i<annotTypeList.size(); i++) {
-						//for (int i=0; i<2; i++) {
-							String annotType = annotTypeList.get(i);
-							String profileTable = profileTableList.get(i);
-							
-	
-							/*
-							int currCount = 0;
-							pstmtGetGenMSAStatus.setString(1, annotType);
-							rs = pstmtGetGenMSAStatus.executeQuery();
-	
-							while (rs.next()) {
-								currCount = rs.getInt(1);
-							}
-							
-							if (currCount == 0)
-								continue;
-								*/
-
-							
-	
-							//if (annotCount > currCount) {
-							//activeAnnotTypeList.add(annotType);
-							genMSADriver.setTargetType(annotType);
-							genMSADriver.setProfileTable(profileTable);
-							//genMSADriver.setRequireTarget(requireTargetMap.get(annotType));
-							//genMSADriver.setGroup(Integer.toString(count));
-							genMSADriver.run(user, password, docUser, docPassword);
-							
-							
-							
-							docList = genMSADriver.getDocList();
-							lastDocIndex = genMSADriver.getLastDocIndex();
-							
-						}
-					
-					//gen relation patterns
-					}
-					
-				}
 				
 				
-				genSent = genMSADriver.getGenSent();
-				
-				
-				
-				
-				
+				//duplicate
 				if (dupFlag) {
 					System.out.println("** Duplicate **");
 					dupAnnot.annotate(projID);
@@ -1088,38 +1019,152 @@ public class IEDriver
 				stmt.execute("update " + schema2 + "frame_instance_status set status = -4 where status = 1 and frame_instance_id in "
 					+ "(select distinct a.frame_instance_id from " + schema2 + "project_frame_instance a where a.project_id = " + projID + ")");
 				stmt.execute("update " + schema2 + "document_status set status = -4 where status = 1 and document_id in "
-						+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
-						+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
+					+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
+					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
 				
 				
-				//phase 1 for profile type 3 (repeated entire sentences)
-				//filter patterns
-				if (filterFlag) {
-					System.out.println("** FILTER**");
-					//run filter patterns
+				
+				
+				List<Long> docIDList2 = new ArrayList<Long>();
+				rs = stmt.executeQuery("select distinct document_id from " + schema2 + "document_status where status = 2 and document_id in "
+					+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
+					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
+				while(rs.next()) {
+					docIDList2.add(rs.getLong(1));
+				}
+				
+				int offset = 0;
+				
+				pstmtFetchDocs.setInt(1, offset);
+				pstmtFetchDocs.setInt(2, docBlockSize);
+				
+				List<Long> docIDList1 = new ArrayList<Long>();
+				rs = pstmtFetchDocs.executeQuery();
+				while(rs.next()) {
+					docIDList1.add(rs.getLong(1));
+				}
+				
+				
+				while (docIDList1.size() > 0) {
 					
-					filterPatt.setProfileType(0);
-					//filterPatt.setTargetProvenance("validation-tool");
-					filterPatt.setGenSent(genSent);
+					System.out.println("Doc Block: " + docIDList1.get(0) + " to " + docIDList1.get(docIDList1.size()-1));
+				
+					//gen MSAs
+					if (msaFlag) {
+						System.out.println("** Gen MSA **");
+						//run MSA generator
+						
+						rs = stmt.executeQuery("select count(*) from " + schema2 + "document_status where status = 1 and document_id in "
+							+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
+							+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
+						 
+						int msaDocCount = 0;
+						if (rs.next()) {
+							msaDocCount= rs.getInt(1);
+						}
+						
+						
+						//only run if there are docs with status = 1
+						if (msaDocCount > 0) {
+						
+							List<Long> genDocIDList = new ArrayList<Long>();
+							genDocIDList.addAll(docIDList2);
+							genDocIDList.addAll(docIDList1);
+							genMSADriver.setDocIDList(genDocIDList);
+						
+							genMSADriver.getSentences(user, password, annotTypeList);
+							
+							for (int i=0; i<annotTypeList.size(); i++) {
+							//for (int i=0; i<2; i++) {
+								String annotType = annotTypeList.get(i);
+								String profileTable = profileTableList.get(i);
+								
+		
+								/*
+								int currCount = 0;
+								pstmtGetGenMSAStatus.setString(1, annotType);
+								rs = pstmtGetGenMSAStatus.executeQuery();
+		
+								while (rs.next()) {
+									currCount = rs.getInt(1);
+								}
+								
+								if (currCount == 0)
+									continue;
+									*/
+	
+								
+		
+								//if (annotCount > currCount) {
+								//activeAnnotTypeList.add(annotType);
+								genMSADriver.setTargetType(annotType);
+								genMSADriver.setProfileTable(profileTable);
+								//genMSADriver.setRequireTarget(requireTargetMap.get(annotType));
+								//genMSADriver.setGroup(Integer.toString(count));
+								genMSADriver.run(user, password, docUser, docPassword);
+								
+								
+								
+								docList = genMSADriver.getDocList();
+								lastDocIndex = genMSADriver.getLastDocIndex();
+								
+							}
+						
+						//gen relation patterns
+						}
+						
+					}
 					
 					
-					filterPatt.readDocIDList();
+					genSent = genMSADriver.getGenSent();
 					
 					
-					filterPatt.setAnnotTypeList(activeAnnotTypeList);
-					filterPatt.setProfileTableList(profileTableList);
-					filterPatt.setIndexTableList(indexTableList);
-					filterPatt.filterPatterns(user, password, docUser, docPassword, user, password);
 					
-					//second incremental for existing patterns to only run on new docs (status = 1)
-					/*
-					System.out.println("** FILTER Second Pass **");
-					filterPatt.setDocDBQuery("select document_id from " + schema2 + "document_status where status = 1 order by document_id");
-					filterPatt.setGroup(group + "##");
-					filterPatt.setTargetGroup(group + "##");
-					filterPatt.filterPatterns(user, password, docUser, docPassword, user, password);
-					*/
 					
+					
+					
+					
+					//phase 1 for profile type 3 (repeated entire sentences)
+					//filter patterns
+					if (filterFlag) {
+						System.out.println("** FILTER**");
+						//run filter patterns
+						
+						filterPatt.setProfileType(0);
+						//filterPatt.setTargetProvenance("validation-tool");
+						filterPatt.setGenSent(genSent);
+						
+						filterPatt.setDocIDList(docIDList1);
+						//filterPatt.readDocIDList();
+						
+						
+						filterPatt.setAnnotTypeList(activeAnnotTypeList);
+						filterPatt.setProfileTableList(profileTableList);
+						filterPatt.setIndexTableList(indexTableList);
+						filterPatt.filterPatterns(user, password, docUser, docPassword, user, password);
+						
+						//second incremental for existing patterns to only run on new docs (status = 1)
+						/*
+						System.out.println("** FILTER Second Pass **");
+						filterPatt.setDocDBQuery("select document_id from " + schema2 + "document_status where status = 1 order by document_id");
+						filterPatt.setGroup(group + "##");
+						filterPatt.setTargetGroup(group + "##");
+						filterPatt.filterPatterns(user, password, docUser, docPassword, user, password);
+						*/
+						
+					}
+					
+					
+					offset += docBlockSize;
+					pstmtFetchDocs.setInt(1, offset);
+					docIDList1 = new ArrayList<Long>();
+					rs = pstmtFetchDocs.executeQuery();
+					while(rs.next()) {
+						docIDList1.add(rs.getLong(1));
+					}
+					
+					docIDList2.clear();
+				
 				}
 				
 				

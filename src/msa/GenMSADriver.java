@@ -246,7 +246,7 @@ public class GenMSADriver
 	public void getSentences(String user, String password, List<String> annotTypeList)
 	{
 		try {
-			if (docDBQuery != null) {			
+			if (docDBQuery != null && docIDList == null) {			
 				conn = DBConnection.dbConnection(user, password, host, dbName, dbType);	
 				//docIDList = getDocIDList(docDBQuery);
 				//docIDList = MSAUtils.getDocIDList(docDBConn, docDBQuery);

@@ -523,7 +523,7 @@ public class ProfileStats
 					//j--;
 					
 					
-					
+					/*
 					if (write) {
 						try {
 							pstmt4.setLong(1, profileID);
@@ -545,20 +545,12 @@ public class ProfileStats
 								pstmt2.setInt(6, tp+fp);
 								pstmt2.execute();
 							}
-							/*
-							else {
-								pstmt3.setDouble(1, -1.0);
-								pstmt3.setLong(2, profileID);
-								pstmt3.setLong(3, targetID);
-								pstmt3.executeQuery();
-							}
-							*/
 						}
 						catch(SQLException e)
 						{
 						}
 					}
-					
+					*/
 				}
 			}			
 		}

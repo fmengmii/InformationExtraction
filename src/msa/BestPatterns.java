@@ -451,6 +451,12 @@ public class BestPatterns
 					if (negCount == null)
 						negCount = 0;
 					
+					//subtract one from negcount to correct for human errors
+					//or unannotated retrospective cases (status 1)
+					
+					if (negCount > 0)
+						negCount--;
+					
 					double prec = ((double) posCount) / ((double) (posCount + negCount));
 					
 						
@@ -469,11 +475,6 @@ public class BestPatterns
 						score = 1.0;
 					}
 					
-					//subtract one from negcount to correct for human errors
-					//or unannotated retrospective cases (status 1)
-					
-					if (negCount > 0)
-						negCount--;
 					
 					
 					if (profileTypeMap.get(key) != null) {
