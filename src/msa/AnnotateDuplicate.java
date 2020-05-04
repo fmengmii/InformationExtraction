@@ -209,6 +209,18 @@ public class AnnotateDuplicate
 
 			
 			
+			//conn.close();
+			//conn2.close();
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	public void close()
+	{
+		try {
 			conn.close();
 			conn2.close();
 		}

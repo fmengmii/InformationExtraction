@@ -1186,6 +1186,9 @@ public class IEDriver
 				
 				//genSent = null;
 				
+				if (genSent == null)
+					genSent = filterPatt.getGenSent();
+				
 				
 				//auto annotate
 				if (autoFlag) {
@@ -1302,9 +1305,11 @@ public class IEDriver
 					+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
 					+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
 				
-				while (rs.next()) {
-					long docID = rs.getLong(1);
-					genSent.removeDocID(docID);
+				if (genSent != null && genSent.getDB() != null) {
+					while (rs.next()) {
+						long docID = rs.getLong(1);
+						genSent.removeDocID(docID);
+					}
 				}
 				
 				
