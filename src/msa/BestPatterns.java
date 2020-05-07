@@ -47,6 +47,8 @@ public class BestPatterns
 	private Map<String, Integer> negMap;
 	private Map<String, Boolean> inactiveMap;
 	
+	private boolean write;
+	
 	
 	private String rq;
 	
@@ -105,6 +107,10 @@ public class BestPatterns
 		
 		docQuery = props.getProperty("docQuery");
 		group = props.getProperty("group");
+		
+		String writeStr = props.getProperty("write");
+		if (writeStr != null)
+			write = Boolean.parseBoolean(writeStr);
 		
 		
 		//minCount = Integer.parseInt(props.getProperty("minCount"));
@@ -461,7 +467,7 @@ public class BestPatterns
 					
 						
 	
-					boolean write = true;
+					//boolean write = true;
 					int valence = 0;
 					
 					double score = 0.0;
@@ -521,8 +527,10 @@ public class BestPatterns
 				for (long profileID : profileActiveMap.keySet()) {
 					Boolean active = profileActiveMap.get(profileID);
 					if (!active) {
-						pstmtSetProfileDisabled.setLong(1, profileID);
-						pstmtSetProfileDisabled.execute();
+						if (write) {
+							pstmtSetProfileDisabled.setLong(1, profileID);
+							pstmtSetProfileDisabled.execute();
+						}
 					}
 				}
 				
@@ -856,8 +864,11 @@ public class BestPatterns
 		
 		
 		int count = 0;
-		stmt.execute("update " + schema + finalTable + " set disabled = 1 where profile_id in "
-			+ "(select a.profile_id from " + schema + "profile a where a.annotation_type = '" + annotType + "' and profile_type = 0)");
+		if (write) {
+			stmt.execute("update " + schema + finalTable + " set disabled = 1 where profile_id in "
+				+ "(select a.profile_id from " + schema + "profile a where a.annotation_type = '" + annotType + "' and profile_type = 0)");
+		}
+		
 		PreparedStatement pstmt = conn.prepareStatement("update " + schema + finalTable + " set disabled = 0 where profile_id = ? and target_id = ?");
 		for (String key : profileFilterMap.keySet()) {
 			String[] parts = key.split("\\|");
@@ -866,10 +877,12 @@ public class BestPatterns
 			
 			//System.out.println("filtered: " + profileID + "|" + targetID);
 			
-			pstmt.setInt(1, profileID);
-			pstmt.setInt(2, targetID);
-			pstmt.addBatch();
-			//conn.commit();
+			if (write) {
+				pstmt.setInt(1, profileID);
+				pstmt.setInt(2, targetID);
+				pstmt.addBatch();
+				//conn.commit();
+			}
 			
 			count++;
 			if (count % 1000 == 0) {

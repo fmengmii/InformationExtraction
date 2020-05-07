@@ -85,6 +85,8 @@ public class DuplicateSentences
 						}
 						
 						toks2.addAll(toks);
+						//adjust the start index
+						seq.setStart(seqList.get(i-1).getStart());
 						
 						if (toks.size() < 10)
 							prevFlag = true;
