@@ -46,6 +46,7 @@ public class BestPatterns
 	private Map<String, Integer> posMap;
 	private Map<String, Integer> negMap;
 	private Map<String, Boolean> inactiveMap;
+	private Map<String, Boolean> preloadMap;
 	
 	private boolean write;
 	
@@ -199,6 +200,7 @@ public class BestPatterns
 				
 				
 				PreparedStatement pstmt = conn.prepareStatement("insert into " + schema + finalTable + " (profile_id, target_id, total, prec, true_pos, false_pos) values (?,?,?,?,?,?)");
+				PreparedStatement pstmtUpdateFinal = conn.prepareStatement("update " + schema + finalTable + " set true_pos = ?, false_pos = ?, total = ? where profile_id = ? and target_id = ?");
 				PreparedStatement pstmtUpdateProfile = conn.prepareStatement("update " + schema + profileTable + " set score = ? where profile_id = ?");
 				PreparedStatement pstmtUpdateProfileCounts = conn.prepareStatement("update " + schema + profileTable + " set true_pos = ?, false_pos = ? where profile_id = ?");
 				PreparedStatement pstmtGetIndexCounts = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", b.profile_type, count(*) "
@@ -504,17 +506,27 @@ public class BestPatterns
 					//pstmtUpdateProfile.execute();
 					
 					if (write) {
-						pstmt.setLong(1, profileID);
-						pstmt.setLong(2, targetID);
-						pstmt.setInt(3, posCount+negCount);
-						pstmt.setDouble(4, prec);
-						//pstmt.setInt(5, valence);
-						pstmt.setInt(5, posCount);
-						pstmt.setInt(6, negCount);
-						pstmt.addBatch();
+						if (preloadMap.get(key) == null) {
+							pstmt.setLong(1, profileID);
+							pstmt.setLong(2, targetID);
+							pstmt.setInt(3, posCount+negCount);
+							pstmt.setDouble(4, prec);
+							//pstmt.setInt(5, valence);
+							pstmt.setInt(5, posCount);
+							pstmt.setInt(6, negCount);
+							pstmt.addBatch();
+							
+						}
+						else {
+							pstmtUpdateFinal.setInt(1, posCount);
+							pstmtUpdateFinal.setInt(2, negCount);
+							pstmtUpdateFinal.setInt(3, posCount + negCount);
+							pstmtUpdateFinal.setLong(4, profileID);
+							pstmtUpdateFinal.setLong(5, targetID);
+							pstmtUpdateFinal.addBatch();
+						}
 						
 						count++;
-						
 						if (count % 1000 == 0) {
 							pstmt.executeBatch();
 							conn.commit();
@@ -921,8 +933,10 @@ public class BestPatterns
 			}
 			*/
 			
-			if (posCount > 0)
+			if (posCount > 0) {
 				posMap.put(profileID + "|" + targetID, posCount);
+				preloadMap.put(profileID + "|" + targetID, true);
+			}
 			
 			if (negCount > 0)
 				negMap.put(profileID + "|" + targetID, negCount);
