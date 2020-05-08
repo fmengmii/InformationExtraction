@@ -916,6 +916,8 @@ public class BestPatterns
 		//preload pos and neg counts
 		//preload inactive profile/target pairs
 		
+		preloadMap = new HashMap<String, Boolean>();
+		
 		Statement stmt = conn.createStatement();
 		ResultSet rs = stmt.executeQuery("select a.profile_id, a.target_id, a.true_pos, a.false_pos, a.disabled from " + schema + finalTable + " a, " + schema + profileTable + " b "
 			+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id");
