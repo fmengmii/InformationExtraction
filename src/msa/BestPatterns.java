@@ -875,7 +875,7 @@ public class BestPatterns
 			int profileID = Integer.parseInt(parts[0]);
 			int targetID = Integer.parseInt(parts[1]);
 			
-			//System.out.println("filtered: " + profileID + "|" + targetID);
+			System.out.println("filtered: " + profileID + "|" + targetID);
 			
 			if (write) {
 				pstmt.setInt(1, profileID);
@@ -914,10 +914,12 @@ public class BestPatterns
 			int negCount = rs.getInt(4);
 			Integer disabled = rs.getInt(5);
 			
+			/*
 			if (disabled != null && disabled == 1) {
 				inactiveMap.put(profileID + "|" + targetID, true);
 				continue;
 			}
+			*/
 			
 			if (posCount > 0)
 				posMap.put(profileID + "|" + targetID, posCount);
