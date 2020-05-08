@@ -2648,7 +2648,7 @@ public class AutoAnnotateNER
 		
 		ResultSet rs = stmt.executeQuery("select distinct start, " + rq + "end" + rq + ", annotation_type, " + valueStr
 			+ " from " + schema + "annotation where document_id = " + docID + " and annotation_type = '" + annotType
-			+ "' and provenance = '" + provenance + "' order by start");
+			+ "' and provenance like '" + provenance + "' order by start");
 		
 		while (rs.next()) {
 			int start = rs.getInt(1);
