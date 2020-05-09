@@ -205,7 +205,7 @@ public class ProfileReader
 		ResultSet rs = stmt.executeQuery("select a.profile_id, a.target_id, b.profile, b." + rq + "group" + rq + ", c.profile "
 			+ "from " + finalProfileTable + " a, " + profileTable + " b, " + profileTable + " c "
 			+ "where b.annotation_type = '" + annotType + "' and b.score >= 0.0 and b.profile_type = " + profileType + " and a.profile_id = b.profile_id and a.target_id = c.profile_id and "
-			+ "a.disabled = 0 and a.prec >= " + prec);
+			+ "a.disabled = 0 and a.prec >= " + prec + " and a.total >= " + total);
 		
 		Map<Long, MSAProfile> profileMap2 = new HashMap<Long, MSAProfile>();
 		
