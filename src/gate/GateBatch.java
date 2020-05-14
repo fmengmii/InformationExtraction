@@ -259,7 +259,7 @@ public class GateBatch
 			
 			if (docIDList == null) {
 				docIDList = new ArrayList<Long>();
-				ResultSet rs2 = stmt.executeQuery(docQuery);
+				ResultSet rs2 = stmt2.executeQuery(docQuery);
 				while (rs2.next()) {
 					docIDList.add(rs2.getLong(1));
 				}

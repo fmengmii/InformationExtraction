@@ -359,6 +359,7 @@ public class GenSentences
 				//prevSeq = currSeq;
 				AnnotationSequence seq2 = prevSeq.clone();
 				seq2.append(currSeq);
+				seq2.setEnd(currSeq.getEnd());
 				prevSeq = currSeq;
 				currSeq = seq2;
 				
