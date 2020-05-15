@@ -753,7 +753,7 @@ public class IEDriver
 			autoProps.setProperty("minGlobalNegPrec", Double.toString(minGlobalNegPrec));
 			autoProps.setProperty("minGlobalNegCount", Integer.toString(minGlobalNegCount));
 			
-			autoAnnot.init(user, password, autoProps);
+			autoAnnot.init(user, password, docUser, docPassword, autoProps);
 
 			
 			pop.init(user, password, host, dbName, dbType, schema, autoProvenance, DBConnection.reservedQuote);

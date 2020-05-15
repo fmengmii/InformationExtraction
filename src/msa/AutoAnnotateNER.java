@@ -62,6 +62,7 @@ public class AutoAnnotateNER
 	private Connection docDBConn;
 	private Connection conn;
 	private Connection conn2;
+	private Connection connDoc;
 	private PreparedStatement pstmt;
 	private PreparedStatement pstmt2;
 	private PreparedStatement pstmt3;
@@ -226,12 +227,12 @@ public class AutoAnnotateNER
 		this.profileType = profileType;
 	}
 	
-	public void init(String user, String password, String config)
+	public void init(String user, String password, String docDBUser, String docDBPassword, String config)
 	{
 		try {
 			Properties props = new Properties();
 			props.load(new FileReader(config));
-			init(user, password, props);
+			init(user, password, docDBUser, docDBPassword, props);
 		}
 		catch(Exception e)
 		{
@@ -239,7 +240,7 @@ public class AutoAnnotateNER
 		}
 	}
 	
-	public void init(String user, String password, Properties props)
+	public void init(String user, String password, String docDBUser, String docDBPassword, Properties props)
 	{
 		try {			
 			host = props.getProperty("host");
@@ -250,6 +251,7 @@ public class AutoAnnotateNER
 			
 			docDBHost = props.getProperty("docDBHost");
 			docDBType = props.getProperty("docDBType");
+			String docDBName = props.getProperty("docDBName");
 			docNamespace = props.getProperty("docNamespace");
 			docTable = props.getProperty("docTable");
 			targetType = props.getProperty("targetAnnotType");
@@ -396,6 +398,8 @@ public class AutoAnnotateNER
 			
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			conn2 = DBConnection.dbConnection(user, password, host, dbName, dbType);
+			connDoc = DBConnection.dbConnection(docDBUser, docDBPassword, docDBHost, docDBName, docDBType);
+			
 			rq = DBConnection.reservedQuote;
 			
 			pstmt = conn.prepareStatement("select max(id) from " + schema + "annotation where document_namespace = '" + docNamespace + "' and document_table = '" + docTable + "' "
@@ -435,6 +439,7 @@ public class AutoAnnotateNER
 			
 			conn.close();
 			conn2.close();
+			connDoc.close();
 		}
 		catch(Exception e)
 		{
@@ -498,6 +503,7 @@ public class AutoAnnotateNER
 			*/
 			
 			Statement stmt = conn.createStatement();
+			Statement stmtDoc = connDoc.createStatement();
 			/*
 			ResultSet rs = stmt.executeQuery("select max(document_id) from " + docNamespace + "." + docTable);
 			long maxDocID = -1;
@@ -511,7 +517,7 @@ public class AutoAnnotateNER
 			
 			docIDList = new ArrayList<Long>();
 			//ResultSet rs = stmt.executeQuery("select distinct document_id from document_status where status = 0 order by document_id");
-			ResultSet rs = stmt.executeQuery(docDBQuery);
+			ResultSet rs = stmtDoc.executeQuery(docDBQuery);
 			while (rs.next()) {
 				docIDList.add(rs.getLong(1));
 			}
@@ -2728,7 +2734,7 @@ public class AutoAnnotateNER
 		
 		try {
 			AutoAnnotateNER auto = new AutoAnnotateNER();
-			auto.init(args[0], args[1], args[4]);
+			auto.init(args[0], args[1], args[2], args[3], args[4]);
 			auto.setProfileType(Integer.parseInt(args[5]));
 			auto.annotate(args[0], args[1]);
 			//auto.eval();
