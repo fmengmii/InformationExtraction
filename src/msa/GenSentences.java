@@ -355,6 +355,7 @@ public class GenSentences
 			//seq.setFocusCoords(focusCoords);
 			
 			//add previous seq?
+			boolean addPrev = false;
 			if ((prevSeq != null && currSeq.getToks().size() < 10) || prevFlag) {
 				//prevSeq = currSeq;
 				AnnotationSequence seq2 = prevSeq.clone();
@@ -367,6 +368,8 @@ public class GenSentences
 					prevFlag = true;
 				else
 					prevFlag = false;
+				
+				addPrev = true;
 			}
 			else
 				prevSeq = currSeq;
@@ -381,6 +384,15 @@ public class GenSentences
 			}
 			else
 				negSeqList.add(currSeq);
+			
+			if (addPrev) {
+				if (requireTarget && prevSeq.getAnnotList(":target") != null) {
+					//System.out.println("has target!");
+					posSeqList.add(prevSeq);
+				}
+				else
+					negSeqList.add(prevSeq);
+			}
 			
 		}
 
