@@ -182,7 +182,7 @@ public class ProfileMatcher
 				//iterate through each profile
 				matchCount = 0;
 				
-				System.out.println("grid: " + grid.toString());
+				//System.out.println("grid: " + grid.toString());
 				
 
 				for (ProfileGrid profileGridObj : profileGridListIndex) {
@@ -216,8 +216,8 @@ public class ProfileMatcher
 					String profileStr = gson.toJson(profileToks);
 						
 					
-					System.out.println("profile from inverted: " + profileStr);
-					System.out.println("profileGrid: " + profileGrid.toString());
+					//System.out.println("profile from inverted: " + profileStr);
+					//System.out.println("profileGrid: " + profileGrid.toString());
 					
 					
 					//if (profileStr.equals("[\":start|start\",\":target\",\":i-org\"]") || 
@@ -253,7 +253,7 @@ public class ProfileMatcher
 						minSize -= minSizeOffset;
 					
 					if (found < (profileElemToks.size() - 1 - minSizeOffset) - 3) {
-						System.out.println("skipped!");
+						//System.out.println("skipped!");
 						continue;
 					}
 					
@@ -302,8 +302,8 @@ public class ProfileMatcher
 							long annotIndex2 = grid.get(indexes[1]-1).get(0).getAnnot().getStart();
 							
 							if (verbose) {
-								System.out.println("\n\nprofile matched: " + profileStr);
-								System.out.println("indexes: " + gson.toJson(indexes) + ", focusCoords: " + gson.toJson(focusCoords));
+								//System.out.println("\n\nprofile matched: " + profileStr);
+								//System.out.println("indexes: " + gson.toJson(indexes) + ", focusCoords: " + gson.toJson(focusCoords));
 								//System.out.println("annotIndex1: " + annotIndex1 + ", annotIndex2: " + annotIndex2);
 							}
 									
@@ -362,7 +362,7 @@ public class ProfileMatcher
 							AnnotationSequenceGrid targetGrid = grid.subGrid(indexes[0], indexes[1]);
 							
 							if (verbose) {
-								System.out.println("match profile: " + align1 + ", " + align2 + ", indexes[0]:" + indexes[0] + ", indexes[1]:" + indexes[1] + ", targetgrid: " + gson.toJson(targetGrid.getSequence().getToks()));
+								//System.out.println("match profile: " + align1 + ", " + align2 + ", indexes[0]:" + indexes[0] + ", indexes[1]:" + indexes[1] + ", targetgrid: " + gson.toJson(targetGrid.getSequence().getToks()));
 								//System.out.println("matchcoords1: " + gson.toJson(matchCoords1) + "\nmatchCoords2: " + gson.toJson(matchCoords2));
 								//System.out.println("targetCoords[0]: " + targetCoords[0] + " targetCoords[1]: " + targetCoords[1]);
 							}
