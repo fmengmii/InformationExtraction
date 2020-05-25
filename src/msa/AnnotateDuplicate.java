@@ -66,16 +66,17 @@ public class AnnotateDuplicate
 			patientDocQuery = props.getProperty("patientDocQuery");
 			docNamespace = props.getProperty("docNamespace");
 			docTable = props.getProperty("docTable");
-			String docUser = props.getProperty("docUser");
-			String docPassword = props.getProperty("docPassword");
-			String docHost = props.getProperty("docHost");
+			String docUser = props.getProperty("docDBUser");
+			String docPassword = props.getProperty("docDBPassword");
+			String docDBHost = props.getProperty("docDBHost");
 			String docDBName = props.getProperty("docDBName");
+			String docDBType = props.getProperty("docDBType");
 			docSchema = props.getProperty("docSchema") + ".";
 			
 			
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			conn2 = DBConnection.dbConnection(user, password, host, dbName, dbType);
-			connDoc = DBConnection.dbConnection(docUser, docPassword, docHost, docDBName, dbType);
+			connDoc = DBConnection.dbConnection(user, password, docDBHost, docDBName, docDBType);
 			
 			rq = DBConnection.reservedQuote;
 			
