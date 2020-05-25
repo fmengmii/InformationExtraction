@@ -1119,7 +1119,10 @@ public class IEDriver
 					genSent = genMSADriver.getGenSent();
 					
 					
-					
+					//status = -5 are documents within a range of status = 1 documents that somehow were not validated by the user
+					//these documents will be considered disabled and not used for analysis
+					long lastDocID = docIDList1.get(docIDList1.size()-1);
+					stmt.execute("update " + schema2 + "document_status set status = -5 where document_id < " + lastDocID);
 					
 					
 					
