@@ -611,6 +611,9 @@ public class IEDriver
 			dupProps.setProperty("host", host);
 			dupProps.setProperty("dbName", dbName);
 			dupProps.setProperty("dbType", dbType);
+			dupProps.setProperty("docBDHost", docDBHost);
+			dupProps.setProperty("docDBName", docDBName);
+			dupProps.setProperty("docDBType", docDBType);
 			dupProps.setProperty("docNamespace", docNamespace);
 			dupProps.setProperty("docTable", docTable);
 			dupProps.setProperty("schema", schema);
