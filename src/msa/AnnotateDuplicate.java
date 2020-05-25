@@ -14,24 +14,32 @@ public class AnnotateDuplicate
 {
 	private Connection conn;
 	private Connection conn2;
+	private Connection connDoc;
+
 	private PreparedStatement pstmtAnnot;
 	private PreparedStatement pstmtWriteAnnot;
 	private PreparedStatement pstmtPatientDoc;
 	private PreparedStatement pstmtAnnotID;
 	private PreparedStatement pstmtSent;
 	private PreparedStatement pstmtSentAnnots;
+	private PreparedStatement pstmtUMLS;
+	
 	private String schema;
+	private String docSchema;
 	private String annotQuery;
 	private String patientDocQuery;
 	private String rq;
 	private String docNamespace;
 	private String docTable;
 	private Map<Long, List<AnnotationSequence>> seqMap;
+	
+	private Gson gson;
 
 
 	
 	public AnnotateDuplicate()
 	{
+		gson = new Gson();
 	}
 	
 	public void init(String user, String password, String config)
@@ -58,10 +66,16 @@ public class AnnotateDuplicate
 			patientDocQuery = props.getProperty("patientDocQuery");
 			docNamespace = props.getProperty("docNamespace");
 			docTable = props.getProperty("docTable");
+			String docUser = props.getProperty("docUser");
+			String docPassword = props.getProperty("docPassword");
+			String docHost = props.getProperty("docHost");
+			String docDBName = props.getProperty("docDBName");
+			docSchema = props.getProperty("docSchema") + ".";
 			
 			
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			conn2 = DBConnection.dbConnection(user, password, host, dbName, dbType);
+			connDoc = DBConnection.dbConnection(docUser, docPassword, docHost, docDBName, dbType);
 			
 			rq = DBConnection.reservedQuote;
 			
@@ -82,6 +96,8 @@ public class AnnotateDuplicate
 			pstmtSent = conn.prepareStatement("select id, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = 'Sentence' order by start");
 			pstmtSentAnnots = conn.prepareStatement("select value, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and start >= ? and " + rq  + "end" + rq + " <= ? and annotation_type = 'Token' order by start");
 
+			pstmtUMLS = conn.prepareStatement("select features from " + schema + "annotation where annotation_type = 'MetaMap' and ((start >= ? and " + rq + "end" + rq + " <= ?) or "
+				+ "(start < ? and " + rq + "end" + rq + " > ?) or (start < ? and " + rq + "end" + rq + " > ?) or (start < ? and " + rq + "end" + rq + "> ?))");
 		}
 		catch(Exception e)
 		{
@@ -387,6 +403,69 @@ public class AnnotateDuplicate
 		seqMap.put(docID, seqList);
 		
 		return seqList;
+	}
+	
+	public void annotDuplicateTags()
+	{
+		try {
+			String rq = DBConnection.reservedQuote;
+			Statement stmt = conn.createStatement();
+			Statement stmtDoc = connDoc.createStatement();
+			
+			Map<Long, List<String>> docMap = new HashMap<Long, List<String>>();
+			ResultSet rs = stmt.executeQuery("select document_id, value, annotation_type, start, " + rq + "end" + rq + " from " + schema + "annotation where provenance = 'validation-tool'");
+			while (rs.next()) {
+				long docID = rs.getLong(1);
+				String value = rs.getString(2);
+				String annotType = rs.getString(3);
+				long start = rs.getLong(4);
+				long end = rs.getLong(5);
+				
+				String umlsStr = getUMLSConcept(docID, start, end);
+				
+				List<String> termList = docMap.get(docID);
+				if (termList == null) {
+					termList = new ArrayList<String>();
+					docMap.put(docID, termList);
+				}
+				
+				termList.add(value.toLowerCase());
+				if (umlsStr != null)
+					termList.add(umlsStr.toLowerCase());				
+			}
+			
+			
+			
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	private String getUMLSConcept(long docID, long start, long end) throws SQLException
+	{
+		pstmtUMLS.setLong(1, start);
+		pstmtUMLS.setLong(2, end);
+		pstmtUMLS.setLong(3, start);
+		pstmtUMLS.setLong(4, start);
+		pstmtUMLS.setLong(5, end);
+		pstmtUMLS.setLong(6, end);
+		pstmtUMLS.setLong(7, start);
+		pstmtUMLS.setLong(8, end);
+		
+		ResultSet rs = pstmtUMLS.executeQuery();
+		String umlsConcept = "";
+		Map<String, Object> featureMap = new HashMap<String, Object>();
+		while (rs.next()) {
+			String features = rs.getString(1);
+			featureMap = gson.fromJson(features, featureMap.getClass());
+			String concept = (String) featureMap.get("PreferredName");
+			if (concept.length() > umlsConcept.length())
+				umlsConcept = concept;
+		}
+		
+		return umlsConcept;
 	}
 	
 	public static void main(String[] args)
