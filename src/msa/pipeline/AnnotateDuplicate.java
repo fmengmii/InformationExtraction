@@ -1,4 +1,4 @@
-package msa;
+package msa.pipeline;
 
 import java.io.*;
 import java.sql.*;
@@ -6,11 +6,13 @@ import java.util.*;
 
 import com.google.gson.Gson;
 
+import msa.Annotation;
+import msa.AnnotationSequence;
 import msa.db.MySQLDBInterface;
 import nlputils.sequence.SequenceUtilities;
 import utils.db.DBConnection;
 
-public class AnnotateDuplicate
+public class AnnotateDuplicate extends MSAModule
 {
 	private Connection conn;
 	private Connection conn2;
@@ -18,20 +20,27 @@ public class AnnotateDuplicate
 
 	private PreparedStatement pstmtAnnot;
 	private PreparedStatement pstmtWriteAnnot;
-	private PreparedStatement pstmtPatientDoc;
+	private PreparedStatement pstmtEntityDoc;
 	private PreparedStatement pstmtAnnotID;
 	private PreparedStatement pstmtSent;
 	private PreparedStatement pstmtSentAnnots;
 	private PreparedStatement pstmtUMLS;
+	private PreparedStatement pstmtGetDocs;
+	private PreparedStatement pstmtGetEntity;
+	private PreparedStatement pstmtMatchUMLS;
+	
 	
 	private String schema;
 	private String docSchema;
-	private String annotQuery;
 	private String patientDocQuery;
 	private String rq;
 	private String docNamespace;
 	private String docTable;
+	private String docIDCol;
+	private String docTextCol;
+	private String docEntityCol;
 	private Map<Long, List<AnnotationSequence>> seqMap;
+	private int projID;
 	
 	private Gson gson;
 
@@ -62,16 +71,22 @@ public class AnnotateDuplicate
 			String dbName = props.getProperty("dbName");
 			String dbType = props.getProperty("dbType");
 			schema = props.getProperty("schema");
-			annotQuery = props.getProperty("annotQuery");
-			patientDocQuery = props.getProperty("patientDocQuery");
-			docNamespace = props.getProperty("docNamespace");
+			//patientDocQuery = props.getProperty("patientDocQuery");
+			//docNamespace = props.getProperty("docNamespace");
 			docTable = props.getProperty("docTable");
-			String docUser = props.getProperty("docDBUser");
-			String docPassword = props.getProperty("docDBPassword");
+			//String docUser = props.getProperty("docDBUser");
+			//String docPassword = props.getProperty("docDBPassword");
 			String docDBHost = props.getProperty("docDBHost");
 			String docDBName = props.getProperty("docDBName");
 			String docDBType = props.getProperty("docDBType");
 			docSchema = props.getProperty("docSchema") + ".";
+			docIDCol = props.getProperty("docIDColumn");
+			docTextCol = props.getProperty("docTextColumn");
+			docEntityCol = props.getProperty("docEntityColumn");
+			
+			docNamespace = docSchema;
+			if (!docDBName.equals(dbName) && docDBType.startsWith("sqlserver"))
+				docNamespace = docDBName + "." + docSchema;
 			
 			
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
@@ -86,10 +101,15 @@ public class AnnotateDuplicate
 
 			schema += ".";
 			pstmtWriteAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq +", value, provenance, score) "
-					+ "values (?,?,?,?,?,?,?,?,'validation-tool-duplicate',1.0)");
-			pstmtAnnot = conn.prepareStatement(annotQuery);
+					+ "values (?,?,?,?,?,?,?,?,?,1.0)");
+			pstmtAnnot = conn.prepareStatement("select a.document_id, a.start, a." + rq + "end" + rq + ", a.annotation_type, b." + docEntityCol 
+				+ " from " + schema + "annotation a, " + docNamespace + docTable + " b where a.document_id = b." + docIDCol + " and a.provenance = 'validation-tool' "
+				+ "and a.document_id in "
+				+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b where a.frame_instance_id = b.frame_instance_id and "
+				+ "b.project_id = ?) "
+				+ "order by a.document_id");
 			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + "annotation where document_id = ?");
-			pstmtPatientDoc = conn.prepareStatement("select document_id from " + schema + "documents where PatientSID = ? and document_id in "
+			pstmtEntityDoc = conn.prepareStatement("select " + docIDCol + " from " + docNamespace + docTable + " where " + docEntityCol + " = ? and " + docIDCol + " in "
 					+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b where a.frame_instance_id = b.frame_instance_id and "
 					+ "b.project_id = ?) "
 					+ "order by document_id");
@@ -97,8 +117,14 @@ public class AnnotateDuplicate
 			pstmtSent = conn.prepareStatement("select id, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = 'Sentence' order by start");
 			pstmtSentAnnots = conn.prepareStatement("select value, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and start >= ? and " + rq  + "end" + rq + " <= ? and annotation_type = 'Token' order by start");
 
-			pstmtUMLS = conn.prepareStatement("select features from " + schema + "annotation where annotation_type = 'MetaMap' and ((start >= ? and " + rq + "end" + rq + " <= ?) or "
-				+ "(start < ? and " + rq + "end" + rq + " > ?) or (start < ? and " + rq + "end" + rq + " > ?) or (start < ? and " + rq + "end" + rq + "> ?))");
+			//pstmtUMLS = conn.prepareStatement("select features from " + schema + "annotation where annotation_type = 'MetaMap' and ((start >= ? and " + rq + "end" + rq + " <= ?) or "
+			//	+ "(start < ? and " + rq + "end" + rq + " > ?) or (start < ? and " + rq + "end" + rq + " > ?) or (start < ? and " + rq + "end" + rq + "> ?))");
+			pstmtUMLS = conn.prepareStatement("select features from " + schema + "annotation where annotation_type = 'MetaMap' and start = ? and " + rq + "end" + rq + " = ?");
+			
+			pstmtGetDocs = connDoc.prepareStatement("select document_id, " + docTextCol + " from " + docNamespace + docTable + " where " + docEntityCol + " = ?");
+			pstmtGetEntity = connDoc.prepareStatement("select " + docEntityCol + " from " + docNamespace + docTable + " where document_id = ?");
+			pstmtMatchUMLS = conn.prepareStatement("select start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and "
+					+ "annotation_type = 'MetaMap' and features like ?");
 		}
 		catch(Exception e)
 		{
@@ -106,28 +132,41 @@ public class AnnotateDuplicate
 		}
 	}
 	
-	public void annotate(int projID)
+	public void setProjID(int projID)
+	{
+		this.projID = projID;
+	}
+	
+	
+	public void run()
+	{
+		annotate();
+		annotDuplicateTags();
+	}
+	
+	public void annotate()
 	{
 		try {
 			seqMap = new HashMap<Long, List<AnnotationSequence>>();
 			
-			pstmtPatientDoc.setInt(2, projID);
+			pstmtEntityDoc.setInt(2, projID);
 			
+			pstmtAnnot.setInt(1, projID);
 			ResultSet rs = pstmtAnnot.executeQuery();
 			
 			long currDocID = -1;
 			int currDocIndex = 0;
 			
-			Map<Long, Map<String, List<List<Object>>>> patientProfileMap = new HashMap<Long, Map<String, List<List<Object>>>>();
+			Map<String, Map<String, List<List<Object>>>> patientProfileMap = new HashMap<String, Map<String, List<List<Object>>>>();
 			List<AnnotationSequence> docSeqList = null;
-			Map<Long, Long> patientMinDocMap = new HashMap<Long, Long>();
+			Map<String, Long> patientMinDocMap = new HashMap<String, Long>();
 			
 			while (rs.next()) {
 				long docID = rs.getLong(1);
 				long start = rs.getLong(2);
 				long end = rs.getLong(3);
 				String annotType = rs.getString(4);
-				long patientID = rs.getLong(5);
+				String patientID = rs.getString(5);
 				
 				Long minDocID = patientMinDocMap.get(patientID);
 				if (minDocID == null)
@@ -219,9 +258,9 @@ public class AnnotateDuplicate
 			}
 				
 				
-			for (long patientID : patientProfileMap.keySet()) {
-				Map<String, List<List<Object>>> profileMap = patientProfileMap.get(patientID);
-				matchSequences(patientID, profileMap, patientMinDocMap.get(patientID));
+			for (String entity : patientProfileMap.keySet()) {
+				Map<String, List<List<Object>>> profileMap = patientProfileMap.get(entity);
+				matchSequences(entity, profileMap);
 			}
 
 			
@@ -247,11 +286,13 @@ public class AnnotateDuplicate
 		}
 	}
 	
-	private void matchSequences(long patientID, Map<String, List<List<Object>>> profileMap, long minDocID) throws SQLException
+	private void matchSequences(String entity, Map<String, List<List<Object>>> profileMap) throws SQLException
 	{
-		pstmtPatientDoc.setLong(1, patientID);
+		pstmtEntityDoc.setString(1, entity);
+		
+		pstmtWriteAnnot.setString(9, "validation-tool-duplicate");
 
-		ResultSet rs = pstmtPatientDoc.executeQuery();
+		ResultSet rs = pstmtEntityDoc.executeQuery();
 		
 		int count = 0;
 
@@ -413,8 +454,16 @@ public class AnnotateDuplicate
 			Statement stmt = conn.createStatement();
 			Statement stmtDoc = connDoc.createStatement();
 			
-			Map<Long, List<String>> docMap = new HashMap<Long, List<String>>();
-			ResultSet rs = stmt.executeQuery("select document_id, value, annotation_type, start, " + rq + "end" + rq + " from " + schema + "annotation where provenance = 'validation-tool'");
+			pstmtWriteAnnot.setString(9, "validation-tool-unlabeled");
+			
+			Map<Long, Map<String, List<String>>> docMap = new HashMap<Long, Map<String, List<String>>>();
+			Map<Long, Map<String, List<String>>> docMapUMLS = new HashMap<Long, Map<String, List<String>>>();
+			ResultSet rs = stmt.executeQuery("select document_id, value, annotation_type, start, " + rq + "end" + rq + " from " + schema + "annotation where provenance = 'validation-tool' "
+				+ "and document_id in "
+				+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b where a.frame_instance_id = b.frame_instance_id and "
+				+ "b.project_id = " + projID + ") "
+				+ "order by document_id");
+			
 			while (rs.next()) {
 				long docID = rs.getLong(1);
 				String value = rs.getString(2);
@@ -424,17 +473,101 @@ public class AnnotateDuplicate
 				
 				String umlsStr = getUMLSConcept(docID, start, end);
 				
-				List<String> termList = docMap.get(docID);
+				Map<String, List<String>> termMap = docMap.get(docID);
+				if (termMap == null) {
+					termMap = new HashMap<String, List<String>>();
+					docMap.put(docID, termMap);
+				}
+				
+				List<String> termList = termMap.get(annotType);
 				if (termList == null) {
 					termList = new ArrayList<String>();
-					docMap.put(docID, termList);
+					termMap.put(annotType, termList);
 				}
 				
 				termList.add(value.toLowerCase());
-				if (umlsStr != null)
-					termList.add(umlsStr.toLowerCase());				
+				
+				
+				if (umlsStr != null) {
+					Map<String, List<String>> termMapUMLS = docMapUMLS.get(docID);
+					if (termMapUMLS == null) {
+						termMapUMLS = new HashMap<String, List<String>>();
+						docMapUMLS.put(docID, termMapUMLS);
+					}
+					
+					List<String> termListUMLS = termMapUMLS.get(annotType);
+					if (termListUMLS == null) {
+						termListUMLS = new ArrayList<String>();
+						termMapUMLS.put(annotType, termListUMLS);
+					}
+					
+					termListUMLS.add(umlsStr.toLowerCase());
+				}	
 			}
 			
+			
+			for (long docID : docMap.keySet()) {
+				Map<String, List<String>> termMap = docMap.get(docID);
+				pstmtGetEntity.setLong(1, docID);
+				rs = pstmtGetEntity.executeQuery();
+				String group = "";
+				if (rs.next()) {
+					group = rs.getString(1);
+				}
+				
+				pstmtGetDocs.setString(1, group);
+				rs = pstmtGetDocs.executeQuery();
+				
+				while (rs.next()) {
+					long docID2 = rs.getLong(1);
+					String text = rs.getString(2);
+					
+					for (String annotType : termMap.keySet()) {
+						List<String> termList = termMap.get(annotType);
+						List<Object[]> matchList = getMatches(docID2, text, termList);
+						writeAnnotations(docID2, matchList, annotType);
+					}
+				}
+			}
+			
+			//UMLS terms
+			
+			for (long docID : docMapUMLS.keySet()) {
+				Map<String, List<String>> termMapUMLS = docMapUMLS.get(docID);
+				pstmtGetEntity.setLong(1, docID);
+				rs = pstmtGetEntity.executeQuery();
+				String entity = "";
+				if (rs.next()) {
+					entity = rs.getString(1);
+				}
+				
+				pstmtGetDocs.setString(1, entity);
+				rs = pstmtGetDocs.executeQuery();
+				
+				while (rs.next()) {
+					long docID2 = rs.getLong(1);
+					pstmtUMLS.setLong(1, docID2);
+					
+					for (String annotType : termMapUMLS.keySet()) {
+						List<String> termListUMLS = termMapUMLS.get(annotType);
+						for (String term : termListUMLS) {
+							pstmtUMLS.setString(2, "%PreferredName=" + term + "%");
+							
+							ResultSet rs2 = pstmtUMLS.executeQuery();
+							List<Object[]> matchList = new ArrayList<Object[]>();
+							while (rs2.next()) {
+								Object[] match = new Object[3];
+								match[0] = rs2.getLong(1);
+								match[1] = rs2.getLong(2);
+								match[2] = term;
+								matchList.add(match);
+							}
+							
+							writeAnnotations(docID2, matchList, annotType);
+						}
+					}
+				}
+			}
 			
 			
 		}
@@ -448,12 +581,6 @@ public class AnnotateDuplicate
 	{
 		pstmtUMLS.setLong(1, start);
 		pstmtUMLS.setLong(2, end);
-		pstmtUMLS.setLong(3, start);
-		pstmtUMLS.setLong(4, start);
-		pstmtUMLS.setLong(5, end);
-		pstmtUMLS.setLong(6, end);
-		pstmtUMLS.setLong(7, start);
-		pstmtUMLS.setLong(8, end);
 		
 		ResultSet rs = pstmtUMLS.executeQuery();
 		String umlsConcept = "";
@@ -462,11 +589,69 @@ public class AnnotateDuplicate
 			String features = rs.getString(1);
 			featureMap = gson.fromJson(features, featureMap.getClass());
 			String concept = (String) featureMap.get("PreferredName");
+			if (concept == null)
+				continue;
+			
 			if (concept.length() > umlsConcept.length())
 				umlsConcept = concept;
 		}
 		
 		return umlsConcept;
+	}
+	
+	private List<Object[]> getMatches(long docID, String text, List<String> termList)
+	{
+		List<Object[]> matchList = new ArrayList<Object[]>();
+		for (String term : termList) {
+			int index = text.indexOf(term);
+			while (index >= 0) {
+				Object[] match = new Object[3];
+				match[0] = index;
+				match[1] = index + term.length();
+				match[2] = term;
+				matchList.add(match);
+				
+				index = text.indexOf(term, index+1);
+			}
+		}
+		
+		return matchList;
+	}
+	
+	private void writeAnnotations(long docID, List<Object[]> matchList, String annotType) throws SQLException
+	{
+		int annotID = -1;
+		pstmtAnnotID.setLong(1, docID);
+		ResultSet rs = pstmtAnnotID.executeQuery();
+		if (rs.next()) {
+			annotID = rs.getInt(1);
+		}
+		
+		int count = 0;
+		
+		for (Object[] match : matchList) {
+			pstmtWriteAnnot.setInt(1, ++annotID);
+			pstmtWriteAnnot.setString(2, docNamespace);
+			pstmtWriteAnnot.setString(3, docTable);
+			pstmtWriteAnnot.setLong(4, docID);
+			pstmtWriteAnnot.setString(5, annotType);
+			pstmtWriteAnnot.setInt(6, (int) match[0]);
+			pstmtWriteAnnot.setInt(7, (int) match[1]);
+			pstmtWriteAnnot.setString(8, (String) match[2]);
+			pstmtWriteAnnot.addBatch();
+			count++;
+			
+			System.out.println("wrote annotdup: " + docID + "|" + match[0] + "|" + match[1] + "|" + match[2] + "|" + annotType);
+			
+			if (count == 100) {
+				pstmtWriteAnnot.executeBatch();
+				conn2.commit();
+				count = 0;
+			}
+		}
+		
+		pstmtWriteAnnot.executeBatch();
+		conn2.commit();
 	}
 	
 	public static void main(String[] args)
@@ -478,6 +663,7 @@ public class AnnotateDuplicate
 		
 		AnnotateDuplicate dup = new AnnotateDuplicate();
 		dup.init(args[0], args[1], args[2]);
-		dup.annotate(Integer.parseInt(args[3]));
+		dup.setProjID(Integer.parseInt(args[3]));
+		dup.run();
 	}
 }

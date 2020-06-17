@@ -7,6 +7,7 @@ import java.util.*;
 import com.google.gson.Gson;
 
 import gate.*;
+import msa.pipeline.AnnotateDuplicate;
 import utils.db.DBConnection;
 
 public class IEDriver
@@ -1013,7 +1014,8 @@ public class IEDriver
 				//duplicate
 				if (dupFlag) {
 					System.out.println("** Duplicate **");
-					dupAnnot.annotate(projID);
+					dupAnnot.setProjID(projID);
+					dupAnnot.run();
 				}
 				
 				
@@ -1125,7 +1127,12 @@ public class IEDriver
 					//status = -5 are documents within a range of status = 1 documents that somehow were not validated by the user
 					//these documents will be considered disabled and not used for analysis
 					long lastDocID = docIDList1.get(docIDList1.size()-1);
-					stmt.execute("update " + schema2 + "document_status set status = -5 where status = 0 and document_id < " + lastDocID);
+					stmt.execute("update " + schema2 + "document_status set status = -5 where status = 0 and document_id < " + lastDocID + " and document_id in "
+						+ "(select distinct b.document_id from " + schema2 + "project_frame_instance a, " + schema2 + "frame_instance_document b "
+						+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ")");
+					stmt.execute("update " + schema2 + "frame_instance_id set status = -5 where frame_instance_id in "
+						+ "(select distinct a.frame_instance_id from " + schema2 + "frame_instance_document a, " + schema2 + "document_status b "
+						+ "where a.document_id = b.document_id and b.status = -5)");
 					
 					
 					

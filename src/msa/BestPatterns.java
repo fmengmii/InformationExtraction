@@ -15,7 +15,7 @@ public class BestPatterns
 	private Connection annotConn;
 	private PreparedStatement pstmt;
 	private List<Long> docIDList;
-	private Map<String, Boolean> ansMap;
+	private Map<String, String> ansMap;
 	
 	private String host;
 	private String dbName;
@@ -243,9 +243,9 @@ public class BestPatterns
 				
 				
 				System.out.println("reading answers...");
-				ansMap = new HashMap<String, Boolean>();
+				ansMap = new HashMap<String, String>();
 				for (long docID : docIDList)
-					readAnswers(docID, annotType, provenance, ansMap);
+					readAnswers(docID, annotType, provenance);
 				
 				System.out.println("ansMap size: " + ansMap.size());
 				
@@ -279,6 +279,7 @@ public class BestPatterns
 				
 				posMap = new HashMap<String, Integer>();
 				negMap = new HashMap<String, Integer>();
+
 				Map<String, Integer> docCountMap = new HashMap<String, Integer>();
 				inactiveMap = new HashMap<String, Boolean>();
 				String targetStr = "";
@@ -359,7 +360,7 @@ public class BestPatterns
 							continue;
 						
 						String docKey = profileID + "|" + targetID + "|" + docID;
-						Boolean ansFlag = ansMap.get(docID + "|" + start + "|" + end);
+						String ansProv = ansMap.get(docID + "|" + start + "|" + end);
 						
 						
 						if (profileType == 3) {
@@ -369,8 +370,9 @@ public class BestPatterns
 						
 						
 						long profileID2 = profileID;
-						if (ansFlag != null) {
+						if (ansProv != null && !ansProv.equals("validation-tool-unlabeled")) {
 							
+							boolean ansFlag = true;
 							boolean inc = true;
 							Integer docCount = docCountMap.get(docKey + "|" + ansFlag);
 							if (docCount == null)
@@ -396,9 +398,9 @@ public class BestPatterns
 							
 							
 						}
-						else {							
+						else if (ansProv == null) {							
 							boolean inc = true;
-							ansFlag = false;
+							boolean ansFlag = false;
 							Integer docCount = docCountMap.get(docKey + "|" + ansFlag);
 							if (docCount == null)
 								docCount = 0;
@@ -651,9 +653,9 @@ public class BestPatterns
 		
 		if (ansMap == null) {
 			System.out.println("reading answers...");
-			ansMap = new HashMap<String, Boolean>();
+			ansMap = new HashMap<String, String>();
 			for (long docID : docIDList)
-				readAnswers(docID, annotType, provenance, ansMap);
+				readAnswers(docID, annotType, provenance);
 		}
 		
 		
@@ -981,7 +983,7 @@ public class BestPatterns
 	
 
 	
-	private Map<String, Boolean> readAnswers(long docID, String annotType, String provenance, Map<String, Boolean> ansMap) throws SQLException
+	private void readAnswers(long docID, String annotType, String provenance) throws SQLException
 	{
 		
 		/*
@@ -1028,7 +1030,7 @@ public class BestPatterns
 			+ "start < ? and " + rq + "end" + rq + " > ? and document_id = " + docID);
 		
 		
-		ResultSet rs = stmt.executeQuery("select distinct document_id, start, " + rq + "end" + rq + ", value from " + schema + "annotation where document_id = " + docID + " and annotation_type = '" + annotType + 
+		ResultSet rs = stmt.executeQuery("select distinct document_id, start, " + rq + "end" + rq + ", value, provenance from " + schema + "annotation where document_id = " + docID + " and annotation_type = '" + annotType + 
 			"' and provenance like '" + provenance + "' order by document_id, start");
 		
 		while (rs.next()) {
@@ -1054,12 +1056,11 @@ public class BestPatterns
 			
 			//System.out.println("ans: " + docID + "|" + start + "|" + end + "|" + value);
 			
-			ansMap.put(docID + "|" + start + "|" + end, true);
+			ansMap.put(docID + "|" + start + "|" + end, provenance);
 		}
 		
 		stmt.close();
 		
-		return ansMap;
 	}
 	
 	

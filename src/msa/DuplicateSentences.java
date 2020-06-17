@@ -31,16 +31,24 @@ public class DuplicateSentences
 			String host = props.getProperty("host");
 			String dbName = props.getProperty("dbName");
 			String dbType = props.getProperty("dbType");
-			String docQuery = props.getProperty("docQuery");
 			schema = props.getProperty("schema") + ".";
-			String docNamespace = props.getProperty("docNamespace");
+			String docSchema = props.getProperty("docSchema");
 			String docTable = props.getProperty("docTable");
+			String docDBName = props.getProperty("docDBName");
+			String docEntityCol = props.getProperty("docEntityColumn");
+			String docIDCol = props.getProperty("docIDColumn");
+			int projID = Integer.parseInt(props.getProperty("projectID"));
 			
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			conn2 = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			conn2.setAutoCommit(false);
 			
 			String rq = DBConnection.reservedQuote;
+			
+			String docNamespace = docSchema;
+			
+			if (dbType.startsWith("sqlserver") && !dbName.equals(docDBName))
+				docNamespace = docDBName + "." + docSchema;
 			
 			pstmtSent = conn.prepareStatement("select id, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = 'Sentence' order by start");
 			pstmtSentAnnots = conn.prepareStatement("select value from " + schema + "annotation where document_id = ? and start >= ? and " + rq  + "end" + rq + " <= ? and annotation_type = 'Token' order by start");
@@ -54,8 +62,15 @@ public class DuplicateSentences
 			Map<String, Boolean> sentMap = new HashMap<String, Boolean>();
 			int batchCount = 0;
 			
+			docNamespace += ".";
 			
-			ResultSet rs = stmt.executeQuery(docQuery);
+			
+			ResultSet rs = stmt.executeQuery("select a.document_id, b." + docEntityCol + " from " + schema + "frame_instance_document a, " + docNamespace + docTable + " b "
+				+ "where a.document_id = b." + docIDCol + " and a.document_id in "
+				+ "(select c.document_id from " + schema + "frame_instance_document c, " + schema + "project_frame_instance d where c.frame_instance_id = d.frame_instance_id and "
+				+ "d.project_id = " + projID + ") "
+				+ "order by a.document_id");
+			
 			long currDocID = -1;
 			int annotID = -1;
 			while (rs.next()) {
