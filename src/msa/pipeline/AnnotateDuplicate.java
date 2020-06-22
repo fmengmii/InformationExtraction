@@ -471,7 +471,12 @@ public class AnnotateDuplicate extends MSAModule
 				long start = rs.getLong(4);
 				long end = rs.getLong(5);
 				
+				if (value.length() < 2)
+					continue;
+				
 				String umlsStr = getUMLSConcept(docID, start, end);
+				if (umlsStr != null && umlsStr.length() < 2)
+					umlsStr = null;
 				
 				Map<String, List<String>> termMap = docMap.get(docID);
 				if (termMap == null) {
