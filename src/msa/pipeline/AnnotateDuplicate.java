@@ -263,7 +263,7 @@ public class AnnotateDuplicate extends MSAModule
 				matchSequences(entity, profileMap);
 			}
 
-			
+			seqMap = null;
 			
 			//conn.close();
 			//conn2.close();
@@ -526,6 +526,7 @@ public class AnnotateDuplicate extends MSAModule
 						List<String> termList = termMap.get(annotType);
 						List<Object[]> matchList = getMatches(docID2, text, termList);
 						writeAnnotations(docID2, matchList, annotType);
+						docMap.put(docID, null);
 					}
 				}
 			}
@@ -564,6 +565,7 @@ public class AnnotateDuplicate extends MSAModule
 							}
 							
 							writeAnnotations(docID2, matchList, annotType);
+							docMapUMLS.put(docID2, null);
 						}
 					}
 				}
@@ -604,6 +606,9 @@ public class AnnotateDuplicate extends MSAModule
 		List<Object[]> matchList = new ArrayList<Object[]>();
 		for (String term : termList) {
 			int index = text.indexOf(term);
+			
+			int count = 0;
+
 			while (index >= 0) {
 				Object[] match = new Object[3];
 				match[0] = index;
@@ -612,6 +617,14 @@ public class AnnotateDuplicate extends MSAModule
 				matchList.add(match);
 				
 				index = text.indexOf(term, index+1);
+				
+				count++;
+				
+				if (count > 100) {
+					System.out.println("getMatches count exceeded!: " + term + ", " + index);
+					System.out.println(text);
+					System.exit(0);
+				}
 			}
 		}
 		
