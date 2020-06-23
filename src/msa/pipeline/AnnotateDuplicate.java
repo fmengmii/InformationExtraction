@@ -456,8 +456,8 @@ public class AnnotateDuplicate extends MSAModule
 			
 			pstmtWriteAnnot.setString(9, "validation-tool-unlabeled");
 			
-			Map<Long, Map<String, List<String>>> docMap = new HashMap<Long, Map<String, List<String>>>();
-			Map<Long, Map<String, List<String>>> docMapUMLS = new HashMap<Long, Map<String, List<String>>>();
+			Map<Long, Map<String, Map<String, Boolean>>> docMap = new HashMap<Long, Map<String, Map<String, Boolean>>>();
+			Map<Long, Map<String, Map<String, Boolean>>> docMapUMLS = new HashMap<Long, Map<String, Map<String, Boolean>>>();
 			ResultSet rs = stmt.executeQuery("select document_id, value, annotation_type, start, " + rq + "end" + rq + " from " + schema + "annotation where provenance = 'validation-tool' "
 				+ "and document_id in "
 				+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b where a.frame_instance_id = b.frame_instance_id and "
@@ -478,41 +478,45 @@ public class AnnotateDuplicate extends MSAModule
 				if (umlsStr != null && umlsStr.length() < 2)
 					umlsStr = null;
 				
-				Map<String, List<String>> termMap = docMap.get(docID);
+				Map<String, Map<String, Boolean>> termMap = docMap.get(docID);
 				if (termMap == null) {
-					termMap = new HashMap<String, List<String>>();
+					termMap = new HashMap<String, Map<String, Boolean>>();
 					docMap.put(docID, termMap);
 				}
 				
-				List<String> termList = termMap.get(annotType);
+				Map<String, Boolean> termList = termMap.get(annotType);
 				if (termList == null) {
-					termList = new ArrayList<String>();
+					termList = new HashMap<String, Boolean>();
 					termMap.put(annotType, termList);
 				}
 				
-				termList.add(value.toLowerCase());
+				Boolean flag = termList.get(value.toLowerCase());
+				if (flag == null)
+					termList.put(value.toLowerCase(), true);
 				
 				
 				if (umlsStr != null) {
-					Map<String, List<String>> termMapUMLS = docMapUMLS.get(docID);
+					Map<String, Map<String, Boolean>> termMapUMLS = docMapUMLS.get(docID);
 					if (termMapUMLS == null) {
-						termMapUMLS = new HashMap<String, List<String>>();
+						termMapUMLS = new HashMap<String, Map<String, Boolean>>();
 						docMapUMLS.put(docID, termMapUMLS);
 					}
 					
-					List<String> termListUMLS = termMapUMLS.get(annotType);
+					Map<String, Boolean> termListUMLS = termMapUMLS.get(annotType);
 					if (termListUMLS == null) {
-						termListUMLS = new ArrayList<String>();
+						termListUMLS = new HashMap<String, Boolean>();
 						termMapUMLS.put(annotType, termListUMLS);
 					}
 					
-					termListUMLS.add(umlsStr.toLowerCase());
+					flag = termListUMLS.get(umlsStr.toLowerCase());
+					if (flag == null)
+						termListUMLS.put(umlsStr.toLowerCase(), true);
 				}	
 			}
 			
 			
 			for (long docID : docMap.keySet()) {
-				Map<String, List<String>> termMap = docMap.get(docID);
+				Map<String, Map<String, Boolean>> termMap = docMap.get(docID);
 				pstmtGetEntity.setLong(1, docID);
 				rs = pstmtGetEntity.executeQuery();
 				String group = "";
@@ -528,7 +532,7 @@ public class AnnotateDuplicate extends MSAModule
 					String text = rs.getString(2);
 					
 					for (String annotType : termMap.keySet()) {
-						List<String> termList = termMap.get(annotType);
+						Map<String, Boolean> termList = termMap.get(annotType);
 						List<Object[]> matchList = getMatches(docID2, text, termList);
 						writeAnnotations(docID2, matchList, annotType);
 						docMap.put(docID, null);
@@ -539,7 +543,7 @@ public class AnnotateDuplicate extends MSAModule
 			//UMLS terms
 			
 			for (long docID : docMapUMLS.keySet()) {
-				Map<String, List<String>> termMapUMLS = docMapUMLS.get(docID);
+				Map<String, Map<String, Boolean>> termMapUMLS = docMapUMLS.get(docID);
 				pstmtGetEntity.setLong(1, docID);
 				rs = pstmtGetEntity.executeQuery();
 				String entity = "";
@@ -555,8 +559,8 @@ public class AnnotateDuplicate extends MSAModule
 					pstmtUMLS.setLong(1, docID2);
 					
 					for (String annotType : termMapUMLS.keySet()) {
-						List<String> termListUMLS = termMapUMLS.get(annotType);
-						for (String term : termListUMLS) {
+						Map<String, Boolean> termListUMLS = termMapUMLS.get(annotType);
+						for (String term : termListUMLS.keySet()) {
 							pstmtUMLS.setString(2, "%PreferredName=" + term + "%");
 							
 							ResultSet rs2 = pstmtUMLS.executeQuery();
@@ -606,10 +610,10 @@ public class AnnotateDuplicate extends MSAModule
 		return umlsConcept;
 	}
 	
-	private List<Object[]> getMatches(long docID, String text, List<String> termList)
+	private List<Object[]> getMatches(long docID, String text, Map<String, Boolean> termList)
 	{
 		List<Object[]> matchList = new ArrayList<Object[]>();
-		for (String term : termList) {
+		for (String term : termList.keySet()) {
 			int index = text.indexOf(term);
 			
 			int count = 0;
