@@ -25,6 +25,7 @@ public class AnnotateDuplicate extends MSAModule
 	private PreparedStatement pstmtSent;
 	private PreparedStatement pstmtSentAnnots;
 	private PreparedStatement pstmtUMLS;
+	private PreparedStatement pstmtUMLSGet;
 	private PreparedStatement pstmtGetDocs;
 	private PreparedStatement pstmtGetEntity;
 	private PreparedStatement pstmtMatchUMLS;
@@ -120,6 +121,8 @@ public class AnnotateDuplicate extends MSAModule
 			//pstmtUMLS = conn.prepareStatement("select features from " + schema + "annotation where annotation_type = 'MetaMap' and ((start >= ? and " + rq + "end" + rq + " <= ?) or "
 			//	+ "(start < ? and " + rq + "end" + rq + " > ?) or (start < ? and " + rq + "end" + rq + " > ?) or (start < ? and " + rq + "end" + rq + "> ?))");
 			pstmtUMLS = conn.prepareStatement("select features from " + schema + "annotation where annotation_type = 'MetaMap' and start = ? and " + rq + "end" + rq + " = ?");
+			
+			
 			
 			pstmtGetDocs = connDoc.prepareStatement("select document_id, " + docTextCol + " from " + docNamespace + docTable + " where " + docEntityCol + " = ?");
 			pstmtGetEntity = connDoc.prepareStatement("select " + docEntityCol + " from " + docNamespace + docTable + " where document_id = ?");
@@ -556,14 +559,14 @@ public class AnnotateDuplicate extends MSAModule
 				
 				while (rs.next()) {
 					long docID2 = rs.getLong(1);
-					pstmtUMLS.setLong(1, docID2);
+					pstmtMatchUMLS.setLong(1, docID2);
 					
 					for (String annotType : termMapUMLS.keySet()) {
 						Map<String, Boolean> termListUMLS = termMapUMLS.get(annotType);
 						for (String term : termListUMLS.keySet()) {
-							pstmtUMLS.setString(2, "%PreferredName=" + term + "%");
+							pstmtMatchUMLS.setString(2, "%PreferredName=" + term + "%");
 							
-							ResultSet rs2 = pstmtUMLS.executeQuery();
+							ResultSet rs2 = pstmtMatchUMLS.executeQuery();
 							List<Object[]> matchList = new ArrayList<Object[]>();
 							while (rs2.next()) {
 								Object[] match = new Object[3];
