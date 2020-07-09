@@ -111,12 +111,13 @@ public class AnnotateDuplicate extends MSAModule
 				+ "order by a.document_id");
 			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + "annotation where document_id = ?");
 			pstmtEntityDoc = conn.prepareStatement("select " + docIDCol + " from " + docNamespace + docTable + " where " + docEntityCol + " = ? and " + docIDCol + " in "
-					+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b where a.frame_instance_id = b.frame_instance_id and "
-					+ "b.project_id = ?) "
-					+ "order by document_id");
+				+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b where a.frame_instance_id = b.frame_instance_id and "
+				+ "b.project_id = ?) "
+				+ "order by document_id");
 			
 			pstmtSent = conn.prepareStatement("select id, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = 'Sentence' order by start");
-			pstmtSentAnnots = conn.prepareStatement("select value, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and start >= ? and " + rq  + "end" + rq + " <= ? and annotation_type = 'Token' order by start");
+			pstmtSentAnnots = conn.prepareStatement("select value, start, " + rq + "end" + rq + " from " + schema + "annotation "
+				+ "where document_id = ? and start >= ? and " + rq  + "end" + rq + " <= ? and annotation_type = 'Token' order by start");
 
 			//pstmtUMLS = conn.prepareStatement("select features from " + schema + "annotation where annotation_type = 'MetaMap' and ((start >= ? and " + rq + "end" + rq + " <= ?) or "
 			//	+ "(start < ? and " + rq + "end" + rq + " > ?) or (start < ? and " + rq + "end" + rq + " > ?) or (start < ? and " + rq + "end" + rq + "> ?))");
@@ -545,6 +546,7 @@ public class AnnotateDuplicate extends MSAModule
 			
 			//UMLS terms
 			
+			/*
 			for (long docID : docMapUMLS.keySet()) {
 				Map<String, Map<String, Boolean>> termMapUMLS = docMapUMLS.get(docID);
 				pstmtGetEntity.setLong(1, docID);
@@ -582,6 +584,7 @@ public class AnnotateDuplicate extends MSAModule
 					}
 				}
 			}
+			*/
 			
 			
 		}

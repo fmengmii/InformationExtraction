@@ -24,6 +24,8 @@ public class SmithWatermanMSA
 	//private int matchIndexes2;
 	private List<Integer> matchIndexesList1;
 	private List<Integer> matchIndexesList2;
+	private int gaps1;
+	private int gaps2;
 	
 	
 	public SmithWatermanMSA()
@@ -86,11 +88,23 @@ public class SmithWatermanMSA
 		return matchIndexesList2;
 	}
 	
+	public int getGaps1()
+	{
+		return gaps1;
+	}
+	
+	public int getGaps2()
+	{
+		return gaps2;
+	}
+	
 	public double align(List<String> toks1, List<String> toks2)
 	{
 		hiScore = -Double.MAX_VALUE;
 		matrix = new double[toks1.size()+1][toks2.size()+1];
 		links = new int[toks1.size()+1][toks2.size()+1];
+		gaps1 = 0;
+		gaps2 = 0;
 		
 		for (int i=1; i<=toks1.size(); i++) {
 			String tok1 = toks1.get(i-1);
@@ -167,11 +181,13 @@ public class SmithWatermanMSA
 				alignment1.add(0, toks1.get(i-1));
 				alignment2.add(0, "|||");
 				i--;
+				gaps2++;
 			}
 			else if (dir == 3) {
 				alignment1.add(0, "|||");
 				alignment2.add(0, toks2.get(j-1));
 				j--;
+				gaps1++;
 			}
 		}
 	}
