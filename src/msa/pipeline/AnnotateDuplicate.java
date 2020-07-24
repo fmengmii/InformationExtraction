@@ -80,7 +80,7 @@ public class AnnotateDuplicate extends MSAModule
 			String docDBHost = props.getProperty("docDBHost");
 			String docDBName = props.getProperty("docDBName");
 			String docDBType = props.getProperty("docDBType");
-			docSchema = props.getProperty("docSchema") + ".";
+			docSchema = props.getProperty("docSchema");
 			docIDCol = props.getProperty("docIDColumn");
 			docTextCol = props.getProperty("docTextColumn");
 			docEntityCol = props.getProperty("docEntityColumn");
@@ -88,6 +88,8 @@ public class AnnotateDuplicate extends MSAModule
 			docNamespace = docSchema;
 			if (!docDBName.equals(dbName) && docDBType.startsWith("sqlserver"))
 				docNamespace = docDBName + "." + docSchema;
+			
+			docSchema += ".";
 			
 			
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
@@ -104,13 +106,13 @@ public class AnnotateDuplicate extends MSAModule
 			pstmtWriteAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq +", value, provenance, score) "
 					+ "values (?,?,?,?,?,?,?,?,?,1.0)");
 			pstmtAnnot = conn.prepareStatement("select a.document_id, a.start, a." + rq + "end" + rq + ", a.annotation_type, b." + docEntityCol 
-				+ " from " + schema + "annotation a, " + docNamespace + docTable + " b where a.document_id = b." + docIDCol + " and a.provenance = 'validation-tool' "
+				+ " from " + schema + "annotation a, " + docSchema + docTable + " b where a.document_id = b." + docIDCol + " and a.provenance = 'validation-tool' "
 				+ "and a.document_id in "
 				+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b where a.frame_instance_id = b.frame_instance_id and "
 				+ "b.project_id = ?) "
 				+ "order by a.document_id");
 			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + "annotation where document_id = ?");
-			pstmtEntityDoc = conn.prepareStatement("select " + docIDCol + " from " + docNamespace + docTable + " where " + docEntityCol + " = ? and " + docIDCol + " in "
+			pstmtEntityDoc = conn.prepareStatement("select " + docIDCol + " from " + docSchema + docTable + " where " + docEntityCol + " = ? and " + docIDCol + " in "
 				+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b where a.frame_instance_id = b.frame_instance_id and "
 				+ "b.project_id = ?) "
 				+ "order by document_id");
@@ -125,8 +127,8 @@ public class AnnotateDuplicate extends MSAModule
 			
 			
 			
-			pstmtGetDocs = connDoc.prepareStatement("select document_id, " + docTextCol + " from " + docNamespace + docTable + " where " + docEntityCol + " = ?");
-			pstmtGetEntity = connDoc.prepareStatement("select " + docEntityCol + " from " + docNamespace + docTable + " where document_id = ?");
+			pstmtGetDocs = connDoc.prepareStatement("select document_id, " + docTextCol + " from " + docSchema + docTable + " where " + docEntityCol + " = ?");
+			pstmtGetEntity = connDoc.prepareStatement("select " + docEntityCol + " from " + docSchema + docTable + " where document_id = ?");
 			pstmtMatchUMLS = conn.prepareStatement("select start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and "
 					+ "annotation_type = 'MetaMap' and features like ?");
 		}

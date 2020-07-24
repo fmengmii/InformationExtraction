@@ -59,13 +59,14 @@ public class DuplicateSentences
 			Statement stmt = conn.createStatement();
 			
 			int currPatientSID = -1;
-			Map<String, Boolean> sentMap = new HashMap<String, Boolean>();
+			Map<String, Integer> sentMap = new HashMap<String, Integer>();
+			Map<String, Integer> docMatchCountMap = new HashMap<String, Integer>();
 			int batchCount = 0;
 			
 			docNamespace += ".";
 			
 			
-			ResultSet rs = stmt.executeQuery("select a.document_id, b." + docEntityCol + " from " + schema + "frame_instance_document a, " + docNamespace + docTable + " b "
+			ResultSet rs = stmt.executeQuery("select a.document_id, b." + docEntityCol + ", a.frame_instance_id from " + schema + "frame_instance_document a, " + docNamespace + docTable + " b "
 				+ "where a.document_id = b." + docIDCol + " and a.document_id in "
 				+ "(select c.document_id from " + schema + "frame_instance_document c, " + schema + "project_frame_instance d where c.frame_instance_id = d.frame_instance_id and "
 				+ "d.project_id = " + projID + ") "
@@ -76,13 +77,15 @@ public class DuplicateSentences
 			while (rs.next()) {
 				long docID = rs.getLong(1);
 				int patientSID = rs.getInt(2);
+				int frameInstanceID = rs.getInt(3);
 				
 				System.out.println("DocID: " + docID + " PatientSID: " + patientSID);
 				
 				annotID = getAnnotID(docID) + 1;
 				
 				if (patientSID != currPatientSID) {
-					sentMap = new HashMap<String,Boolean>();
+					sentMap = new HashMap<String,Integer>();
+					docMatchCountMap = new HashMap<String, Integer>();
 					currPatientSID = patientSID;
 				}
 				
@@ -115,10 +118,16 @@ public class DuplicateSentences
 					
 					String sentStr = SequenceUtilities.getStrFromToks(toks2).toLowerCase();
 					
-					Boolean flag = sentMap.get(sentStr);
-					if (flag == null)
-						sentMap.put(sentStr, true);
-					else {
+					Integer prevFrameInstanceID = sentMap.get(sentStr);
+					if (prevFrameInstanceID != null) {
+						String key = prevFrameInstanceID + "|" + frameInstanceID;
+						Integer count = docMatchCountMap.get(key);
+						if (count == null)
+							count = 0;
+						
+						docMatchCountMap.put(key, ++count);
+						System.out.println("adding: " + key + ": " + count);
+						
 						//int annotID = getAnnotID(docID);
 						pstmtAnnot.setInt(1, annotID);
 						pstmtAnnot.setLong(2, docID);
@@ -137,11 +146,15 @@ public class DuplicateSentences
 						
 						annotID++;
 					}
+					
+					sentMap.put(sentStr, frameInstanceID);
 				}
 			}
 			
 			pstmtAnnot.executeBatch();
 			conn2.commit();
+			
+			orderDocs(docMatchCountMap, projID);
 			
 			
 			pstmtSent.close();
@@ -209,6 +222,123 @@ public class DuplicateSentences
 		}
 		
 		return annotID;
+	}
+	
+	private void orderDocs(Map<String, Integer> docMatchCountMap, int projID) throws SQLException
+	{
+		conn.setAutoCommit(false);
+		PreparedStatement pstmt = conn.prepareStatement("insert into " + schema + "frame_instance_order (project_id, order_num, frame_instance_id) values (?,?,?)");
+		pstmt.setInt(1, projID);
+		
+		List<Long> frameInstanceIDList = new ArrayList<Long>();
+		List<String> frameInstancePairList = new ArrayList<String>();
+		List<Integer> frameInstancePairCountList = new ArrayList<Integer>();
+		Map<Integer, List<Integer>> clusterMap = new HashMap<Integer, List<Integer>>();
+		
+		for (String key : docMatchCountMap.keySet()) {
+			int count = docMatchCountMap.get(key);
+			
+			System.out.println(key + ": " + count);
+			
+			boolean inserted = false;
+			for (int i=0;i<frameInstancePairCountList.size(); i++) {
+				if (frameInstancePairCountList.get(i) < count) {
+					frameInstancePairCountList.add(i, count);
+					frameInstancePairList.add(i, key);
+					inserted = true;
+					break;
+				}
+			}
+			
+			if (!inserted) {
+				frameInstancePairCountList.add(count);
+				frameInstancePairList.add(key);
+			}
+		}
+		
+		int currClusterID = 0;
+		for (String key : frameInstancePairList) {
+			String[] parts = key.split("\\|");
+			int frameInstanceID1 = Integer.parseInt(parts[0]);
+			int frameInstanceID2 = Integer.parseInt(parts[1]);
+			
+			System.out.println("Linking: " + frameInstanceID1 + " and " + frameInstanceID2);
+			
+			List<Integer> cluster1 = clusterMap.get(frameInstanceID1);
+			List<Integer> cluster2 = clusterMap.get(frameInstanceID2);
+			
+			if (cluster1 != null && cluster2 != null) {
+				cluster2.set(0, cluster1.get(0));
+			}
+			else if (cluster1 == null && cluster2 != null) {
+				clusterMap.put(frameInstanceID1, cluster2);
+			}
+			else if (cluster1 != null && cluster2 == null) {
+				clusterMap.put(frameInstanceID2, cluster1);
+			}
+			else {
+				List<Integer> cluster = new ArrayList<Integer>();
+				cluster.add(currClusterID++);
+				clusterMap.put(frameInstanceID1, cluster);
+				clusterMap.put(frameInstanceID2, cluster);
+			}
+		}
+			
+		Map<Integer, List<Integer>> inverseClusterMap = new HashMap<Integer, List<Integer>>();
+		for (Integer frameInstanceID : clusterMap.keySet()) {
+			int cluster = clusterMap.get(frameInstanceID).get(0);
+			
+			List<Integer> clusterList = inverseClusterMap.get(cluster);
+			if (clusterList == null) {
+				clusterList = new ArrayList<Integer>();
+				inverseClusterMap.put(cluster, clusterList);
+			}
+			
+			boolean inserted = false;
+			for (int i=0; i<clusterList.size(); i++) {
+				if (clusterList.get(i) > frameInstanceID) {
+					clusterList.add(i, frameInstanceID);
+					inserted = true;
+					break;
+				}
+			}
+			
+			if (!inserted)
+				clusterList.add(frameInstanceID);
+			
+			System.out.println("cluster: " + cluster);
+			for (int frameInstanceID2 : clusterList)
+				System.out.print(frameInstanceID2 + ", ");
+			System.out.println();
+		}
+		
+		int batchCount = 0;
+		int orderNum = 0;
+		for (int cluster : inverseClusterMap.keySet()) {
+			List<Integer> clusterList = inverseClusterMap.get(cluster);
+			
+			for (int frameInstanceID : clusterList) {
+				pstmt.setInt(2, orderNum++);
+				pstmt.setInt(3, frameInstanceID);
+							
+				pstmt.addBatch();
+				batchCount++;
+				
+				if (batchCount == 100) {
+					pstmt.executeBatch();
+					conn.commit();
+					batchCount = 0;
+				}
+			}
+		}
+
+		pstmt.executeBatch();
+		conn.commit();
+		
+		conn.setAutoCommit(true);
+		
+		
+		pstmt.close();
 	}
 	
 	public static void main(String[] args)
