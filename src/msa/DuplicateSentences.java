@@ -18,6 +18,8 @@ public class DuplicateSentences
 	
 	private String schema;
 	
+	private int orderNum = 0;
+	
 	
 	public DuplicateSentences()
 	{
@@ -84,6 +86,9 @@ public class DuplicateSentences
 				annotID = getAnnotID(docID) + 1;
 				
 				if (patientSID != currPatientSID) {
+					if (docMatchCountMap.size() > 0)
+						orderDocs(docMatchCountMap, projID);
+					
 					sentMap = new HashMap<String,Integer>();
 					docMatchCountMap = new HashMap<String, Integer>();
 					currPatientSID = patientSID;
@@ -313,7 +318,7 @@ public class DuplicateSentences
 		}
 		
 		int batchCount = 0;
-		int orderNum = 0;
+		//int orderNum = 0;
 		for (int cluster : inverseClusterMap.keySet()) {
 			List<Integer> clusterList = inverseClusterMap.get(cluster);
 			
