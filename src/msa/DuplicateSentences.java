@@ -99,6 +99,8 @@ public class DuplicateSentences
 				boolean prevFlag = false;
 				for (int i=0; i<seqList.size(); i++) {
 					AnnotationSequence seq = seqList.get(i);
+					long start2 = seq.getStart();
+					
 					List<String> toks = seq.getToks();
 					
 					List<String> toks2 = toks;
@@ -111,7 +113,8 @@ public class DuplicateSentences
 						
 						toks2.addAll(toks);
 						//adjust the start index
-						seq.setStart(seqList.get(i-1).getStart());
+						//seq.setStart(seqList.get(i-1).getStart());
+						start2 = seqList.get(i-1).getStart();
 						
 						if (toks.size() < 10)
 							prevFlag = true;
@@ -136,7 +139,7 @@ public class DuplicateSentences
 						//int annotID = getAnnotID(docID);
 						pstmtAnnot.setInt(1, annotID);
 						pstmtAnnot.setLong(2, docID);
-						pstmtAnnot.setLong(3, seq.getStart());
+						pstmtAnnot.setLong(3, start2);
 						pstmtAnnot.setLong(4, seq.getEnd());
 						pstmtAnnot.addBatch();
 						batchCount++;
