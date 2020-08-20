@@ -25,7 +25,7 @@ public class DuplicateSentences
 	{
 	}
 	
-	public void annotateDuplicateSentences(String user, String password, String config)
+	public void annotateDuplicateSentences(String user, String password, String config, boolean orderFlag)
 	{
 		try {
 			Properties props = new Properties();
@@ -87,7 +87,8 @@ public class DuplicateSentences
 				
 				if (patientSID != currPatientSID) {
 					if (docMatchCountMap.size() > 0)
-						orderDocs(docMatchCountMap, projID);
+						if (orderFlag)
+							orderDocs(docMatchCountMap, projID);
 					
 					sentMap = new HashMap<String,Integer>();
 					docMatchCountMap = new HashMap<String, Integer>();
@@ -162,7 +163,8 @@ public class DuplicateSentences
 			pstmtAnnot.executeBatch();
 			conn2.commit();
 			
-			orderDocs(docMatchCountMap, projID);
+			if (orderFlag)
+				orderDocs(docMatchCountMap, projID);
 			
 			
 			pstmtSent.close();
@@ -351,12 +353,15 @@ public class DuplicateSentences
 	
 	public static void main(String[] args)
 	{
-		if (args.length != 3) {
-			System.out.println("usage: user password config");
+		if (args.length != 4) {
+			System.out.println("usage: user password config oder(y/n)");
 			System.exit(0);
 		}
 		
 		DuplicateSentences dupe = new DuplicateSentences();
-		dupe.annotateDuplicateSentences(args[0], args[1], args[2]);
+		boolean orderFlag = false;
+		if (args[3].equals("y") || args[3].equals("Y"))
+			orderFlag = true;
+		dupe.annotateDuplicateSentences(args[0], args[1], args[2], orderFlag);
 	}
 }
