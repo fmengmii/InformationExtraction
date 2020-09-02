@@ -48,6 +48,8 @@ public class BestPatterns
 	private Map<String, Boolean> inactiveMap;
 	private Map<String, Boolean> preloadMap;
 	
+	private int projID = -1;
+	
 	private boolean write;
 	
 	
@@ -87,6 +89,10 @@ public class BestPatterns
 		posThreshold = Double.parseDouble(props.getProperty("posThreshold"));
 		posMinCount = Integer.parseInt(props.getProperty("posMinCount"));
 		schema = props.getProperty("schema") + ".";
+		
+		String projIDStr = props.getProperty("projID");
+		if (projIDStr != null)
+			projID = Integer.parseInt(projIDStr);
 		
 		
 		String groupListStr = props.getProperty("groupList");
@@ -228,17 +234,23 @@ public class BestPatterns
 				docIDList = new ArrayList<Long>();
 				//ResultSet rs = stmt.executeQuery("select distinct document_id from " + rq + indexTable + rq + " order by document_id");
 				if (docQuery == null) {
-					docQuery = "select document_id, status from " + schema + "document_status" + " where (status = 1 or status = 2) "
-						+ "(select b.document_id from " + schema + "project_frame_instance a, " + schema + "frame_instance_document b "
-						+ "where a.frame_instance_id = b.frame_instance_id) "
-						+ "order by document_id";
+					if (projID == -1) {
+						docQuery = "select document_id from " + schema + "document_status where status = 1 or status = 2 order by document_id";
+					}
+					else {
+						docQuery = "select document_id from " + schema + "document_status" + " where (status = 1 or status = 2) "
+							+ "and document_id in "
+							+ "(select b.document_id from " + schema + "project_frame_instance a, " + schema + "frame_instance_document b "
+							+ "where a.frame_instance_id = b.frame_instance_id and a.project_id = " + projID + ") "
+							+ "order by document_id";
+					}
 				}
 				
 				List<Integer> statusList = new ArrayList<Integer>();
 				ResultSet rs = stmt.executeQuery(docQuery);
 				while (rs.next()) {
 					docIDList.add(rs.getLong(1));
-					statusList.add(rs.getInt(2));
+					//statusList.add(rs.getInt(2));
 				}
 				
 				
@@ -303,7 +315,7 @@ public class BestPatterns
 				
 				for (int i=0; i<docIDList.size(); i++) {
 					long docID = docIDList.get(i);
-					int status = statusList.get(i);
+					//int status = statusList.get(i);
 					
 					System.out.println("best docID: " + docID);
 					
