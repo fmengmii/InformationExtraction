@@ -1049,6 +1049,7 @@ public class BestPatterns
 			int start = rs.getInt(2);
 			int end = rs.getInt(3);
 			String value = rs.getString(4);
+			String provenance2 = rs.getString(5);
 			
 			
 			pstmt.setInt(1, start);
@@ -1068,7 +1069,7 @@ public class BestPatterns
 			
 			//System.out.println("ans: " + docID + "|" + start + "|" + end + "|" + value);
 			
-			ansMap.put(docID + "|" + start + "|" + end, provenance);
+			ansMap.put(docID + "|" + start + "|" + end, provenance2);
 		}
 		
 		stmt.close();
