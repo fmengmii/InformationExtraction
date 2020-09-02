@@ -1069,7 +1069,16 @@ public class BestPatterns
 			
 			//System.out.println("ans: " + docID + "|" + start + "|" + end + "|" + value);
 			
-			ansMap.put(docID + "|" + start + "|" + end, provenance2);
+			String provenance3 = ansMap.get(docID + "|" + start + "|" + end);
+			if (provenance3 != null) { 
+				if (provenance3.equals("validaiton-tool"))
+					continue;
+				else if (provenance3.equals("validation-tool-unlabeled")) {
+					ansMap.put(docID + "|" + start + "|" + end, provenance2);
+				}
+			}
+			else
+				ansMap.put(docID + "|" + start + "|" + end, provenance2);
 		}
 		
 		stmt.close();
