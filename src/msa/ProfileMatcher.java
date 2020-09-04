@@ -158,7 +158,7 @@ public class ProfileMatcher
 				pw.println("\n\nsent: " + i + " annotType: " + annotType + " | " + toksStr);
 			
 			//if (verbose)
-			//System.out.println(grid.toString() + "\n\n");
+			System.out.println(grid.toString() + "\n\n");
 				
 
 			int profileIndex = 0;
@@ -216,8 +216,8 @@ public class ProfileMatcher
 					String profileStr = gson.toJson(profileToks);
 						
 					
-					//System.out.println("profile from inverted: " + profileStr);
-					//System.out.println("profileGrid: " + profileGrid.toString());
+					System.out.println("profile from inverted: " + profileStr);
+					System.out.println("profileGrid: " + profileGrid.toString());
 					
 					
 					//if (profileStr.equals("[\":start|start\",\":target\",\":i-org\"]") || 
@@ -362,9 +362,9 @@ public class ProfileMatcher
 							AnnotationSequenceGrid targetGrid = grid.subGrid(indexes[0], indexes[1]);
 							
 							if (verbose) {
-								//System.out.println("match profile: " + align1 + ", " + align2 + ", indexes[0]:" + indexes[0] + ", indexes[1]:" + indexes[1] + ", targetgrid: " + gson.toJson(targetGrid.getSequence().getToks()));
-								//System.out.println("matchcoords1: " + gson.toJson(matchCoords1) + "\nmatchCoords2: " + gson.toJson(matchCoords2));
-								//System.out.println("targetCoords[0]: " + targetCoords[0] + " targetCoords[1]: " + targetCoords[1]);
+								System.out.println("match profile: " + align1 + ", " + align2 + ", indexes[0]:" + indexes[0] + ", indexes[1]:" + indexes[1] + ", targetgrid: " + gson.toJson(targetGrid.getSequence().getToks()));
+								System.out.println("matchcoords1: " + gson.toJson(matchCoords1) + "\nmatchCoords2: " + gson.toJson(matchCoords2));
+								System.out.println("targetCoords[0]: " + targetCoords[0] + " targetCoords[1]: " + targetCoords[1]);
 							}
 		
 							
@@ -402,8 +402,8 @@ public class ProfileMatcher
 							//iterate through each target profile
 							for (AnnotationSequenceGrid targetProfileGrid : targetProfileGridList) {
 								
-								//System.out.println("target grid: " + targetGrid.toString());
-								//System.out.println("targetProfileGrid: " + targetProfileGrid.toString());
+								System.out.println("target grid: " + targetGrid.toString());
+								System.out.println("targetProfileGrid: " + targetProfileGrid.toString());
 								
 								targetMatch = MSAUtils.matchGrids(targetProfileGrid, targetGrid, sw, 0, targetProfileGrid.size(), syntax, phrase);
 								targetProfileStr = gson.toJson(targetProfileGrid.getSequence().getToks());
@@ -507,8 +507,8 @@ public class ProfileMatcher
 										targetWasMatched = true;
 										
 										if (verbose) {
-											//System.out.println("targetProfileGrid: " + targetProfileGrid.toString() + "\ntargetGrid: " + targetGrid.toString() + "\ngrid: " + grid.toString());
-											//System.out.println("target match :" + profileStr + ", " + targetProfileStr + ", sent: " + i + ", target: " + targetStr + ", " + gson.toJson(targetMatchCoords2));
+											System.out.println("targetProfileGrid: " + targetProfileGrid.toString() + "\ntargetGrid: " + targetGrid.toString() + "\ngrid: " + grid.toString());
+											System.out.println("target match :" + profileStr + ", " + targetProfileStr + ", sent: " + i + ", target: " + targetStr + ", " + gson.toJson(targetMatchCoords2));
 										}
 										
 										targetMatchIndexes = new int[2];
