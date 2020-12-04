@@ -142,6 +142,7 @@ public class AutoAnnotateNER
 	private boolean prior;
 	
 	private GenSentences genSent;
+	private boolean combineSents;
 	
 	private String probTable;
 	private String probEntityTable;
@@ -387,6 +388,8 @@ public class AutoAnnotateNER
 			if (extractionStr != null)
 				extraction = Boolean.parseBoolean(extractionStr);
 			
+			combineSents = Boolean.parseBoolean(props.getProperty("combineSents"));
+			
 			
 			//init DB connections
 			db = new MySQLDBInterface();
@@ -541,6 +544,8 @@ public class AutoAnnotateNER
 				genSent.setDocIDList(docIDList);
 				genSent.genSentenceAnnots(docNamespace, docTable);
 			}
+			
+			genSent.setCombineSents(combineSents);
 			
 			
 			//get sequences
@@ -784,7 +789,6 @@ public class AutoAnnotateNER
 				for (ProfileMatch match: matchList) {
 					
 					//target can only be 1 token (only for CoNLL2003)
-					String value = match.getTargetStr();
 					
 					/*
 					if (value.indexOf(" ") >= 0 && value.length() > 3) {
@@ -792,56 +796,84 @@ public class AutoAnnotateNER
 					}
 					*/
 					
+					
 					AnnotationSequenceGrid grid = negGridList.get(match.getGridIndex());					
 					long docID = grid.getSequence().getDocID();
-					System.out.println(docID + "|" + match.getTargetIndexes()[0] + "|" + match.getTargetIndexes()[1]);
-					
-					
-					if (value.length() > 1 && !Character.isLetter(value.charAt(value.length()-1)))
-						value = value.substring(0, value.length()-1);
-					
-					//if (StringUtils.isAllUpperCase(value))
-					//	continue;
-					
-					if (value.length() == 0)
-						continue;
-					
-					
 					int[] targetCoords = match.getTargetIndexes();
 					
-					//extractMap.put(value, true);
-					
-					
-					
-					//long start = targetAnnot.getStart();
-					//long end = targetAnnot.getEnd();
-					
-					long start = targetCoords[0];
-					long end = targetCoords[1];
-					
-					//value = value.toLowerCase();
-					
-					List<Long> valDocList = valDocMap.get(value);
-					List<Long> valDocProfileList = valDocProfileMap.get(value);
-					if (valDocList == null) {
-						valDocList = new ArrayList<Long>();
-						valDocMap.put(value, valDocList);
-						valDocProfileList = new ArrayList<Long>();
-						valDocProfileMap.put(value, valDocProfileList);
+					long start = -1;
+					long end = -1;
+					if (targetCoords == null) {
+						//no target match
+						if (match.getMatchCoords2().size() == 0)
+							continue;
 						
+						int[] coords1 = match.getMatchCoords2().get(0);
+						List<int[]> matchCoords2 = match.getMatchCoords2();
+						int[] coords2 = matchCoords2.get(matchCoords2.size()-1);
+						start = grid.get(coords1[0]).get(0).getAnnot().getStart();
+						end = grid.get(coords2[0]).get(0).getAnnot().getEnd();	
+					}
+					else {
+						start = targetCoords[0];
+						end = targetCoords[1];
 					}
 					
-					if (!valDocList.contains(docID)) {
-						valDocList.add(docID);
-						valDocProfileList.add(match.getProfile().getProfileID());
+
+					
+					String value = match.getTargetStr();
+					if (value != null) {
+						System.out.println(docID + "|" + match.getTargetIndexes()[0] + "|" + match.getTargetIndexes()[1]);
+						
+						
+						if (value.length() > 1 && !Character.isLetter(value.charAt(value.length()-1)))
+							value = value.substring(0, value.length()-1);
+						
+						//if (StringUtils.isAllUpperCase(value))
+						//	continue;
+						
+						if (value.length() == 0)
+							continue;
+						
+						
+						//extractMap.put(value, true);
+						
+						
+						
+						//long start = targetAnnot.getStart();
+						//long end = targetAnnot.getEnd();
+						
+						//value = value.toLowerCase();
+						
+						List<Long> valDocList = valDocMap.get(value);
+						List<Long> valDocProfileList = valDocProfileMap.get(value);
+						if (valDocList == null) {
+							valDocList = new ArrayList<Long>();
+							valDocMap.put(value, valDocList);
+							valDocProfileList = new ArrayList<Long>();
+							valDocProfileMap.put(value, valDocProfileList);
+							
+						}
+						
+						if (!valDocList.contains(docID)) {
+							valDocList.add(docID);
+							valDocProfileList.add(match.getProfile().getProfileID());
+						}
+						
+						System.out.println(" ans: " + targetType + ", profile: " + match.getProfile().getProfileStr() + ", target: " + match.getTargetStr() + ", docID: " + match.getSequence().getDocID() + ", sent: " + match.getGridStr());
+						pw.println(" ans: " + targetType + ", profile: " + match.getProfile().getProfileStr() + ", target: " + match.getTargetStr() + ", docID: " + match.getSequence().getDocID() + ", sent: " + match.getGridStr());
 					}
+					
 					
 					Annotation annot = new Annotation(docID, docNamespace, docTable, -1, targetType, 
 						start, end, match.getTargetStr(), null);
 					annot.setProvenance(autoProvenance);
 					Map<String, Object> featureMap = new HashMap<String, Object>();
 					featureMap.put("profileID", match.getProfile().getProfileID());
-					featureMap.put("targetID", match.getTargetList().get(0).getProfileID());
+					
+					if (match.getTargetList() != null)
+						featureMap.put("targetID", match.getTargetList().get(0).getProfileID());
+					
 					List<int[]> matchCoords = match.getMatchCoords2();
 					int seqStart = match.getSequence().getStart();
 					featureMap.put("start", matchCoords.get(0)[0] + seqStart);
@@ -856,8 +888,6 @@ public class AutoAnnotateNER
 						finalMatchList.add(match);
 					}
 					
-					System.out.println(" ans: " + targetType + ", profile: " + match.getProfile().getProfileStr() + ", target: " + match.getTargetStr() + ", docID: " + match.getSequence().getDocID() + ", sent: " + match.getGridStr());
-					pw.println(" ans: " + targetType + ", profile: " + match.getProfile().getProfileStr() + ", target: " + match.getTargetStr() + ", docID: " + match.getSequence().getDocID() + ", sent: " + match.getGridStr());
 
 				}
 				

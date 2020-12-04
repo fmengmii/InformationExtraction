@@ -215,11 +215,19 @@ public class MSAUtils
 		List<List<String>> align1List1 = new ArrayList<List<String>>();
 		List<List<String>> align2List1 = new ArrayList<List<String>>();
 		
+		int gridSize = profileGrid.size()-1;
+		
 		int[] targetCoords = profileGrid.getTargetCoords();
+		if (targetCoords == null) {
+			targetCoords = new int[2];
+			targetCoords[0] = profileGrid.size();
+			targetCoords[1] = profileGrid.size();
+			gridSize++;
+		}
+		
 		AnnotationSequenceGrid left = profileGrid.subGrid(0, targetCoords[0]);
 		AnnotationSequenceGrid right = profileGrid.subGrid(targetCoords[0]+1, profileGrid.size());
 		
-		int gridSize = profileGrid.size()-1;
 		
 		Gson gson = new Gson();
 		
@@ -462,6 +470,8 @@ public class MSAUtils
 						//System.out.println("matchCoords1: " + gson.toJson(matchCoords1) + " matchCoords2: " + gson.toJson(matchCoords2) + " gridSize: " + gridSize + " maxGaps: " + maxGaps + " minSize: " + minSize);
 						if (matchCoords1.size() < (gridSize - maxGaps) || matchCoords1.size() < minSize || matchCoords2.size() < minSize)
 							continue;
+						
+						//System.out.println("matchCoords1: " + gson.toJson(matchCoords1) + " matchCoords2: " + gson.toJson(matchCoords2) + " gridSize: " + gridSize + " maxGaps: " + maxGaps + " minSize: " + minSize);
 
 						indexList.add(indexes);
 						matchCoords1List.add(matchCoords1);

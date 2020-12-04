@@ -145,6 +145,9 @@ public class AnnotationSequenceGrid
 	
 	public AnnotationSequenceGrid subGrid(int start, int end)
 	{
+		if (start > end)
+			return new AnnotationSequenceGrid();
+		
 		List<String> toks2 = sequence.getToks().subList(start, end);
 		AnnotationSequence sequence2 = new AnnotationSequence();
 		sequence2.setToks(toks2);

@@ -379,7 +379,7 @@ public class GenMSA
 				//List<String> toks1 = seq1.getToks(tokType);
 				List<String> toks1 = seq1.getToks();
 				String toks1Str = SequenceUtilities.getStrFromToks(toks1);
-
+				
 				
 				/*
 				if (size1 < 3) {

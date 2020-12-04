@@ -60,13 +60,13 @@ public class ProfileReader
 		this.minProfileID = minProfileID;
 	}
 	
-	public void init(String user, String password, String host, String dbType, String keyspace) throws SQLException, ClassNotFoundException
+	public void init(String user, String password, String host, String dbType, String schema) throws SQLException, ClassNotFoundException
 	{
 		this.dbType = dbType;
-		String queryStr = "select profile_id, profile, profile_type, score, true_pos, false_pos from msa_profile where annotation_type = ? and " + rq + "group" + rq + " = ? and profile_type = ?";
+		String queryStr = "select profile_id, profile, profile_type, score, true_pos, false_pos from msa_profile where annotation_type = ? and " + rq + "group" + rq + " = ? and profile_type = ? order by profile_id";
 		
 		//if (dbType.equals("mysql")) {
-			conn = DBConnection.dbConnection(user, password, host, keyspace, dbType);
+			conn = DBConnection.dbConnection(user, password, host, schema, dbType);
 			rq = DBConnection.reservedQuote;
 			//pstmtSQL = conn.prepareStatement(queryStr);
 		//}

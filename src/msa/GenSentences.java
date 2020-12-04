@@ -40,6 +40,8 @@ public class GenSentences
 	
 	private List<Long> docIDList;
 	
+	private boolean combineSents = false;
+	
 	
 	public int contextSize = 10;
 	
@@ -122,6 +124,11 @@ public class GenSentences
 		List<String> features = (List<String>) targetMap.get("features");
 		annotFilterMap.put(annotType, targetMap);
 		annotFeatureMap.put(annotType, features);
+	}
+	
+	public void setCombineSents(boolean combineSents)
+	{
+		this.combineSents = combineSents;
 	}
 	
 	public void init(MSADBInterface db, List<Map<String, Object>> annotFilterList, String targetProvenance)
@@ -356,23 +363,26 @@ public class GenSentences
 			
 			//add previous seq?
 			boolean addPrev = false;
-			if ((prevSeq != null && currSeq.getToks().size() < 10) || prevFlag) {
-				//prevSeq = currSeq;
-				AnnotationSequence seq2 = prevSeq.clone();
-				seq2.append(currSeq);
-				seq2.setEnd(currSeq.getEnd());
-				prevSeq = currSeq;
-				currSeq = seq2;
-				
-				if (currSeq.getToks().size() < 10)
-					prevFlag = true;
+
+			if (combineSents) {
+				if ((prevSeq != null && currSeq.getToks().size() < 10 && prevSeq.getDocID() == currSeq.getDocID()) || prevFlag) {
+					//prevSeq = currSeq;
+					AnnotationSequence seq2 = prevSeq.clone();
+					seq2.append(currSeq);
+					seq2.setEnd(currSeq.getEnd());
+					prevSeq = currSeq;
+					currSeq = seq2;
+					
+					if (currSeq.getToks().size() < 10)
+						prevFlag = true;
+					else
+						prevFlag = false;
+					
+					addPrev = true;
+				}
 				else
-					prevFlag = false;
-				
-				addPrev = true;
+					prevSeq = currSeq;
 			}
-			else
-				prevSeq = currSeq;
 
 			
 			System.out.println("seq: " + SequenceUtilities.getStrFromToks(currSeq.getToks()));

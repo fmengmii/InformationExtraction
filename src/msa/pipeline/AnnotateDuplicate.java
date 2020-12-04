@@ -147,7 +147,7 @@ public class AnnotateDuplicate extends MSAModule
 	public void run()
 	{
 		annotate();
-		annotDuplicateTags();
+		//annotDuplicateTags();
 	}
 	
 	public void annotate()
