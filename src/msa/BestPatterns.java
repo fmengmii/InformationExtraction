@@ -374,6 +374,8 @@ public class BestPatterns
 						String docKey = profileID + "|" + targetID + "|" + docID;
 						String ansProv = ansMap.get(docID + "|" + start + "|" + end);
 						
+						System.out.println(docID + "|" + start + "|" + end + "|" + ansProv);
+						
 						
 						if (profileType == 3) {
 							profileTypeMap.put(key, profileType);
