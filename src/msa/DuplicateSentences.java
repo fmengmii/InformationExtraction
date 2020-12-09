@@ -41,6 +41,7 @@ public class DuplicateSentences
 			String docIDCol = props.getProperty("docIDColumn");
 			int projID = Integer.parseInt(props.getProperty("projectID"));
 			
+			
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			conn2 = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			conn2.setAutoCommit(false);
@@ -67,12 +68,26 @@ public class DuplicateSentences
 			
 			docNamespace += ".";
 			
+			String docQuery = props.getProperty("docQuery");
+			if (docQuery == null) {
+				ResultSet rs = stmt.executeQuery("select max(a.document_id) from " + schema + "annotation a where annotation_type = 'SentenceDuplicate' and a.document_id  in"
+						+ "(select c.document_id from " + schema + "frame_instance_document c, " + schema + "project_frame_instance d where c.frame_instance_id = d.frame_instance_id and "
+						+ "d.project_id = " + projID + ") ");
 			
-			ResultSet rs = stmt.executeQuery("select a.document_id, b." + docEntityCol + ", a.frame_instance_id from " + schema + "frame_instance_document a, " + docNamespace + docTable + " b "
-				+ "where a.document_id = b." + docIDCol + " and a.document_id in "
-				+ "(select c.document_id from " + schema + "frame_instance_document c, " + schema + "project_frame_instance d where c.frame_instance_id = d.frame_instance_id and "
-				+ "d.project_id = " + projID + ") "
-				+ "order by a.document_id");
+				int maxDocID = 0;
+				if (rs.next()) {
+					maxDocID = rs.getInt(1);
+				}
+				
+				docQuery = "select a.document_id, b." + docEntityCol + ", a.frame_instance_id from " + schema + "frame_instance_document a, " + docNamespace + docTable + " b "
+						+ "where a.document_id = b." + docIDCol + " and a.document_id > " + maxDocID + " and a.document_id in "
+						+ "(select c.document_id from " + schema + "frame_instance_document c, " + schema + "project_frame_instance d where c.frame_instance_id = d.frame_instance_id and "
+						+ "d.project_id = " + projID + ") "
+						+ "order by a.document_id";
+			}
+			
+			
+			ResultSet rs = stmt.executeQuery(docQuery);
 			
 			long currDocID = -1;
 			int annotID = -1;
@@ -354,7 +369,7 @@ public class DuplicateSentences
 	public static void main(String[] args)
 	{
 		if (args.length != 4) {
-			System.out.println("usage: user password config oder(y/n)");
+			System.out.println("usage: user password config order(y/n)");
 			System.exit(0);
 		}
 		
