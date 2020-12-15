@@ -2,6 +2,8 @@ package msa.pipeline;
 
 import java.sql.*;
 
+import com.google.gson.Gson;
+
 import utils.db.DBConnection;
 
 abstract public class MSAModule
@@ -10,9 +12,11 @@ abstract public class MSAModule
 	protected Connection connDoc;
 	protected String schema;
 	protected String rq;
+	protected Gson gson;
 	
 	public MSAModule()
 	{
+		gson = new Gson();
 	}
 	
 	protected void initDB(String user, String password, String host, String dbName, String dbType) throws SQLException, ClassNotFoundException
