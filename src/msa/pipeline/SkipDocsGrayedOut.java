@@ -87,6 +87,8 @@ public class SkipDocsGrayedOut extends MSAModule
 					preloadAnnotList.add(val);
 			}
 			
+			boolean removed = false;
+			
 			rs = stmt.executeQuery("select distinct document_id from " + schema + "frame_instance_document where frame_instance_id in "
 				+ "(select distinct a.frame_instance_id from " + schema + "project_frame_instance a where a.project_id = " + projID + ") order by document_id");
 			
@@ -169,12 +171,13 @@ public class SkipDocsGrayedOut extends MSAModule
 								System.out.println("removing: " + indexes.get(0) + ", " + indexes.get(1));
 								preloadList.remove(i);
 								i--;
+								removed = true;
 							}
 						}
 					}
 				}
 				
-				if ((preloadList.size() == 0 && (preloadValueList.size() > 0 || preloadAnnotList.size() > 0)) || (currStart == 0 && currEnd == lastEnd)) {
+				if ((removed && preloadList.size() == 0) || (currStart == 0 && currEnd == lastEnd)) {
 					System.out.println("Disabled!");
 					pstmtUpdateDocDisabled.setLong(1, docID);
 					pstmtUpdateDocDisabled.execute();
