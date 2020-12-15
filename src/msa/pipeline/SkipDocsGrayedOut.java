@@ -65,7 +65,7 @@ public class SkipDocsGrayedOut extends MSAModule
 			PreparedStatement pstmtPreloadValues = conn.prepareStatement("select distinct start, end from " + schema + "annotation where document_id = ? and value = ?");
 			PreparedStatement pstmtPreloadAnnots = conn.prepareStatement("select distinct start, end from " + schema + "annotation where document_id = ? and annotation_type = ?");
 			PreparedStatement pstmtUpdateDocDisabled = conn.prepareStatement("update " + schema + "frame_instance_document set disabled = 1 where document_id = ?");
-			PreparedStatement pstmtLastEnd = conn.prepareStatement("select max(" + rq + "end" + rq + ") from " + schema + "annotation where document_id = ? and annotation_type = 'Token'");
+			PreparedStatement pstmtLastEnd = conn.prepareStatement("select max( " + rq + "end" + rq + " ) from " + schema + "annotation where document_id = ? and annotation_type = 'Token'");
 
 			
 			//get project preload annotations
