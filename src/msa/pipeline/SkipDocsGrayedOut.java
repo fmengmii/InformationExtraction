@@ -116,8 +116,8 @@ public class SkipDocsGrayedOut extends MSAModule
 					rs2 = pstmtPreloadValues.executeQuery();
 					while (rs2.next()) {
 						List<Long> indexes = new ArrayList<Long>();
-						indexes.add(rs.getLong(1));
-						indexes.add(rs.getLong(2));
+						indexes.add(rs2.getLong(1));
+						indexes.add(rs2.getLong(2));
 						preloadList.add(indexes);
 						
 						System.out.println("Adding preload value: " + val + ", " + indexes.get(0) + ", " + indexes.get(1));
@@ -130,8 +130,8 @@ public class SkipDocsGrayedOut extends MSAModule
 					rs2 = pstmtPreloadAnnots.executeQuery();
 					while (rs2.next()) {
 						List<Long> indexes = new ArrayList<Long>();
-						indexes.add(rs.getLong(1));
-						indexes.add(rs.getLong(2));
+						indexes.add(rs2.getLong(1));
+						indexes.add(rs2.getLong(2));
 						preloadList.add(indexes);
 						
 						System.out.println("Adding preload annot: " + val + ", " + indexes.get(0) + ", " + indexes.get(1));
