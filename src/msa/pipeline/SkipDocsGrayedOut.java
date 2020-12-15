@@ -48,7 +48,7 @@ public class SkipDocsGrayedOut extends MSAModule
 			for (String annotType: grayAnnotTypeList) {
 				if (strBlder.length() > 1)
 					strBlder.append(",");
-				strBlder.append(annotType);
+				strBlder.append("'" + annotType + "'");
 			}
 			
 			strBlder.append(")");
