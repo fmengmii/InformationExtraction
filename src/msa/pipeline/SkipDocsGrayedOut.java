@@ -81,10 +81,10 @@ public class SkipDocsGrayedOut extends MSAModule
 				System.out.println("Preload values: " + val + ", " + type);
 				
 				if (type == 1) {
-					preloadValueList.add(val);
+					preloadAnnotList.add(val);
 				}
 				else
-					preloadAnnotList.add(val);
+					preloadValueList.add(val);
 			}
 			
 			boolean removed = false;
