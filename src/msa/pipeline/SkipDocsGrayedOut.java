@@ -60,7 +60,9 @@ public class SkipDocsGrayedOut extends MSAModule
 				projID = rs.getInt(1);
 			}
 			
-			PreparedStatement pstmtGrayAnnots = conn.prepareStatement("select start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type in " 
+			System.out.println("Project ID: " + projID);
+			
+			PreparedStatement pstmtGrayAnnots = conn.prepareStatement("select start, " + rq + "end" + rq + ", annotation_type from " + schema + "annotation where document_id = ? and annotation_type in " 
 				+ strBlder.toString() + " order by start");
 			PreparedStatement pstmtPreloadValues = conn.prepareStatement("select distinct start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and value = ?");
 			PreparedStatement pstmtPreloadAnnots = conn.prepareStatement("select distinct start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = ?");
@@ -75,6 +77,8 @@ public class SkipDocsGrayedOut extends MSAModule
 			while (rs.next()) {
 				String val = rs.getString(1);
 				int type = rs.getInt(2);
+				
+				System.out.println("Preload values: " + val + ", " + type);
 				
 				if (type == 1) {
 					preloadValueList.add(val);
@@ -113,6 +117,8 @@ public class SkipDocsGrayedOut extends MSAModule
 						indexes.add(rs.getLong(1));
 						indexes.add(rs.getLong(2));
 						preloadList.add(indexes);
+						
+						System.out.println("Adding preload value: " + val + ", " + indexes.get(0) + ", " + indexes.get(1));
 					}
 				}
 				
@@ -125,6 +131,8 @@ public class SkipDocsGrayedOut extends MSAModule
 						indexes.add(rs.getLong(1));
 						indexes.add(rs.getLong(2));
 						preloadList.add(indexes);
+						
+						System.out.println("Adding preload annot: " + val + ", " + indexes.get(0) + ", " + indexes.get(1));
 					}
 				}
 				
@@ -133,6 +141,9 @@ public class SkipDocsGrayedOut extends MSAModule
 				while (rs2.next()) {
 					long start = rs2.getLong(1);
 					long end = rs2.getLong(2);
+					String annotType = rs2.getString(3);
+					
+					System.out.println("gray indexes: " + annotType + ", " + start + ", " + end);
 					
 					if (start <= currEnd) {
 						if (start < currStart)
@@ -155,6 +166,7 @@ public class SkipDocsGrayedOut extends MSAModule
 							}
 							
 							if (indexes.get(0) <= indexes.get(1)) {
+								System.out.println("removing: " + indexes.get(0) + ", " + indexes.get(1));
 								preloadList.remove(i);
 								i--;
 							}
@@ -162,7 +174,7 @@ public class SkipDocsGrayedOut extends MSAModule
 					}
 				}
 				
-				if (preloadList.size() == 0 || (currStart == 0 && currEnd == lastEnd)) {
+				if ((preloadList.size() == 0 && (preloadValueList.size() > 0 || preloadAnnotList.size() > 0)) || (currStart == 0 && currEnd == lastEnd)) {
 					System.out.println("Disabled!");
 					pstmtUpdateDocDisabled.setLong(1, docID);
 					pstmtUpdateDocDisabled.execute();
