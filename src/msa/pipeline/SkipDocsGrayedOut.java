@@ -60,10 +60,10 @@ public class SkipDocsGrayedOut extends MSAModule
 				projID = rs.getInt(1);
 			}
 			
-			PreparedStatement pstmtGrayAnnots = conn.prepareStatement("select start, end from " + schema + "annotation where document_id = ? and annotation_type in " 
+			PreparedStatement pstmtGrayAnnots = conn.prepareStatement("select start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type in " 
 				+ strBlder.toString() + " order by start");
-			PreparedStatement pstmtPreloadValues = conn.prepareStatement("select distinct start, end from " + schema + "annotation where document_id = ? and value = ?");
-			PreparedStatement pstmtPreloadAnnots = conn.prepareStatement("select distinct start, end from " + schema + "annotation where document_id = ? and annotation_type = ?");
+			PreparedStatement pstmtPreloadValues = conn.prepareStatement("select distinct start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and value = ?");
+			PreparedStatement pstmtPreloadAnnots = conn.prepareStatement("select distinct start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = ?");
 			PreparedStatement pstmtUpdateDocDisabled = conn.prepareStatement("update " + schema + "frame_instance_document set disabled = 1 where document_id = ?");
 			PreparedStatement pstmtLastEnd = conn.prepareStatement("select max( " + rq + "end" + rq + " ) from " + schema + "annotation where document_id = ? and annotation_type = 'Token'");
 
