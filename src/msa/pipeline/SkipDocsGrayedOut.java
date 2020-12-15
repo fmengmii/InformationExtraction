@@ -55,7 +55,7 @@ public class SkipDocsGrayedOut extends MSAModule
 			
 			Statement stmt = conn.createStatement();
 			int projID = -1;
-			ResultSet rs = stmt.executeQuery("select project_id from " + schema + "project where name = " + projName);
+			ResultSet rs = stmt.executeQuery("select project_id from " + schema + "project where name = '" + projName + "'");
 			if (rs.next()) {
 				projID = rs.getInt(1);
 			}
