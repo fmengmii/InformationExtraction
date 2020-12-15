@@ -81,7 +81,8 @@ public class SkipDocsGrayedOut extends MSAModule
 				System.out.println("Preload values: " + val + ", " + type);
 				
 				if (type == 1) {
-					preloadAnnotList.add(val);
+					if (!val.equals("SentenceDuplicate"))
+						preloadAnnotList.add(val);
 				}
 				else
 					preloadValueList.add(val);
