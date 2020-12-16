@@ -109,7 +109,7 @@ public class AnnotateDuplicate extends MSAModule
 				+ " from " + schema + "annotation a, " + docSchema + docTable + " b where a.document_id = b." + docIDCol + " and a.provenance = 'validation-tool' "
 				+ "and a.document_id in "
 				+ "(select a.document_id from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b where a.frame_instance_id = b.frame_instance_id and "
-				+ "b.project_id = ?) "
+				+ "b.project_id = ?) and not exists (select c.* from " + schema + "annotation c where a.document_id = c.document_id and a.start = c.start and c.provenance = 'validation-tool-duplicate')"
 				+ "order by a.document_id");
 			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + "annotation where document_id = ?");
 			pstmtEntityDoc = conn.prepareStatement("select " + docIDCol + " from " + docSchema + docTable + " where " + docEntityCol + " = ? and " + docIDCol + " in "
