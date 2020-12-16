@@ -29,7 +29,7 @@ public class SkipDocsGrayedOut extends MSAModule
 			String grayAnnotTypeListStr = props.getProperty("grayAnnotTypeList");
 			grayAnnotTypeList = new ArrayList<String>();
 			grayAnnotTypeList = gson.fromJson(grayAnnotTypeListStr, grayAnnotTypeList.getClass());
-			//docQuery = props.getProperty("docQuery");
+			docQuery = props.getProperty("docQuery");
 			schema = props.getProperty("schema") + ".";
 			projName = props.getProperty("projName");
 			
@@ -90,8 +90,12 @@ public class SkipDocsGrayedOut extends MSAModule
 			
 			boolean removed = false;
 			
-			rs = stmt.executeQuery("select distinct document_id from " + schema + "frame_instance_document where frame_instance_id in "
-				+ "(select distinct a.frame_instance_id from " + schema + "project_frame_instance a where a.project_id = " + projID + ") order by document_id");
+			if (docQuery == null) {
+				docQuery = "select distinct document_id from " + schema + "frame_instance_document where frame_instance_id in "
+					+ "(select distinct a.frame_instance_id from " + schema + "project_frame_instance a where a.project_id = " + projID + ") order by document_id";
+			}
+			
+			rs = stmt.executeQuery(docQuery);
 			
 			while (rs.next()) {
 				long docID = rs.getLong(1);
