@@ -162,18 +162,19 @@ public class SkipDocsGrayedOut extends MSAModule
 					if (preloadList.size() > 0) {
 						for (int i=0; i<preloadList.size(); i++) {
 							List<Long> indexes = preloadList.get(i);
-							if (start <= indexes.get(0) && end <= indexes.get(1) && end > indexes.get(0)) {
-								indexes.set(0, end);
-							}
-							else if (start >= indexes.get(0) && end >= indexes.get(1) && start <= indexes.get(1)) {
-								indexes.set(1, start);
-							}
-							else if (start <= indexes.get(0) && end >= indexes.get(1)) {
+							if (start <= indexes.get(0) && end >= indexes.get(1)) {
 								System.out.println("removing: " + indexes.get(0) + ", " + indexes.get(1));
 								preloadList.remove(i);
 								i--;
 								removed = true;
 							}
+							else if (start <= indexes.get(0) && end <= indexes.get(1) && end > indexes.get(0)) {
+								indexes.set(0, end);
+							}
+							else if (start >= indexes.get(0) && end >= indexes.get(1) && start < indexes.get(1)) {
+								indexes.set(1, start);
+							}
+							
 						}
 					}
 				}
