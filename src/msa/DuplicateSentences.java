@@ -102,8 +102,8 @@ public class DuplicateSentences
 					preloadAnnotList.add(val);
 			}
 			
-			PreparedStatement pstmtPreloadValues = conn.prepareStatement("select distinct start, end from " + schema + "annotation where document_id = ? and value = ?");
-			PreparedStatement pstmtPreloadAnnots = conn.prepareStatement("select distinct start, end from " + schema + "annotation where document_id = ? and annotation_type = ?");
+			PreparedStatement pstmtPreloadValues = conn.prepareStatement("select distinct start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and value = ?");
+			PreparedStatement pstmtPreloadAnnots = conn.prepareStatement("select distinct start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = ?");
 						
 			
 			rs = stmt.executeQuery(docQuery);
