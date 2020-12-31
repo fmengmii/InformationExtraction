@@ -102,10 +102,6 @@ public class DuplicateSentences
 					preloadAnnotList.add(val);
 			}
 			
-			PreparedStatement pstmtPreloadValues = conn.prepareStatement("select distinct start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and value = ?");
-			PreparedStatement pstmtPreloadAnnots = conn.prepareStatement("select distinct start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = ?");
-						
-			
 			rs = stmt.executeQuery(docQuery);
 			
 			long currDocID = -1;
@@ -114,37 +110,6 @@ public class DuplicateSentences
 				long docID = rs.getLong(1);
 				int patientSID = rs.getInt(2);
 				int frameInstanceID = rs.getInt(3);
-				
-				pstmtPreloadValues.setLong(1, docID);
-				pstmtPreloadAnnots.setLong(1, docID);
-				
-				List<List<Long>> preloadList = new ArrayList<List<Long>>();
-				for (String val : preloadValueList) {
-					pstmtPreloadValues.setString(2, val);
-					
-					ResultSet rs2 = pstmtPreloadValues.executeQuery();
-					while (rs2.next()) {
-						List<Long> indexes = new ArrayList<Long>();
-						indexes.add(rs.getLong(1));
-						indexes.add(rs.getLong(2));
-						preloadList.add(indexes);
-					}
-				}
-				
-				for (String val : preloadAnnotList) {
-					pstmtPreloadAnnots.setString(2, val);
-					
-					ResultSet rs2 = pstmtPreloadAnnots.executeQuery();
-					while (rs2.next()) {
-						List<Long> indexes = new ArrayList<Long>();
-						indexes.add(rs.getLong(1));
-						indexes.add(rs.getLong(2));
-						preloadList.add(indexes);
-					}
-				}
-				
-				
-				
 				
 				System.out.println("DocID: " + docID + " PatientSID: " + patientSID);
 				
@@ -224,30 +189,6 @@ public class DuplicateSentences
 						System.out.println("wrote duplicate: " + sentStr);
 						
 						annotID++;
-						
-						if (fullGrayed) {
-							if (start2 >= lastStart && end >= lastEnd) {
-								lastStart = start2;
-								lastEnd = end;
-							}
-							else {
-								fullGrayed = false;
-							}
-						}
-						
-						if (preloadList.size() > 0) {
-							for (List<Long> indexes : preloadList) {
-								if (start2 <= indexes.get(0) && end <= indexes.get(1) && end > indexes.get(0)) {
-									indexes.set(0, end);
-								}
-								if (start2 >= indexes.get(0) && end >= indexes.get(1) && start2 <= indexes.get(1)) {
-									indexes.set(1, start2);
-								}
-								if (start2 >= indexes.get(0) && end >= indexes.get(1) && start2 <= indexes.get(1)) {
-									indexes.set(1, start2);
-								}
-							}
-						}
 					}
 					
 					sentMap.put(sentStr, frameInstanceID);
