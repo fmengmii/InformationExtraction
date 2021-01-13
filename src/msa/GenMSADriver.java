@@ -317,7 +317,6 @@ public class GenMSADriver
 	
 	public void run(String user, String password, String docUser, String docPassword)
 	{
-		System.out.println("DEBUG 2");
 		try {
 			//msaAnnotFilterList = new ArrayList<Map<String, Object>>();
 			//msaAnnotFilterList = gson.fromJson(msaAnnotFilterStr, msaAnnotFilterList.getClass());
@@ -823,12 +822,8 @@ public class GenMSADriver
 		}
 		
 		GenMSADriver genMSA = new GenMSADriver();
-		System.out.println("DEBUG 1");
 		genMSA.init(args[4]);
-		System.out.println("DEBUG 2");
 		genMSA.getSentences(args[0], args[1]);
-		System.out.println("DEBUG 3");
 		genMSA.run(args[0], args[1], args[2], args[3]);
-		System.out.println("DEBUG 4");
 	}
 }

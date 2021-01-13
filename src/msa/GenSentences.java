@@ -225,7 +225,7 @@ public class GenSentences
 						}
 						
 						String annotType = annot.getAnnotationType();
-						System.out.println("annotType: " + annotType);
+						//System.out.println("annotType: " + annotType);
 
 						
 						Map<String, Object> annotFilter = annotFilterMap.get(annotType);
