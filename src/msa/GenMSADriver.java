@@ -818,7 +818,7 @@ public class GenMSADriver
 	public static void main(String[] args)
 	{
 		if (args.length != 5) {
-			System.out.println("usage: user password docUser docPassword config");
+			System.out.println("usage: user password docUser docPassword config DEBUG");
 			System.exit(0);
 		}
 		
