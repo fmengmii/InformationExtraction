@@ -422,7 +422,7 @@ public class GenSentences
 			//System.out.println("targetType: " + targetType);
 			
 			if (annotList == null) {
-				//System.out.println("annotlist null");
+				System.out.println("annotlist null");
 				continue;
 			}
 			
