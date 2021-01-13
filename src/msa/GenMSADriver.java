@@ -321,7 +321,7 @@ public class GenMSADriver
 			//msaAnnotFilterList = new ArrayList<Map<String, Object>>();
 			//msaAnnotFilterList = gson.fromJson(msaAnnotFilterStr, msaAnnotFilterList.getClass());
 			
-			System.out.println("genmsa targetType: " + targetType);
+			System.out.println("Gen MSA run! targetType: " + targetType);
 			
 			
 			Map<String, Object> targetMap = new HashMap<String, Object>();
