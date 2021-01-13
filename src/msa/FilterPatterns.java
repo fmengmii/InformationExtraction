@@ -95,6 +95,8 @@ public class FilterPatterns
 	private PreparedStatement pstmtGetAnswers;
 	private PreparedStatement pstmtGetDocIDs;
 	
+	private boolean combineSents;
+	
 	
 	Map<String, Boolean> ansMap;
 	
@@ -267,6 +269,10 @@ public class FilterPatterns
 				requireTargetMap = new HashMap<String, Boolean>();
 				requireTargetMap.put(targetType, requireTarget);
 			}
+			
+			String combineSentsStr = props.getProperty("combineSents");
+			if (combineSentsStr != null)
+				combineSents = Boolean.parseBoolean(combineSentsStr);
 			
 			
 			
@@ -487,6 +493,7 @@ public class FilterPatterns
 				genSent.genSentenceAnnots(docNamespace, docTable);
 			}
 			
+			genSent.setCombineSents(combineSents);
 			
 			
 			//gen new gridlist without targets

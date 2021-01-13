@@ -78,6 +78,8 @@ public class GenMSADriver
 	
 	private boolean incrementalFlag = false;
 	
+	private boolean combineSents;
+	
 	
 	public GenMSADriver()
 	{
@@ -182,6 +184,11 @@ public class GenMSADriver
 			msaMinRows = Integer.parseInt(props.getProperty("msaMinRows"));
 			targetMinRows = Integer.parseInt(props.getProperty("targetMinRows"));
 			
+			String combineSentsStr = props.getProperty("combineSents");
+			if (combineSentsStr != null)
+				combineSents = Boolean.parseBoolean(combineSentsStr);
+			
+			
 			limit = -1;
 			String limitStr = props.getProperty("limit");
 			if (limitStr != null)
@@ -198,6 +205,7 @@ public class GenMSADriver
 			genSent.setTokenType(tokType);
 			genSent.setRequireTarget(requireTarget);
 			genSent.setPunct(punct);
+			genSent.setCombineSents(combineSents);
 			//genSent.init(db, msaAnnotFilterList, targetProvenance);
 			
 			
