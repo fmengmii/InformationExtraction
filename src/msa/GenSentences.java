@@ -237,10 +237,6 @@ public class GenSentences
 						
 						String prov = (String) annotFilter.get("provenance");
 						
-						if (annotType.startsWith("lung")) {
-							//System.out.println("annotType: " + annotType);
-							//System.out.println("prov: " + prov + " annotProv: " + annot.getProvenance());
-						}
 						
 						if (prov != null && annot.getProvenance() != null && !annot.getProvenance().equals(prov))
 							continue;
@@ -422,11 +418,11 @@ public class GenSentences
 			//System.out.println("targetType: " + targetType);
 			
 			if (annotList == null) {
-				System.out.println("annotlist null");
+				//System.out.println("annotlist null");
 				continue;
 			}
 			
-			//System.out.println("annotList: " + annotList.size());
+			System.out.println("annotList: " + annotList.size());
 			
 			for (Annotation annot : annotList) {
 				String annotType = annot.getAnnotationType();
