@@ -274,7 +274,7 @@ public class GenMSADriver
 			db.init(user, password, host, dbName, dbName);
 	
 			//generate the sentences
-			//System.out.println("requireTarget: " + requireTarget + " targetType: " + targetType);
+			System.out.println("requireTarget: " + requireTarget + " targetType: " + targetType);
 			
 			
 			msaAnnotFilterList = new ArrayList<Map<String, Object>>();
@@ -295,6 +295,24 @@ public class GenMSADriver
 			
 			//annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType, scoreList);
 
+			if (requireTarget) {
+				Map<String, Object> targetMap = new HashMap<String, Object>();
+				targetMap.put("annotType", targetType);
+				targetMap.put("target", true);
+				targetMap.put("provenance", targetProvenance);
+				targetMap.put("targetStr", ":target");
+				msaAnnotFilterList.add(targetMap);
+				scoreList.add(100.0);
+				
+				if (targetType2 != null) {
+					targetMap = new HashMap<String, Object>();
+					targetMap.put("annotType", targetType2);
+					targetMap.put("target", true);
+					targetMap.put("provenance", targetProvenance);
+					targetMap.put("targetStr", ":target2");
+					msaAnnotFilterList.add(targetMap);
+				}
+			}
 			
 			
 			genSent.init(db, msaAnnotFilterList, targetProvenance);
@@ -320,8 +338,9 @@ public class GenMSADriver
 			//msaAnnotFilterList = new ArrayList<Map<String, Object>>();
 			//msaAnnotFilterList = gson.fromJson(msaAnnotFilterStr, msaAnnotFilterList.getClass());
 			
-			System.out.println("genmsa targetType: " + targetType);
+			//System.out.println("genmsa targetType: " + targetType);
 			
+			/*
 			Map<String, Object> targetMap = new HashMap<String, Object>();
 			targetMap.put("annotType", targetType);
 			targetMap.put("target", true);
@@ -338,6 +357,7 @@ public class GenMSADriver
 				targetMap.put("targetStr", ":target2");
 				msaAnnotFilterList.add(targetMap);
 			}
+			*/
 			
 			
 			annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType, scoreList);
