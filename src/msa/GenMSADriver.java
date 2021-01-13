@@ -312,7 +312,12 @@ public class GenMSADriver
 					targetMap.put("targetStr", ":target2");
 					msaAnnotFilterList.add(targetMap);
 				}
+				
+				genSent.setTarget(targetMap);
+				genSent.addTargets(targetType);
 			}
+			
+			
 			
 			
 			genSent.init(db, msaAnnotFilterList, targetProvenance);
@@ -415,8 +420,8 @@ public class GenMSADriver
 			}	
 			*/
 			
-			genSent.setTarget(targetMap);
-			genSent.addTargets(targetType);
+			//genSent.setTarget(targetMap);
+			//genSent.addTargets(targetType);
 			
 			List<AnnotationSequence> posSeqList = genSent.getPosSeqList();
 			List<AnnotationSequence> negSeqList = genSent.getNegSeqList();
