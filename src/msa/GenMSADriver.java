@@ -818,14 +818,17 @@ public class GenMSADriver
 	public static void main(String[] args)
 	{
 		if (args.length != 5) {
-			System.out.println("usage: user password docUser docPassword config DEBUG");
+			System.out.println("usage: user password docUser docPassword config");
 			System.exit(0);
 		}
 		
 		GenMSADriver genMSA = new GenMSADriver();
-		genMSA.init(args[4]);
-		genMSA.getSentences(args[0], args[1]);
 		System.out.println("DEBUG 1");
+		genMSA.init(args[4]);
+		System.out.println("DEBUG 2");
+		genMSA.getSentences(args[0], args[1]);
+		System.out.println("DEBUG 3");
 		genMSA.run(args[0], args[1], args[2], args[3]);
+		System.out.println("DEBUG 4");
 	}
 }
