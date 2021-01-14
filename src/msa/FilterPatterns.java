@@ -485,6 +485,8 @@ public class FilterPatterns
 			}
 			
 			genSent.setRequireTarget(false);
+			genSent.setCombineSents(combineSents);
+
 
 			if (docIDList == null)
 				genSent.genSentences(docNamespace, docTable, null, limit);
@@ -493,7 +495,6 @@ public class FilterPatterns
 				genSent.genSentenceAnnots(docNamespace, docTable);
 			}
 			
-			genSent.setCombineSents(combineSents);
 			
 			
 			//gen new gridlist without targets
