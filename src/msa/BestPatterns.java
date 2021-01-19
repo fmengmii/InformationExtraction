@@ -60,7 +60,7 @@ public class BestPatterns
 	private boolean filterFlag;
 	private Map<String, Boolean> profileFilterMap;
 	
-	private int minCount;
+	private int minToks;
 	
 	private Gson gson;
 
@@ -120,7 +120,7 @@ public class BestPatterns
 			write = Boolean.parseBoolean(writeStr);
 		
 		
-		//minCount = Integer.parseInt(props.getProperty("minCount"));
+		minToks = Integer.parseInt(props.getProperty("minToks"));
 		
 		
 
@@ -209,7 +209,7 @@ public class BestPatterns
 				PreparedStatement pstmtUpdateFinal = conn.prepareStatement("update " + schema + finalTable + " set true_pos = ?, false_pos = ?, total = ? where profile_id = ? and target_id = ?");
 				PreparedStatement pstmtUpdateProfile = conn.prepareStatement("update " + schema + profileTable + " set score = ? where profile_id = ?");
 				PreparedStatement pstmtUpdateProfileCounts = conn.prepareStatement("update " + schema + profileTable + " set true_pos = ?, false_pos = ? where profile_id = ?");
-				PreparedStatement pstmtGetIndexCounts = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", b.profile_type, count(*) "
+				PreparedStatement pstmtGetIndexCounts = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", b.profile_type, b.profile, count(*) "
 					+ "from " + schema + rq + indexTable + rq + " a, " + schema + profileTable + " b "
 					+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.document_id = ? "
 					+ "group by a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", b.profile_type");
@@ -347,6 +347,12 @@ public class BestPatterns
 						long end = rs.getLong(4);
 						int profileType = rs.getInt(5);
 						int matchCount = rs.getInt(6);
+						String profileStr = rs.getString(7);
+						
+						List<String> tokList = new ArrayList<String>();
+						tokList = gson.fromJson(profileStr, tokList.getClass());
+						if (tokList.size() < minToks)
+							continue;
 						
 						//System.out.println("profileID: " + profileID + " targetID: " + targetID + " start:" + start + " profileType: " + profileType + " matchCount: " + matchCount);
 						
