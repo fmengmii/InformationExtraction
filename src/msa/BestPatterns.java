@@ -209,10 +209,17 @@ public class BestPatterns
 				PreparedStatement pstmtUpdateFinal = conn.prepareStatement("update " + schema + finalTable + " set true_pos = ?, false_pos = ?, total = ? where profile_id = ? and target_id = ?");
 				PreparedStatement pstmtUpdateProfile = conn.prepareStatement("update " + schema + profileTable + " set score = ? where profile_id = ?");
 				PreparedStatement pstmtUpdateProfileCounts = conn.prepareStatement("update " + schema + profileTable + " set true_pos = ?, false_pos = ? where profile_id = ?");
+				
+				/*
 				PreparedStatement pstmtGetIndexCounts = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", b.profile_type, b.profile, count(*) "
 					+ "from " + schema + rq + indexTable + rq + " a, " + schema + profileTable + " b "
 					+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.document_id = ? "
-					+ "group by a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", b.profile_type");
+					+ "group by a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", b.profile_type, b.profile");
+					*/
+				
+				PreparedStatement pstmtGetIndexCounts = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", b.profile_type, b.profile "
+						+ "from " + schema + rq + indexTable + rq + " a, " + schema + profileTable + " b "
+						+ "where b.annotation_type = '" + annotType + "' and a.profile_id = b.profile_id and a.document_id = ?");
 				
 				
 				PreparedStatement pstmtGetIndexCounts2 = conn.prepareStatement("select a.profile_id, a.target_id, a.start, a." + rq + "end" + rq + ", b.profile_type, count(*) "
@@ -346,8 +353,8 @@ public class BestPatterns
 						long start = rs.getLong(3);
 						long end = rs.getLong(4);
 						int profileType = rs.getInt(5);
-						int matchCount = rs.getInt(6);
-						String profileStr = rs.getString(7);
+						//int matchCount = rs.getInt(6);
+						String profileStr = rs.getString(6);
 						
 						List<String> tokList = new ArrayList<String>();
 						tokList = gson.fromJson(profileStr, tokList.getClass());
