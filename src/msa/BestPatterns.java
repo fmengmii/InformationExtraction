@@ -364,10 +364,10 @@ public class BestPatterns
 							if (tok.equals(":start") || tok.equals(":end") || tok.equals(":target"))
 								continue;
 							
-							/*
+							
 							if (tok.indexOf("|string") < 0)
 								continue;
-								*/
+								
 							
 							tokCount++;
 						}
