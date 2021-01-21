@@ -358,7 +358,19 @@ public class BestPatterns
 						
 						List<String> tokList = new ArrayList<String>();
 						tokList = gson.fromJson(profileStr, tokList.getClass());
-						if (tokList.size() < minToks)
+						
+						int tokCount = 0;
+						for (String tok : tokList) {
+							if (tok.equals(":start") || tok.equals(":end") || tok.equals(":target"))
+								continue;
+							
+							if (tok.indexOf("|string") < 0)
+								continue;
+							
+							tokCount++;
+						}
+						
+						if (tokCount < minToks)
 							continue;
 						
 						//System.out.println("profileID: " + profileID + " targetID: " + targetID + " start:" + start + " profileType: " + profileType + " matchCount: " + matchCount);
