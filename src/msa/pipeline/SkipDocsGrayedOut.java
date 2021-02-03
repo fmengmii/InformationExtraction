@@ -91,7 +91,8 @@ public class SkipDocsGrayedOut extends MSAModule
 			boolean removed = false;
 			
 			if (docQuery == null) {
-				docQuery = "select distinct document_id from " + schema + "frame_instance_document where frame_instance_id in "
+				docQuery = "select distinct a.document_id from " + schema + "frame_instance_document a, " + schema + "document_status b "
+					+ "where a.document_id = b.document_id and b.status = 0 and frame_instance_id in "
 					+ "(select distinct a.frame_instance_id from " + schema + "project_frame_instance a where a.project_id = " + projID + ") order by document_id";
 			}
 			
