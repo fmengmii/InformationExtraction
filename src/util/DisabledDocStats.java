@@ -64,8 +64,7 @@ public class DisabledDocStats
 			Statement stmt = conn.createStatement();
 			ResultSet rs = stmt.executeQuery("select distinct a.document_id, a.disabled from " + schema + "frame_instance_document a, " + schema + "project_frame_instance b, "
 				+ schema + "project c, " + schema + "annotation d "
-				+ "where a.document_id = b.document_id and a.document_table = b.document_table and a.document_namespace = b.document_namespace "
-				+ "and a.document_namespace = '" + docNamespace + "' and a.document_table = '" + docTable + "' and a.disabled = 1 "
+				+ "where a.frame_instance_id = b.frame_instance_id and a.disabled = 1 "
 				+ "and c.name = '" + project + "' and c.project_id = b.project_id and d.annotation_type = '" + targetType + "' "
 				+ "and d.document_id = a.document_id and d.document_namespace = a.document_namespace and d.document_table = a.document_table "
 				+ "order by a.document_id");
