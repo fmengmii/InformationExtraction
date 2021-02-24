@@ -74,11 +74,14 @@ public class DisabledDocStats
 				processDoc(docID);
 			}
 			
+			int countTotal = 0;
 			for (String annotTypes : countMap.keySet()) {
 				int count = countMap.get(annotTypes);
+				countTotal += count;
 				System.out.println(annotTypes + ": " + count + ", " + ((double) count) / ((double) targetTotal));
 			}
 			
+			System.out.println("Total removed: " + countTotal + ", Percentage removed: " + ((double) countTotal) / ((double) targetTotal));
 			System.out.println("Total targets: " + targetTotal);
 			
 			stmt.close();
