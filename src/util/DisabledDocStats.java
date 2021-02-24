@@ -92,6 +92,7 @@ public class DisabledDocStats
 	
 	private void processDoc(long docID) throws SQLException
 	{
+		System.out.println("processing " + docID);
 		pstmt.setLong(3, docID);
 		
 		Map<String, Long> startMap = new HashMap<String, Long>();
@@ -160,6 +161,9 @@ public class DisabledDocStats
 			else {
 				Long start2 = startMap.get(targetType);
 				Long end2 = endMap.get(targetType);
+				if (start2 == null || end2 == null)
+					continue;
+				
 				
 				if (currStart <= start2 && currEnd >= end2) {
 					List<String> annotList = targetPosMap.get(start2);
