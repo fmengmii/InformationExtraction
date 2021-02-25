@@ -112,8 +112,12 @@ public class DisabledDocStats
 			long end = rs.getLong(2);
 			String annotType = rs.getString(3);
 			
+			
 			Long currStart = startMap.get(annotType);
 			Long currEnd = endMap.get(annotType);
+			
+			System.out.println("AnnotType:" + annotType + ", " + start + ", " + end + ", " + currStart + ", " + currEnd);
+
 			
 			if (currStart == null)
 				currStart = (long) -1;
@@ -124,6 +128,9 @@ public class DisabledDocStats
 				startMap.put(annotType, start);
 				currStart = start;
 			}
+			
+			System.out.println("CurrStart: " + currStart + ", " + currEnd);
+			
 
 			if (end > currEnd) {
 				endMap.put(annotType, end);
@@ -142,6 +149,9 @@ public class DisabledDocStats
 					Long end2 = endMap.get(annotType2);
 					
 					if (currStart >= start2 && currEnd <= end2) {
+						
+						System.out.println("adding: " + annotType2 + ", " + start2 + ", " + end2);
+						
 						List<String> annotList = targetPosMap.get(currStart);
 						if (annotList == null) {
 							annotList = new ArrayList<String>();
@@ -169,6 +179,8 @@ public class DisabledDocStats
 				
 				
 				if (currStart <= start2 && currEnd >= end2) {
+					System.out.println("adding: " + annotType + ", " + currStart + ", " + currEnd + ", " + start2 + ", " + end2);
+					
 					List<String> annotList = targetPosMap.get(start2);
 					if (annotList == null) {
 						annotList = new ArrayList<String>();
