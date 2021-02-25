@@ -125,7 +125,7 @@ public class DisabledDocStats
 			}
 			if (currEnd == null) {
 				currEnd = end;
-				startMap.put(annotType, end);
+				endMap.put(annotType, end);
 			}
 			
 			if (start > currEnd + 1) {
