@@ -132,7 +132,7 @@ public class DisabledDocStats
 			
 			if (annotType.equals(targetType)) {
 				targetTotal++;
-				targetPosList.add(start);
+				targetPosList.add(currStart);
 				
 				for (String annotType2 : startMap.keySet()) {
 					if (annotType2.equals(targetType))
@@ -142,10 +142,10 @@ public class DisabledDocStats
 					Long end2 = endMap.get(annotType2);
 					
 					if (currStart >= start2 && currEnd <= end2) {
-						List<String> annotList = targetPosMap.get(start);
+						List<String> annotList = targetPosMap.get(currStart);
 						if (annotList == null) {
 							annotList = new ArrayList<String>();
-							targetPosMap.put(start, annotList);
+							targetPosMap.put(currStart, annotList);
 						}
 						
 						if (!annotList.contains(annotType2)); {	
@@ -172,7 +172,7 @@ public class DisabledDocStats
 					List<String> annotList = targetPosMap.get(start2);
 					if (annotList == null) {
 						annotList = new ArrayList<String>();
-						targetPosMap.put(start2, annotList);
+						//targetPosMap.put(start2, annotList);
 					}
 					
 					if (!annotList.contains(annotType)) {
