@@ -119,10 +119,14 @@ public class DisabledDocStats
 			System.out.println("AnnotType:" + annotType + ", " + start + ", " + end + ", " + currStart + ", " + currEnd);
 
 			
-			if (currStart == null)
+			if (currStart == null) {
 				currStart = start;
-			if (currEnd == null)
+				startMap.put(annotType, start);
+			}
+			if (currEnd == null) {
 				currEnd = end;
+				startMap.put(annotType, end);
+			}
 			
 			if (start > currEnd + 1) {
 				startMap.put(annotType, start);
