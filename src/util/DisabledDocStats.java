@@ -150,7 +150,6 @@ public class DisabledDocStats
 					
 					if (currStart >= start2 && currEnd <= end2) {
 						
-						System.out.println("adding: " + annotType2 + ", " + start2 + ", " + end2);
 						
 						List<String> annotList = targetPosMap.get(currStart);
 						if (annotList == null) {
@@ -161,6 +160,8 @@ public class DisabledDocStats
 						if (!annotList.contains(annotType2)); {	
 							annotList.add(annotType2);
 							
+							System.out.println("adding: " + annotType2 + ", " + start2 + ", " + end2);
+
 							/*
 							Integer count = countMap.get(annotType2);
 							if (count == null)
@@ -179,7 +180,6 @@ public class DisabledDocStats
 				
 				
 				if (currStart <= start2 && currEnd >= end2) {
-					System.out.println("adding: " + annotType + ", " + currStart + ", " + currEnd + ", " + start2 + ", " + end2);
 					
 					List<String> annotList = targetPosMap.get(start2);
 					if (annotList == null) {
@@ -189,6 +189,9 @@ public class DisabledDocStats
 					
 					if (!annotList.contains(annotType)) {
 						annotList.add(annotType);
+						
+						System.out.println("adding: " + annotType + ", " + currStart + ", " + currEnd + ", " + start2 + ", " + end2);
+
 						
 						/*
 						Integer count = countMap.get(annotType);
