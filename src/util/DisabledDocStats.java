@@ -120,22 +120,22 @@ public class DisabledDocStats
 
 			
 			if (currStart == null)
-				currStart = (long) -1;
+				currStart = start;
 			if (currEnd == null)
-				currEnd = (long) -1;
+				currEnd = end;
 			
 			if (start > currEnd + 1) {
 				startMap.put(annotType, start);
 				currStart = start;
-			}
-			
-			System.out.println("CurrStart: " + currStart + ", " + currEnd);
-			
+			}			
 
 			if (end > currEnd) {
 				endMap.put(annotType, end);
 				currEnd = end;
 			}
+			
+			System.out.println("CurrStart: " + currStart + ", " + currEnd);
+
 			
 			if (annotType.equals(targetType)) {
 				targetTotal++;
