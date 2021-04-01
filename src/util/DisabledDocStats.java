@@ -56,7 +56,7 @@ public class DisabledDocStats
 			}
 			
 			strBuf.insert(0, "(");
-			strBuf.append(") and annotation_type = '" + targetType + "'");
+			strBuf.append(" or annotation_type = '" + targetType + "')");
 			
 			pstmt = conn.prepareStatement("select start, " + rq + "end" + rq + ", annotation_type from " + schema + "annotation where document_namespace = ? and document_table = ? "
 				+ "and document_id = ? and " + strBuf.toString() + " order by start");
