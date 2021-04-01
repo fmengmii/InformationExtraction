@@ -79,6 +79,8 @@ public class GenMSA
 	private int msaMinRows;
 	private boolean matchSize = false;
 	
+	private int splitIndex;
+	
 	
 	public GenMSA()
 	{
@@ -215,6 +217,11 @@ public class GenMSA
 	public void setPhrase(int phrase)
 	{
 		this.phrase = phrase;
+	}
+	
+	public void setSplitIndex(int splitIndex)
+	{
+		this.splitIndex = splitIndex;
 	}
 	
 	public void init(String user, String password, String config)
@@ -418,8 +425,11 @@ public class GenMSA
 				
 				SentenceInfo sentInfo1 = new SentenceInfo(docNamespace, docTable, docID1, sentID1);
 				
+				int innerStart = splitIndex;
+				if (i >= splitIndex)
+					innerStart = i+1;
 				
-				for (int j=i+1; j<gridList.size(); j++) {
+				for (int j=innerStart; j<gridList.size(); j++) {
 					AnnotationSequenceGrid grid2 = gridList.get(j);
 					AnnotationSequence seq2 = grid2.getSequence();
 					

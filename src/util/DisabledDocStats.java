@@ -36,7 +36,7 @@ public class DisabledDocStats
 			String docNamespace = props.getProperty("docNamespace");
 			String docTable = props.getProperty("docTable");
 			String schema = props.getProperty("schema") + ".";
-			List<String> annotTypeList = new ArrayList<String>();
+			List<List<String>> annotTypeList = new ArrayList<List<String>>();
 			targetType = props.getProperty("targetType");
 			annotTypeList = gson.fromJson(props.getProperty("annotTypeList"), annotTypeList.getClass());
 			
@@ -47,17 +47,19 @@ public class DisabledDocStats
 			String rq = DBConnection.reservedQuote;
 			
 			StringBuffer strBuf = new StringBuffer();
-			for (String annotType : annotTypeList) {
+			for (List<String> annotTypeProv : annotTypeList) {
+				String annotType = annotTypeProv.get(0);
+				String prov = annotTypeProv.get(1);
 				if (strBuf.length() > 0)
-					strBuf.append(", ");
-				strBuf.append("'" + annotType + "'");
+					strBuf.append(" or ");
+				strBuf.append("(annotation_type = '" + annotType + "' and provenance = '" + prov + "')");
 			}
 			
 			strBuf.insert(0, "(");
-			strBuf.append(", '" + targetType + "')");
+			strBuf.append(") and annotation_type = '" + targetType + "'");
 			
 			pstmt = conn.prepareStatement("select start, " + rq + "end" + rq + ", annotation_type from " + schema + "annotation where document_namespace = ? and document_table = ? "
-				+ "and document_id = ? and annotation_type in " + strBuf.toString() + " order by start");
+				+ "and document_id = ? and " + strBuf.toString() + " order by start");
 			pstmt.setString(1, docNamespace);
 			pstmt.setString(2, docTable);
 			

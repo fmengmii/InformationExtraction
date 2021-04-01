@@ -22,6 +22,7 @@ import utils.db.DBConnection;
 public class GenMSADriver
 {
 	private GenSentences genSent;
+	private GenSentences genSent2;
 	private GenMSA genMSA;
 	private GenAnnotationGrid genGrid;
 	
@@ -41,6 +42,8 @@ public class GenMSADriver
 	private String docDBType;
 	
 	private List<Long> docIDList;
+	private List<Long> docIDList2;
+	private int splitIndex;
 	private int lastDocIndex;
 	private boolean requireTarget;
 	private boolean punct;
@@ -79,6 +82,8 @@ public class GenMSADriver
 	private boolean incrementalFlag = false;
 	
 	private boolean combineSents;
+	
+	private String projName;
 	
 	
 	public GenMSADriver()
@@ -162,6 +167,8 @@ public class GenMSADriver
 			targetGroup = props.getProperty("targetGroup");
 			schema = props.getProperty("schema");
 			
+			projName = props.getProperty("projName");
+			
 			punct = Boolean.parseBoolean(props.getProperty("punctuation"));
 			write = Boolean.parseBoolean(props.getProperty("write"));
 			verbose = Boolean.parseBoolean(props.getProperty("verbose"));
@@ -207,6 +214,13 @@ public class GenMSADriver
 			genSent.setPunct(punct);
 			genSent.setCombineSents(combineSents);
 			//genSent.init(db, msaAnnotFilterList, targetProvenance);
+			
+			genSent2 = new GenSentences();
+			genSent2.setVerbose(verbose);
+			genSent2.setTokenType(tokType);
+			genSent2.setRequireTarget(requireTarget);
+			genSent2.setPunct(punct);
+			genSent2.setCombineSents(combineSents);
 			
 			
 			scoreList = new ArrayList<Double>();
@@ -254,8 +268,9 @@ public class GenMSADriver
 	public void getSentences(String user, String password, List<String> annotTypeList)
 	{
 		try {
+			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);	
+
 			if (docDBQuery != null && docIDList == null) {			
-				conn = DBConnection.dbConnection(user, password, host, dbName, dbType);	
 				//docIDList = getDocIDList(docDBQuery);
 				//docIDList = MSAUtils.getDocIDList(docDBConn, docDBQuery);
 				
@@ -268,8 +283,31 @@ public class GenMSADriver
 					docIDList.add(rs.getLong(1));
 				}
 				
-				conn.close();
 			}
+			else {
+				docIDList = new ArrayList<Long>();
+				docIDList2 = new ArrayList<Long>();
+				
+				Statement stmt = conn.createStatement();
+				ResultSet rs = stmt.executeQuery("select a.document_id from " + schema + "frame_instance_document a, " + schema + "document_status b, " + schema + "project_frame_instance c, "
+					+ schema + "project d "
+					+ "where a.document_id = b.document_id and b.status = 2 and a.frame_instance_id = c.frame_instance_id and c.project_id = d.project_id and d.name = '" + projName + "'");
+				
+				while (rs.next()) {
+					docIDList.add(rs.getLong(1));
+				}
+				
+				rs = stmt.executeQuery("select a.document_id from " + schema + "frame_instance_document a, " + schema + "document_status b, " + schema + "project_frame_instance c, "
+						+ schema + "project d "
+						+ "where a.document_id = b.document_id and b.status = 1 and a.frame_instance_id = c.frame_instance_id and c.project_id = d.project_id and d.name = '" + projName + "'");
+				
+				while (rs.next()) {
+					docIDList2.add(rs.getLong(1));
+				}
+			}
+			
+			conn.close();
+
 			
 			db.init(user, password, host, dbName, dbName);
 	
@@ -299,12 +337,16 @@ public class GenMSADriver
 			
 			
 			genSent.init(db, msaAnnotFilterList, targetProvenance);
+			genSent2.init(db, msaAnnotFilterList, targetProvenance);
 			
 			if (docIDList == null)
 				genSent.genSentences(docNamespace, docTable, null, limit);
 			else {
 				genSent.setDocIDList(docIDList);
 				genSent.genSentenceAnnots(docNamespace, docTable);
+				
+				genSent2.setDocIDList(docIDList2);
+				genSent2.genSentenceAnnots(docNamespace, docTable);
 			}
 			
 			
@@ -401,13 +443,27 @@ public class GenMSADriver
 			genSent.setTarget(targetMap);
 			genSent.addTargets(targetType);
 			
+			genSent2.setTarget(targetMap);
+			genSent2.addTargets(targetType);
+			
 			List<AnnotationSequence> posSeqList = genSent.getPosSeqList();
 			List<AnnotationSequence> negSeqList = genSent.getNegSeqList();
+			
+			List<AnnotationSequence> posSeqList2 = genSent2.getPosSeqList();
+			List<AnnotationSequence> negSeqList2 = genSent2.getNegSeqList();
+			
 			List<AnnotationSequence> seqList = posSeqList;
 			
 			if (!requireTarget)
 				seqList = negSeqList;
 			
+			splitIndex = seqList.size();
+
+			
+			if (requireTarget)
+				seqList.addAll(posSeqList2);
+			else
+				seqList.addAll(negSeqList2);
 			
 			
 			//loop generating blocks of grids no more than size msaBlockSize
@@ -415,9 +471,9 @@ public class GenMSADriver
 			int numBlocks = (seqList.size() / msaBlockSize) + 1;
 			int currStartIndex = 0;
 			
-			System.out.println("msaBlockSize: " + msaBlockSize + " numBlocks: " + numBlocks + " seqList size: " + seqList.size());
-
+			//System.out.println("msaBlockSize: " + msaBlockSize + " numBlocks: " + numBlocks + " seqList size: " + seqList.size());
 			
+
 			totalDocList = new ArrayList<DocBean>();
 			List<DocBean> docList = new ArrayList<DocBean>();
 			
@@ -503,6 +559,11 @@ public class GenMSADriver
 				genMSA.setSyntax(syntax);
 				genMSA.setPhrase(phrase);
 				genMSA.setGridList(null);
+				
+				if (currStartIndex == 0)
+					genMSA.setSplitIndex(splitIndex);
+				else
+					genMSA.setSplitIndex(0);
 				
 							
 				List<MultipleSequenceAlignment> msaList = genMSA.genMSA();
@@ -689,6 +750,8 @@ public class GenMSADriver
 			
 			//genMSA.close();
 			//db.close();
+			
+			System.out.println("msaBlockSize: " + msaBlockSize + " numBlocks: " + numBlocks + " seqList size: " + seqList.size());
 		}
 		catch(Exception e)
 		{

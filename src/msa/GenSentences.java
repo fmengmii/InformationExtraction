@@ -179,7 +179,6 @@ public class GenSentences
 	{
 		seqList = new ArrayList<AnnotationSequence>();
 		sentList = new ArrayList<AnnotationSentence>();
-		negSeqList = new ArrayList<AnnotationSequence>();
 		
 		try {	
 			for (long docID : docIDList) {
