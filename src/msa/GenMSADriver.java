@@ -291,7 +291,7 @@ public class GenMSADriver
 				Statement stmt = conn.createStatement();
 				ResultSet rs = stmt.executeQuery("select a.document_id from " + schema + "frame_instance_document a, " + schema + "document_status b, " + schema + "project_frame_instance c, "
 					+ schema + "project d "
-					+ "where a.document_id = b.document_id and b.status = 2 and a.frame_instance_id = c.frame_instance_id and c.project_id = d.project_id and d.name = '" + projName + "'");
+					+ "where a.document_id = b.document_id and b.status = 2 and b.disabled = 0 and a.frame_instance_id = c.frame_instance_id and c.project_id = d.project_id and d.name = '" + projName + "'");
 				
 				while (rs.next()) {
 					docIDList.add(rs.getLong(1));
@@ -299,7 +299,7 @@ public class GenMSADriver
 				
 				rs = stmt.executeQuery("select a.document_id from " + schema + "frame_instance_document a, " + schema + "document_status b, " + schema + "project_frame_instance c, "
 						+ schema + "project d "
-						+ "where a.document_id = b.document_id and b.status = 1 and a.frame_instance_id = c.frame_instance_id and c.project_id = d.project_id and d.name = '" + projName + "'");
+						+ "where a.document_id = b.document_id and b.status = 1 and b.disabled = 0 and a.frame_instance_id = c.frame_instance_id and c.project_id = d.project_id and d.name = '" + projName + "'");
 				
 				while (rs.next()) {
 					docIDList2.add(rs.getLong(1));
