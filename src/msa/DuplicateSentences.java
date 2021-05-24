@@ -4,6 +4,7 @@ import java.io.*;
 import java.sql.*;
 import java.util.*;
 
+import align.SmithWatermanMSA;
 import nlputils.sequence.SequenceUtilities;
 import utils.db.DBConnection;
 
@@ -15,14 +16,24 @@ public class DuplicateSentences
 	private PreparedStatement pstmtSent;
 	private PreparedStatement pstmtSentAnnots;
 	private PreparedStatement pstmtAnnotID;
+	private PreparedStatement pstmtAnnot;
+	
+	private SmithWatermanMSA sw;
 	
 	private String schema;
+	private String targetType;
 	
 	private int orderNum = 0;
+	
+	private List<List<String>> currToksList;
+	private List<Annotation> targetList;
+	private List<List<String>> finalToksList;
+	private int minAlignSize;
 	
 	
 	public DuplicateSentences()
 	{
+		sw = new SmithWatermanMSA();
 	}
 	
 	public void annotateDuplicateSentences(String user, String password, String config, boolean orderFlag)
@@ -40,6 +51,10 @@ public class DuplicateSentences
 			String docEntityCol = props.getProperty("docEntityColumn");
 			String docIDCol = props.getProperty("docIDColumn");
 			int projID = Integer.parseInt(props.getProperty("projectID"));
+			targetType = props.getProperty("targetType");
+			minAlignSize = Integer.parseInt(props.getProperty("minAlignSize"));
+			
+			finalToksList = new ArrayList<List<String>>();
 			
 			
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
@@ -54,9 +69,13 @@ public class DuplicateSentences
 				docNamespace = docDBName + "." + docSchema;
 			
 			pstmtSent = conn.prepareStatement("select id, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = 'Sentence' order by start");
-			pstmtSentAnnots = conn.prepareStatement("select value from " + schema + "annotation where document_id = ? and start >= ? and " + rq  + "end" + rq + " <= ? and annotation_type = 'Token' order by start");
-			PreparedStatement pstmtAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance, score) "
-				+ "values (?,'" + docNamespace + "','" + docTable + "',?,'SentenceDuplicate',?,?,'','','duplicate-sentences-util',1.0)");
+			pstmtSentAnnots = conn.prepareStatement("select start, " + rq + "end" + rq + ", value from " + schema + "annotation where document_id = ? and start >= ? and " + rq  + "end" + rq + " <= ? "
+				+ "and (annotation_type = 'Token' or annotation_type = '" + targetType + "') order by start");
+			//pstmtAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance, score) "
+			//	+ "values (?,'" + docNamespace + "','" + docTable + "',?,'SentenceDuplicate',?,?,'','','duplicate-sentences-util',1.0)");
+			pstmtAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance, score) "
+					+ "values (?,'" + docNamespace + "','" + docTable + "',?,?,?,?,'','','duplicate-sentences-util',1.0)");
+
 			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + "annotation where document_id = ?");
 			
 			Statement stmt = conn.createStatement();
@@ -175,8 +194,9 @@ public class DuplicateSentences
 						//int annotID = getAnnotID(docID);
 						pstmtAnnot.setInt(1, annotID);
 						pstmtAnnot.setLong(2, docID);
-						pstmtAnnot.setLong(3, start2);
-						pstmtAnnot.setLong(4, end);
+						pstmtAnnot.setString(3, "SentenceDuplicate");
+						pstmtAnnot.setLong(4, start2);
+						pstmtAnnot.setLong(5, end);
 						pstmtAnnot.addBatch();
 						batchCount++;
 						
@@ -193,6 +213,8 @@ public class DuplicateSentences
 					
 					sentMap.put(sentStr, frameInstanceID);
 				}
+				
+				align(docID);
 			}
 			
 			pstmtAnnot.executeBatch();
@@ -219,6 +241,10 @@ public class DuplicateSentences
 	private List<AnnotationSequence> getSequences(long docID)
 	{
 		List<AnnotationSequence> seqList = new ArrayList<AnnotationSequence>();
+		//List<List<String>> tokList = new ArrayList<List<String>>();
+		targetList = new ArrayList<Annotation>();
+		currToksList = new ArrayList<List<String>>();
+		
 		try {
 			pstmtSent.setLong(1, docID);
 			ResultSet rs = pstmtSent.executeQuery();
@@ -232,15 +258,57 @@ public class DuplicateSentences
 				pstmtSentAnnots.setLong(3, end);
 				ResultSet rs2 = pstmtSentAnnots.executeQuery();
 				
+				AnnotationSequence seq = new AnnotationSequence(docID, sentID, start, end);
+				
 				List<String> toks = new ArrayList<String>();
+				//List<Annotation> targetList = new ArrayList<Annotation>();
+				List<Annotation> annotList = new ArrayList<Annotation>();
+				
 				while(rs2.next()) {
-					String tokStr = rs2.getString(1);
-					toks.add(tokStr);
+					long start2 = rs2.getLong(1);
+					long end2 = rs2.getLong(2);
+					String annotType = rs2.getString(3);
+					String tokStr = rs2.getString(4);
+					
+					
+					Annotation annot = new Annotation(-1, targetType, start2, end2, tokStr, null);
+					
+					if (annotType.equals(targetType))
+						targetList.add(annot);
+					else {
+						annotList.add(annot);
+						toks.add(tokStr);
+					}
+					
 				}
 				
-				AnnotationSequence seq = new AnnotationSequence(docID, sentID, start, end);
 				seq.setToks(toks);
 				seqList.add(seq);
+				
+				
+				for (int i=0; i<targetList.size(); i++) {
+					Annotation target = targetList.get(i);					
+					List<String> toks2 = new ArrayList<String>();
+					
+					boolean addedTarget = false;
+					for (Annotation annot : annotList) {
+						if ((annot.getStart() <= target.getStart() && annot.getEnd() >= target.getEnd()) ||
+							(annot.getStart() >= target.getStart() && annot.getEnd() <= target.getEnd()) ||
+							(annot.getStart() <= target.getEnd() && annot.getEnd() >= target.getEnd())) {
+							
+							if (!addedTarget) {
+								toks2.add(":target");
+								addedTarget = true;
+							}
+							
+							continue;
+						}
+						
+						toks2.add(annot.getValue());					
+					}
+					
+					currToksList.add(toks2);
+				}
 			}
 		}
 		catch(Exception e)
@@ -249,6 +317,41 @@ public class DuplicateSentences
 		}
 		
 		return seqList;
+	}
+	
+	private void align(long docID) throws SQLException
+	{
+		List<List<String>> finalToksList2 = new ArrayList<List<String>>();
+		
+		for (List<String> toksList : finalToksList) {
+			for (int i=0; i<currToksList.size(); i++) {
+				List<String> toksList2 = currToksList.get(i);
+				sw.align(toksList, toksList2);
+				List<String> align2 = sw.getAlignment2();
+				
+				if (align2.size() >= minAlignSize) {
+					//gen duplicate annotation
+					Annotation targetAnnot = targetList.get(i);
+					int annotID = getAnnotID(docID) + 1;
+					
+					pstmtAnnot.setInt(1, annotID);
+					pstmtAnnot.setLong(2, docID);
+					pstmtAnnot.setString(3, "TargetDuplicate");
+					pstmtAnnot.setLong(4, targetAnnot.getStart());
+					pstmtAnnot.setLong(5, targetAnnot.getEnd());
+					pstmtAnnot.execute();
+					
+					System.out.println("Adding TargetDuplicate! DocID: " + docID + ", start: " + targetAnnot.getStart() + ", end:" + targetAnnot.getEnd());
+				}
+				
+				if (((int) align2.size()) / ((int) toksList.size()) < 0.9) {
+					//add toksList2 to finalToksList
+					finalToksList2.add(toksList2);
+				}
+			}
+		}
+		
+		finalToksList.addAll(finalToksList2);
 	}
 	
 	private int getAnnotID(long docID)

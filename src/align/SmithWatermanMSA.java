@@ -1,8 +1,11 @@
-package msa;
+package align;
 
 import nlputils.sequence.*;
 
 import java.util.*;
+
+import msa.MultipleSequenceAlignment;
+import msa.ScoreTokens;
 
 public class SmithWatermanMSA 
 {
