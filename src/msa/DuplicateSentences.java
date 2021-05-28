@@ -69,7 +69,7 @@ public class DuplicateSentences
 				docNamespace = docDBName + "." + docSchema;
 			
 			pstmtSent = conn.prepareStatement("select id, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = 'Sentence' order by start");
-			pstmtSentAnnots = conn.prepareStatement("select start, " + rq + "end" + rq + ", value from " + schema + "annotation where document_id = ? and start >= ? and " + rq  + "end" + rq + " <= ? "
+			pstmtSentAnnots = conn.prepareStatement("select start, " + rq + "end" + rq + ", annotation_type, value from " + schema + "annotation where document_id = ? and start >= ? and " + rq  + "end" + rq + " <= ? "
 				+ "and (annotation_type = 'Token' or annotation_type = '" + targetType + "') order by start");
 			//pstmtAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance, score) "
 			//	+ "values (?,'" + docNamespace + "','" + docTable + "',?,'SentenceDuplicate',?,?,'','','duplicate-sentences-util',1.0)");
