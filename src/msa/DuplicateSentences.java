@@ -329,6 +329,12 @@ public class DuplicateSentences
 				sw.align(toksList, toksList2);
 				List<String> align2 = sw.getAlignment2();
 				
+				if (align2.size() >= 2) {
+					System.out.println("seq1: " + SequenceUtilities.getStrFromToks(toksList));
+					System.out.println("seq2: " + SequenceUtilities.getStrFromToks(toksList2));
+					System.out.println("align2: " + SequenceUtilities.getStrFromToks(align2));
+				}
+				
 				if (align2.size() >= minAlignSize) {
 					//gen duplicate annotation
 					Annotation targetAnnot = targetList.get(i);
