@@ -307,6 +307,7 @@ public class DuplicateSentences
 						toks2.add(annot.getValue());					
 					}
 					
+					System.out.println("adding seq: " + SequenceUtilities.getStrFromToks(toks2));
 					currToksList.add(toks2);
 				}
 			}
@@ -329,7 +330,7 @@ public class DuplicateSentences
 				sw.align(toksList, toksList2);
 				List<String> align2 = sw.getAlignment2();
 				
-				if (align2.size() >= 2) {
+				if (align2.size() >= 1) {
 					System.out.println("seq1: " + SequenceUtilities.getStrFromToks(toksList));
 					System.out.println("seq2: " + SequenceUtilities.getStrFromToks(toksList2));
 					System.out.println("align2: " + SequenceUtilities.getStrFromToks(align2));
