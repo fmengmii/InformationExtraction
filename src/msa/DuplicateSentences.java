@@ -259,6 +259,7 @@ public class DuplicateSentences
 				ResultSet rs2 = pstmtSentAnnots.executeQuery();
 				
 				AnnotationSequence seq = new AnnotationSequence(docID, sentID, start, end);
+				List<Annotation> currTargetList = new ArrayList<Annotation>();
 				
 				List<String> toks = new ArrayList<String>();
 				//List<Annotation> targetList = new ArrayList<Annotation>();
@@ -274,7 +275,7 @@ public class DuplicateSentences
 					Annotation annot = new Annotation(-1, targetType, start2, end2, tokStr, null);
 					
 					if (annotType.equals(targetType))
-						targetList.add(annot);
+						currTargetList.add(annot);
 					else {
 						annotList.add(annot);
 						toks.add(tokStr);
@@ -285,9 +286,13 @@ public class DuplicateSentences
 				seq.setToks(toks);
 				seqList.add(seq);
 				
+				if (currTargetList.size() > 0) {
+					targetList.addAll(currTargetList);
+				}
 				
-				for (int i=0; i<targetList.size(); i++) {
-					Annotation target = targetList.get(i);					
+				
+				for (int i=0; i<currTargetList.size(); i++) {
+					Annotation target = currTargetList.get(i);					
 					List<String> toks2 = new ArrayList<String>();
 					
 					boolean addedTarget = false;
@@ -307,8 +312,10 @@ public class DuplicateSentences
 						toks2.add(annot.getValue());					
 					}
 					
-					System.out.println("adding seq: " + SequenceUtilities.getStrFromToks(toks2));
-					currToksList.add(toks2);
+					if (addedTarget) {
+						System.out.println("adding seq: " + SequenceUtilities.getStrFromToks(toks2));
+						currToksList.add(toks2);
+					}
 				}
 			}
 		}
