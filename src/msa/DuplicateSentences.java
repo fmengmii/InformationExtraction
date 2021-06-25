@@ -338,7 +338,7 @@ public class DuplicateSentences
 				List<String> align2 = sw.getAlignment2();
 				int gaps = sw.getGaps2();
 				
-				if (align2.size() >= 1) {
+				if (align2.size() >= minAlignSize && gaps == 0) {
 					System.out.println("seq1: " + SequenceUtilities.getStrFromToks(toksList));
 					System.out.println("seq2: " + SequenceUtilities.getStrFromToks(toksList2));
 					System.out.println("align2: " + SequenceUtilities.getStrFromToks(align2));
