@@ -355,6 +355,7 @@ public class DuplicateSentences
 					pstmtAnnot.setLong(4, targetAnnot.getStart());
 					pstmtAnnot.setLong(5, targetAnnot.getEnd());
 					pstmtAnnot.execute();
+					conn2.commit();
 					
 					System.out.println("Adding TargetDuplicate! DocID: " + docID + ", start: " + targetAnnot.getStart() + ", end:" + targetAnnot.getEnd());
 				}
