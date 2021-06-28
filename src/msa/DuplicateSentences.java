@@ -338,13 +338,15 @@ public class DuplicateSentences
 				List<String> align2 = sw.getAlignment2();
 				int gaps = sw.getGaps2();
 				
-				if (align2.size() >= minAlignSize && gaps == 0) {
-					System.out.println("seq1: " + SequenceUtilities.getStrFromToks(toksList));
-					System.out.println("seq2: " + SequenceUtilities.getStrFromToks(toksList2));
-					System.out.println("align2: " + SequenceUtilities.getStrFromToks(align2));
-				}
+				System.out.println("seq1: " + SequenceUtilities.getStrFromToks(toksList));
+				System.out.println("seq2: " + SequenceUtilities.getStrFromToks(toksList2));
+				System.out.println("align2: " + SequenceUtilities.getStrFromToks(align2));
 				
 				if (align2.size() >= minAlignSize && gaps == 0) {
+					//System.out.println("seq1: " + SequenceUtilities.getStrFromToks(toksList));
+					//System.out.println("seq2: " + SequenceUtilities.getStrFromToks(toksList2));
+					//System.out.println("align2: " + SequenceUtilities.getStrFromToks(align2));
+
 					//gen duplicate annotation
 					Annotation targetAnnot = targetList.get(i);
 					int annotID = getAnnotID(docID) + 1;
@@ -363,6 +365,7 @@ public class DuplicateSentences
 				if (((int) align2.size()) / ((int) toksList.size()) < 0.9) {
 					//add toksList2 to finalToksList
 					finalToksList2.add(toksList2);
+					System.out.println("Adding to final toks list");
 				}
 			}
 		}
