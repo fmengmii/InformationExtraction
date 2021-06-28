@@ -331,6 +331,7 @@ public class DuplicateSentences
 	{
 		List<List<String>> finalToksList2 = new ArrayList<List<String>>();
 		
+		Map<Integer, Boolean> indexMap = new HashMap<Integer, Boolean>();
 		for (List<String> toksList : finalToksList) {
 			for (int i=0; i<currToksList.size(); i++) {
 				List<String> toksList2 = currToksList.get(i);
@@ -363,9 +364,13 @@ public class DuplicateSentences
 				}
 				
 				if (((int) align2.size()) / ((int) toksList.size()) < 0.9) {
-					//add toksList2 to finalToksList
-					finalToksList2.add(toksList2);
-					System.out.println("Adding to final toks list: " + SequenceUtilities.getStrFromToks(toksList2) + ", " + ((int) align2.size()) / ((int) toksList.size()));
+					if (indexMap.get(i) == null) {
+						//add toksList2 to finalToksList
+						finalToksList2.add(toksList2);
+						System.out.println("Adding to final toks list: " + SequenceUtilities.getStrFromToks(toksList2) + ", " + ((int) align2.size()) / ((int) toksList.size()));
+						
+						indexMap.put(i, true);
+					}
 				}
 			}
 		}
