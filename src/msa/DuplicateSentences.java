@@ -340,7 +340,8 @@ public class DuplicateSentences
 				int gaps1 = sw.getGaps1();
 				int gaps2 = sw.getGaps2();
 				
-				if (align1.size() >= minAlignSize && align2.size() >= minAlignSize && gaps1 == 0 && gaps2 == 0) {
+				if (align1.size() >= minAlignSize && align2.size() >= minAlignSize && gaps1 == 0 && gaps2 == 0
+						&& align1.size() < toksList.size() && align2.size() < toksList2.size()) {
 					System.out.println("seq1: " + SequenceUtilities.getStrFromToks(toksList));
 					System.out.println("seq2: " + SequenceUtilities.getStrFromToks(toksList2));
 					System.out.println("align1: " + SequenceUtilities.getStrFromToks(align1));
