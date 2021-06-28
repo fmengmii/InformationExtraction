@@ -363,16 +363,14 @@ public class DuplicateSentences
 					System.out.println("Adding TargetDuplicate! DocID: " + docID + ", start: " + targetAnnot.getStart() + ", end:" + targetAnnot.getEnd());
 				}
 				
-				if (((int) align2.size()) / ((int) toksList.size()) < 0.9) {
-					if (indexMap.get(i) == null) {
-						//add toksList2 to finalToksList
-						finalToksList2.add(toksList2);
-						System.out.println("Adding to final toks list: " + SequenceUtilities.getStrFromToks(toksList2) + ", " + ((int) align2.size()) / ((int) toksList.size()));
-						
-						indexMap.put(i, true);
-					}
-				}
+				if (((int) align2.size()) / ((int) toksList.size()) > 0.9)
+					indexMap.put(i, true);
 			}
+		}
+		
+		for (int i=0; i<currToksList.size(); i++) {
+			if (indexMap.get(i) == null)
+				finalToksList2.add(currToksList.get(i));
 		}
 		
 		if (finalToksList.size() == 0) {
