@@ -335,14 +335,17 @@ public class DuplicateSentences
 			for (int i=0; i<currToksList.size(); i++) {
 				List<String> toksList2 = currToksList.get(i);
 				sw.align(toksList, toksList2);
+				List<String> align1 = sw.getAlignment1();
 				List<String> align2 = sw.getAlignment2();
-				int gaps = sw.getGaps2();
+				int gaps1 = sw.getGaps1();
+				int gaps2 = sw.getGaps2();
 				
 				System.out.println("seq1: " + SequenceUtilities.getStrFromToks(toksList));
 				System.out.println("seq2: " + SequenceUtilities.getStrFromToks(toksList2));
+				System.out.println("align1: " + SequenceUtilities.getStrFromToks(align1));
 				System.out.println("align2: " + SequenceUtilities.getStrFromToks(align2));
 				
-				if (align2.size() >= minAlignSize && gaps == 0) {
+				if (align1.size() >= minAlignSize && align2.size() >= minAlignSize && gaps1 == 0 && gaps2 == 0) {
 					//System.out.println("seq1: " + SequenceUtilities.getStrFromToks(toksList));
 					//System.out.println("seq2: " + SequenceUtilities.getStrFromToks(toksList2));
 					//System.out.println("align2: " + SequenceUtilities.getStrFromToks(align2));
