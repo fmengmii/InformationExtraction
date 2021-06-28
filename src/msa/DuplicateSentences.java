@@ -340,15 +340,11 @@ public class DuplicateSentences
 				int gaps1 = sw.getGaps1();
 				int gaps2 = sw.getGaps2();
 				
-				System.out.println("seq1: " + SequenceUtilities.getStrFromToks(toksList));
-				System.out.println("seq2: " + SequenceUtilities.getStrFromToks(toksList2));
-				System.out.println("align1: " + SequenceUtilities.getStrFromToks(align1));
-				System.out.println("align2: " + SequenceUtilities.getStrFromToks(align2));
-				
 				if (align1.size() >= minAlignSize && align2.size() >= minAlignSize && gaps1 == 0 && gaps2 == 0) {
-					//System.out.println("seq1: " + SequenceUtilities.getStrFromToks(toksList));
-					//System.out.println("seq2: " + SequenceUtilities.getStrFromToks(toksList2));
-					//System.out.println("align2: " + SequenceUtilities.getStrFromToks(align2));
+					System.out.println("seq1: " + SequenceUtilities.getStrFromToks(toksList));
+					System.out.println("seq2: " + SequenceUtilities.getStrFromToks(toksList2));
+					System.out.println("align1: " + SequenceUtilities.getStrFromToks(align1));
+					System.out.println("align2: " + SequenceUtilities.getStrFromToks(align2));
 
 					//gen duplicate annotation
 					Annotation targetAnnot = targetList.get(i);
