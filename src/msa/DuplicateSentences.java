@@ -68,7 +68,8 @@ public class DuplicateSentences
 			if (dbType.startsWith("sqlserver") && !dbName.equals(docDBName))
 				docNamespace = docDBName + "." + docSchema;
 			
-			pstmtSent = conn.prepareStatement("select id, start, " + rq + "end" + rq + " from " + schema + "annotation where document_id = ? and annotation_type = 'Sentence' order by start");
+			pstmtSent = conn.prepareStatement("select id, start, " + rq + "end" + rq + " from " + schema + "annotation where "
+				+ "document_namespace = '" + docSchema + "' and document_table = '" + docTable + "' and document_id = ? and annotation_type = 'Sentence' order by start");
 			pstmtSentAnnots = conn.prepareStatement("select start, " + rq + "end" + rq + ", annotation_type, value from " + schema + "annotation where "
 				+ "document_namespace = '" + docSchema + "' and document_table = '" + docTable + "' and " + "document_id = ? "
 				+ "and start >= ? and " + rq  + "end" + rq + " <= ? "
@@ -78,7 +79,8 @@ public class DuplicateSentences
 			pstmtAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance, score) "
 					+ "values (?,'" + docNamespace + "','" + docTable + "',?,?,?,?,'','','duplicate-sentences-util',1.0)");
 
-			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + "annotation where document_id = ?");
+			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + "annotation where document_namespace = '" + docSchema 
+				+ "' and document_table = '" + docTable + "' and document_id = ?");
 			
 			Statement stmt = conn.createStatement();
 			
