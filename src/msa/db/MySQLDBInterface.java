@@ -34,6 +34,7 @@ public class MySQLDBInterface implements MSADBInterface
 	private PreparedStatement pstmtProfileInsert;
 	private PreparedStatement pstmtSents;
 	private PreparedStatement pstmtSentAnnots;
+	private PreparedStatement pstmtAnnotText;
 	private PreparedStatement pstmtAnnotInsert;
 	private PreparedStatement pstmtDeleteProfiles;
 	private PreparedStatement pstmtReadProfile;
@@ -91,7 +92,7 @@ public class MySQLDBInterface implements MSADBInterface
 
 			pstmtSents = conn.prepareStatement("select document_id, start, " + rq + "end" + rq + ", id from " + schema + "annotation "
 					+ "where document_namespace = ? and document_table = ? and "
-					+ "annotation_type = 'Sentence' and document_id = ? order by start");
+					+ "annotation_type = ? and document_id = ? order by start");
 			
 			pstmtSentAnnots = conn.prepareStatement("select document_namespace, document_table, document_id, id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance "
 					+ "from " + schema + "annotation where document_namespace = ? and document_table = ? and "
@@ -99,6 +100,7 @@ public class MySQLDBInterface implements MSADBInterface
 			
 			pstmtAnnotInsert = conn.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", features, score, value, provenance) values (?,?,?,?,?,?,?,?,?,?,?)");
 
+			
 		}
 		catch(SQLException e)
 		{
@@ -132,7 +134,14 @@ public class MySQLDBInterface implements MSADBInterface
 		return docIDList;
 	}
 	
+	
 	public List<AnnotationSequence> getSentsInDoc(String docNamespace, String docTable, long docID) throws MSADBException
+	{
+		return getSentsInDoc(docNamespace, docTable, docID, "Sentence");
+	}
+	
+	
+	public List<AnnotationSequence> getSentsInDoc(String docNamespace, String docTable, long docID, String sentType) throws MSADBException
 	{
 		System.out.println("Doc: " + docID);
 
@@ -141,7 +150,8 @@ public class MySQLDBInterface implements MSADBInterface
 		try {
 			pstmtSents.setString(1, docNamespace);
 			pstmtSents.setString(2, docTable);
-			pstmtSents.setLong(3, docID);
+			pstmtSents.setString(3, sentType);
+			pstmtSents.setLong(4, docID);
 			
 			System.out.println(pstmtSents.toString());
 			

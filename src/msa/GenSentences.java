@@ -23,6 +23,7 @@ public class GenSentences
 	private boolean verbose = false;
 	private boolean requireTarget = false;
 	private String tokenType = "Token";
+	private String sentType = "Sentence";
 	
 	private Gson gson;
 	private MSADBInterface db;
@@ -100,6 +101,11 @@ public class GenSentences
 	public void setTokenType(String tokenType)
 	{
 		this.tokenType = tokenType;
+	}
+	
+	public void setSentType(String sentType)
+	{
+		this.sentType = sentType;
 	}
 	
 	public void setProfileType(int profileType)
@@ -185,7 +191,7 @@ public class GenSentences
 				//get doc name
 				
 				System.out.println("\n\n");
-				List<AnnotationSequence> docSeqList = db.getSentsInDoc(docNamespace, docTable, docID);
+				List<AnnotationSequence> docSeqList = db.getSentsInDoc(docNamespace, docTable, docID, sentType);
 				if (docSeqList.size() == 0) {
 					System.out.println("No sequences: " + docID);
 				}

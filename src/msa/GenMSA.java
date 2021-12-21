@@ -39,6 +39,7 @@ public class GenMSA
 	private List<AnnotationSequenceGrid> gridList;
 	private List<String> annotTypeNameList;
 	private List<Double> scoreList;
+	private String sentType = "Sentence";
 	
 	private String host;
 	private String dbName;
@@ -224,6 +225,11 @@ public class GenMSA
 		this.splitIndex = splitIndex;
 	}
 	
+	public void setSentType(String sentType)
+	{
+		this.sentType = sentType;
+	}
+	
 	public void init(String user, String password, String config)
 	{
 		try {
@@ -317,6 +323,8 @@ public class GenMSA
 		genSent.setPunct(punct);
 		genSent.setTokenType(tokType);
 		genSent.setVerbose(verbose);
+		genSent.setSentType(sentType);
+		
 		genSent.init(db, annotFilterList, targetProvenance);
 		
 		if (docIDList == null)
@@ -428,7 +436,7 @@ public class GenMSA
 				int innerStart = splitIndex;
 				if (i >= splitIndex)
 					innerStart = i+1;
-				
+			
 				for (int j=innerStart; j<gridList.size(); j++) {
 					AnnotationSequenceGrid grid2 = gridList.get(j);
 					AnnotationSequence seq2 = grid2.getSequence();
@@ -436,7 +444,7 @@ public class GenMSA
 					//List<String> toks2 = seq2.getToks(tokType);
 					List<String> toks2 = seq2.getToks();
 					String toks2Str = SequenceUtilities.getStrFromToks(toks2);
-					
+
 					
 					
 					/*

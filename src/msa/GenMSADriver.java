@@ -85,6 +85,8 @@ public class GenMSADriver
 	
 	private String projName;
 	
+	private String sentType;
+	
 	
 	public GenMSADriver()
 	{
@@ -201,6 +203,10 @@ public class GenMSADriver
 			if (limitStr != null)
 				limit = Integer.parseInt(limitStr);
 			
+			
+			sentType = props.getProperty("sentType");
+			
+			
 			//if (dbType.equals("mysql"))
 			db = new MySQLDBInterface();
 			db.setDBType(dbType);
@@ -213,6 +219,9 @@ public class GenMSADriver
 			genSent.setRequireTarget(requireTarget);
 			genSent.setPunct(punct);
 			genSent.setCombineSents(combineSents);
+			
+			if (sentType != null && sentType.length() > 0)
+				genSent.setSentType(sentType);
 			//genSent.init(db, msaAnnotFilterList, targetProvenance);
 			
 			genSent2 = new GenSentences();

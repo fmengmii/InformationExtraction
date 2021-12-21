@@ -30,6 +30,8 @@ public class DuplicateSentences
 	private List<List<String>> finalToksList;
 	private int minAlignSize;
 	
+	private boolean write;
+	
 	
 	public DuplicateSentences()
 	{
@@ -53,6 +55,7 @@ public class DuplicateSentences
 			int projID = Integer.parseInt(props.getProperty("projectID"));
 			targetType = props.getProperty("targetType");
 			minAlignSize = Integer.parseInt(props.getProperty("minAlignSize"));
+			write = Boolean.parseBoolean(props.getProperty("write"));
 			
 			finalToksList = new ArrayList<List<String>>();
 			
@@ -195,19 +198,21 @@ public class DuplicateSentences
 						
 						long end = seq.getEnd();
 						
-						//int annotID = getAnnotID(docID);
-						pstmtAnnot.setInt(1, annotID);
-						pstmtAnnot.setLong(2, docID);
-						pstmtAnnot.setString(3, "SentenceDuplicate");
-						pstmtAnnot.setLong(4, start2);
-						pstmtAnnot.setLong(5, end);
-						pstmtAnnot.addBatch();
-						batchCount++;
-						
-						if (batchCount == 100) {
-							batchCount = 0;
-							pstmtAnnot.executeBatch();
-							conn2.commit();
+						if (write) {
+							//int annotID = getAnnotID(docID);
+							pstmtAnnot.setInt(1, annotID);
+							pstmtAnnot.setLong(2, docID);
+							pstmtAnnot.setString(3, "SentenceDuplicate");
+							pstmtAnnot.setLong(4, start2);
+							pstmtAnnot.setLong(5, end);
+							pstmtAnnot.addBatch();
+							batchCount++;
+							
+							if (batchCount == 100) {
+								batchCount = 0;
+								pstmtAnnot.executeBatch();
+								conn2.commit();
+							}
 						}
 						
 						System.out.println("wrote duplicate: " + sentStr);
@@ -356,13 +361,15 @@ public class DuplicateSentences
 					Annotation targetAnnot = targetList.get(i);
 					int annotID = getAnnotID(docID) + 1;
 					
-					pstmtAnnot.setInt(1, annotID);
-					pstmtAnnot.setLong(2, docID);
-					pstmtAnnot.setString(3, "TargetDuplicate");
-					pstmtAnnot.setLong(4, targetAnnot.getStart());
-					pstmtAnnot.setLong(5, targetAnnot.getEnd());
-					pstmtAnnot.execute();
-					conn2.commit();
+					if (write) {
+						pstmtAnnot.setInt(1, annotID);
+						pstmtAnnot.setLong(2, docID);
+						pstmtAnnot.setString(3, "TargetDuplicate");
+						pstmtAnnot.setLong(4, targetAnnot.getStart());
+						pstmtAnnot.setLong(5, targetAnnot.getEnd());
+						pstmtAnnot.execute();
+						conn2.commit();
+					}
 					
 					System.out.println("Adding TargetDuplicate! DocID: " + docID + ", start: " + targetAnnot.getStart() + ", end:" + targetAnnot.getEnd());
 				}
