@@ -171,7 +171,15 @@ public class ProfileReader
 				
 				if (score >= minScore && score <= maxScore) {
 					List<String> toks = new ArrayList<String>();
-					toks = gson.fromJson(profileStr, toks.getClass());
+					
+					try {
+						toks = gson.fromJson(profileStr, toks.getClass());
+					}
+					catch(Exception e)
+					{
+						System.out.println("Malformed profile string: Profilie ID: " + profileID + " ProfileStr: " + profileStr);
+						throw e;
+					}
 					
 					if (sizeLimit > 0 && toks.size() > sizeLimit)
 						continue;
