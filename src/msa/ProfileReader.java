@@ -178,7 +178,7 @@ public class ProfileReader
 					catch(Exception e)
 					{
 						System.out.println("Malformed profile string: Profilie ID: " + profileID + " ProfileStr: " + profileStr);
-						throw e;
+						continue;
 					}
 					
 					if (sizeLimit > 0 && toks.size() > sizeLimit)
