@@ -158,7 +158,7 @@ public class ProfileReader
 				int falsePos = rs.getInt(6);
 				String group = rs.getString(7);
 				
-				profileStr = profileStr.replaceAll("\"\"", "\\\\\"\"");
+				//profileStr = profileStr.replaceAll("\"\"", "\\\\\"\"");
 
 				//System.out.println(profileID + "|" + profileStr);
 				
@@ -177,7 +177,8 @@ public class ProfileReader
 					}
 					catch(Exception e)
 					{
-						System.out.println("Malformed profile string: Profilie ID: " + profileID + " ProfileStr: " + profileStr);
+						System.out.println("Malformed profile string: Profile ID: " + profileID + " ProfileStr: " + profileStr);
+						e.printStackTrace();
 						continue;
 					}
 					
