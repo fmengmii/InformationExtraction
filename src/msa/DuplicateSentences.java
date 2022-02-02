@@ -55,6 +55,8 @@ public class DuplicateSentences
 			int projID = Integer.parseInt(props.getProperty("projectID"));
 			targetType = props.getProperty("targetType");
 			minAlignSize = Integer.parseInt(props.getProperty("minAlignSize"));
+			
+			
 			write = Boolean.parseBoolean(props.getProperty("write"));
 			
 			finalToksList = new ArrayList<List<String>>();

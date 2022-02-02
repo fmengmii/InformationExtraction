@@ -860,7 +860,7 @@ public class AutoAnnotateNER
 							valDocProfileList.add(match.getProfile().getProfileID());
 						}
 						
-						System.out.println(" ans: " + targetType + ", profile: " + match.getProfile().getProfileStr() + ", target: " + match.getTargetStr() + ", docID: " + match.getSequence().getDocID() + ", sent: " + match.getGridStr());
+						System.out.println(" ans: " + targetType + ", profileID: " + match.getProfile().getProfileID() + ", profile: " + match.getProfile().getProfileStr() + ", target: " + match.getTargetStr() + ", docID: " + match.getSequence().getDocID() + ", sent: " + match.getGridStr());
 						pw.println(" ans: " + targetType + ", profile: " + match.getProfile().getProfileStr() + ", target: " + match.getTargetStr() + ", docID: " + match.getSequence().getDocID() + ", sent: " + match.getGridStr());
 					}
 					
