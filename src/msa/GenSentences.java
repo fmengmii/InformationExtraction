@@ -24,6 +24,7 @@ public class GenSentences
 	private boolean requireTarget = false;
 	private String tokenType = "Token";
 	private String sentType = "Sentence";
+	private String targetType;
 	
 	private Gson gson;
 	private MSADBInterface db;
@@ -412,6 +413,8 @@ public class GenSentences
 	
 	public void addTargets(String targetType)
 	{
+		this.targetType = targetType;
+		
 		for (AnnotationSequence seq : seqList) {
 			
 			//remove any existing targets
