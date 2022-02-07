@@ -90,9 +90,12 @@ public class MySQLDBInterface implements MSADBInterface
 
 			}
 
-			pstmtSents = conn.prepareStatement("select document_id, start, " + rq + "end" + rq + ", id from " + schema + "annotation "
-					+ "where document_namespace = ? and document_table = ? and "
-					+ "annotation_type = ? and document_id = ? order by start");
+			pstmtSents = conn.prepareStatement("select a.start, a." + rq + "end" + rq + ", id from " + schema + "annotation a, " + schema + "annotation b "
+				+ "where a.document_namespace = ? and a.document_table = ? "
+				+ "and a.document_id = ? and a.annotation_type = ? and b.document_namespace = a.document_namespace and b.document_table = a.document_table "
+				+ "and b.annotation_type = ? and a.document_id = b.document_id "
+				+ "and a.start <= b.start and a." + rq + "end" + rq +" >= b." + rq + "end" + rq
+				+ "order by a.start");
 			
 			pstmtSentAnnots = conn.prepareStatement("select document_namespace, document_table, document_id, id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance "
 					+ "from " + schema + "annotation where document_namespace = ? and document_table = ? and "
@@ -135,13 +138,13 @@ public class MySQLDBInterface implements MSADBInterface
 	}
 	
 	
-	public List<AnnotationSequence> getSentsInDoc(String docNamespace, String docTable, long docID) throws MSADBException
+	public List<AnnotationSequence> getSentsInDoc(String docNamespace, String docTable, long docID, String targetType) throws MSADBException
 	{
-		return getSentsInDoc(docNamespace, docTable, docID, "Sentence");
+		return getSentsInDoc(docNamespace, docTable, docID, "Sentence", targetType);
 	}
 	
 	
-	public List<AnnotationSequence> getSentsInDoc(String docNamespace, String docTable, long docID, String sentType) throws MSADBException
+	public List<AnnotationSequence> getSentsInDoc(String docNamespace, String docTable, long docID, String sentType, String targetType) throws MSADBException
 	{
 		System.out.println("Doc: " + docID);
 
@@ -150,10 +153,12 @@ public class MySQLDBInterface implements MSADBInterface
 		try {
 			pstmtSents.setString(1, docNamespace);
 			pstmtSents.setString(2, docTable);
-			pstmtSents.setString(3, sentType);
-			pstmtSents.setLong(4, docID);
+			pstmtSents.setLong(3, docID);
+			pstmtSents.setString(4, sentType);
+			pstmtSents.setString(5, targetType);
+
 			
-			System.out.println(pstmtSents.toString());
+			//System.out.println(pstmtSents.toString());
 			
 			ResultSet rs = pstmtSents.executeQuery();
 			while (rs.next()) {

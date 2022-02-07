@@ -191,7 +191,7 @@ public class GenSentences
 				//get doc name
 				
 				System.out.println("\n\n");
-				List<AnnotationSequence> docSeqList = db.getSentsInDoc(docNamespace, docTable, docID, sentType);
+				List<AnnotationSequence> docSeqList = db.getSentsInDoc(docNamespace, docTable, docID, targetType);
 				if (docSeqList.size() == 0) {
 					System.out.println("No sequences: " + docID);
 				}
