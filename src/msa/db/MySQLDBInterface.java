@@ -160,7 +160,7 @@ public class MySQLDBInterface implements MSADBInterface
 			
 			System.out.println("select a.start, a." + rq + "end" + rq + ", a.id from " + schema + "annotation a, " + schema + "annotation b "
 				+ "where a.document_namespace = '" + docNamespace + "' and a.document_table = '" + docTable + "' "
-				+ "and a.document_id = '" + docID + "' and a.annotation_type = '" + sentType + "' and b.document_namespace = a.document_namespace "
+				+ "and a.document_id = " + docID + " and a.annotation_type = '" + sentType + "' and b.document_namespace = a.document_namespace "
 				+ "and b.document_table = a.document_table "
 				+ "and b.annotation_type = '" + targetType + "' and a.document_id = b.document_id "
 				+ "and a.start <= b.start and a." + rq + "end" + rq +" >= b." + rq + "end" + rq

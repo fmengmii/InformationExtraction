@@ -138,7 +138,7 @@ public class GenSentences
 		this.combineSents = combineSents;
 	}
 	
-	public void init(MSADBInterface db, List<Map<String, Object>> annotFilterList, String targetProvenance)
+	public void init(MSADBInterface db, List<Map<String, Object>> annotFilterList, String targetType, String targetProvenance)
 	{
 		this.db = db;
 		
@@ -154,6 +154,7 @@ public class GenSentences
 			annotFeatureMap.put(annotType, features);
 		}
 		
+		this.targetType = targetType;
 		
 		seqMap = new HashMap<String, AnnotationSequence>();
 	}
@@ -413,7 +414,7 @@ public class GenSentences
 	
 	public void addTargets(String targetType)
 	{
-		this.targetType = targetType;
+		//this.targetType = targetType;
 		
 		for (AnnotationSequence seq : seqList) {
 			

@@ -345,8 +345,8 @@ public class GenMSADriver
 			
 			
 			
-			genSent.init(db, msaAnnotFilterList, targetProvenance);
-			genSent2.init(db, msaAnnotFilterList, targetProvenance);
+			genSent.init(db, msaAnnotFilterList, targetType, targetProvenance);
+			genSent2.init(db, msaAnnotFilterList, targetType, targetProvenance);
 			
 			if (docIDList == null)
 				genSent.genSentences(docNamespace, docTable, null, limit);

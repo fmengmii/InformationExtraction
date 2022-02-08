@@ -325,7 +325,7 @@ public class GenMSA
 		genSent.setVerbose(verbose);
 		genSent.setSentType(sentType);
 		
-		genSent.init(db, annotFilterList, targetProvenance);
+		genSent.init(db, annotFilterList, targetType, targetProvenance);
 		
 		if (docIDList == null)
 			genSent.genSentences(docNamespace, docTable, null, limit);
@@ -346,7 +346,7 @@ public class GenMSA
 		genSent.setTokenType(tokType);
 		genSent.setVerbose(verbose);
 		genSent.setDocIDList(docIDList);
-		genSent.init(db, annotFilterList, targetProvenance);
+		genSent.init(db, annotFilterList, targetType, targetProvenance);
 		
 		genSent.genTargetPhrases(docNamespace, docTable, targetType, targetProvenance);
 		
