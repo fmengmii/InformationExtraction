@@ -169,9 +169,9 @@ public class MySQLDBInterface implements MSADBInterface
 			
 			ResultSet rs = pstmtSents.executeQuery();
 			while (rs.next()) {
-				int start = rs.getInt(2);
-				int end = rs.getInt(3);
-				int sentID = rs.getInt(4);
+				int start = rs.getInt(1);
+				int end = rs.getInt(2);
+				int sentID = rs.getInt(3);
 				
 				AnnotationSequence seq = new AnnotationSequence();
 				seq.setDocID(docID);
