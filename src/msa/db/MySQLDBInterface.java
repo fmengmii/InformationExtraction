@@ -90,11 +90,13 @@ public class MySQLDBInterface implements MSADBInterface
 
 			}
 
-			pstmtSents = conn.prepareStatement("select a.start, a." + rq + "end" + rq + ", a.id from " + schema + "annotation a, " + schema + "annotation b "
+			pstmtSents = conn.prepareStatement("select a.start, c." + rq + "end" + rq + ", a.id from " + schema + "annotation a, " + schema + "annotation b, " + schema + "annotation c "
 				+ "where a.document_namespace = ? and a.document_table = ? "
 				+ "and a.document_id = ? and a.annotation_type = ? and b.document_namespace = a.document_namespace and b.document_table = a.document_table "
 				+ "and b.annotation_type = ? and a.document_id = b.document_id "
-				+ "and a.start <= b.start and a." + rq + "end" + rq +" >= b." + rq + "end" + rq
+				+ "and c.document_namespace = a.document_namespace and c.document_table = a.document_table and c.document_id = a.document_id "
+				+ "and c.annotation_type = a.annotation_type "
+				+ "and a.start <= b.start and a." + rq + "end" + rq +" >= b.start and c.start < b." + rq + "end" + rq + " and c." + rq + "end" + rq + " >= b." + rq + "end" + rq + " "
 				+ "order by a.start");
 			
 			pstmtSentAnnots = conn.prepareStatement("select document_namespace, document_table, document_id, id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance "
