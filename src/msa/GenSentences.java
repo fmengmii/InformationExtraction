@@ -391,6 +391,7 @@ public class GenSentences
 
 			
 			System.out.println("seq: " + SequenceUtilities.getStrFromToks(currSeq.getToks()));
+			System.out.println("len: " + currSeq.getToks().size());
 			
 		
 			if (requireTarget && currSeq.getAnnotList(":target") != null) {
@@ -506,5 +507,23 @@ public class GenSentences
 				}
 			}
 		}
+	}
+	
+	
+	private List<AnnotationSequence> splitSents(List<AnnotationSequence> seqList)
+	{
+		List<AnnotationSequence> seqList2 = new ArrayList<AnnotationSequence>();
+		
+		for (AnnotationSequence seq : seqList) {
+			if (seq.maxSize() > 20) {
+				for (int i=0; i<seq.maxSize(); i+=10) {
+					AnnotationSequence seq2 = seq.subSequence(i, 20);
+					seqList2.add(seq2);
+				}
+			}
+		}
+		
+		
+		return seqList2;
 	}
 }

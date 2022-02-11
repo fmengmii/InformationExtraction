@@ -227,6 +227,35 @@ public class AnnotationSequence
 		return seq;
 	}
 	
+	
+	public AnnotationSequence subSequence(int start, int len)
+	{
+		AnnotationSequence seq = new AnnotationSequence();
+		seq.annotFilterList = this.annotFilterList;
+		
+		for (int i=start; i<start+len; i++) {
+			seq.toks.add(this.toks.get(i));
+		}
+		
+		List<Annotation> tokAnnots = this.annotMap.get("Token");
+		long begin = tokAnnots.get(0).getStart();
+		long end = tokAnnots.get(tokAnnots.size()-1).getEnd();		
+		
+		for (String annotType : annotMap.keySet()) {
+			List<Annotation> annotList = annotMap.get(annotType);
+			List<Annotation> annotList2 = new ArrayList<Annotation>();
+			
+			seq.annotMap.put(annotType, annotList2);
+			for (Annotation annot : annotList) {
+				if (annot.getStart() >= begin && annot.getEnd() <= end)
+					annotList2.add(annot);
+			}
+		}
+		
+		return seq;
+	}
+	
+	
 	public List<String> next(int index)
 	{
 		List<Annotation> annotList = annotMatrix.get(index);
