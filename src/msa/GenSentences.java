@@ -417,6 +417,11 @@ public class GenSentences
 		posSeqList = splitSents(posSeqList);
 		negSeqList = splitSents(negSeqList);
 		
+		
+		for (AnnotationSequence seq : negSeqList) {
+			System.out.println("seqsplit: " + SequenceUtilities.getStrFromToks(seq.getToks()));
+			System.out.println("len: " + seq.getToks().size());
+		}
 
 		System.out.println("posSeqList:" + posSeqList.size() + " negSeqList: " + negSeqList.size());
 	}
