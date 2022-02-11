@@ -237,7 +237,7 @@ public class AnnotationSequence
 			seq.toks.add(this.toks.get(i));
 		}
 		
-		List<Annotation> tokAnnots = this.annotMap.get("Token");
+		List<Annotation> tokAnnots = this.annotMap.get("token|string");
 		long begin = tokAnnots.get(0).getStart();
 		long end = tokAnnots.get(tokAnnots.size()-1).getEnd();		
 		
