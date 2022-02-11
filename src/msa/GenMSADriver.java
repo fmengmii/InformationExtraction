@@ -480,7 +480,7 @@ public class GenMSADriver
 			int numBlocks = (seqList.size() / msaBlockSize) + 1;
 			int currStartIndex = 0;
 			
-			//System.out.println("msaBlockSize: " + msaBlockSize + " numBlocks: " + numBlocks + " seqList size: " + seqList.size());
+			System.out.println("msaBlockSize: " + msaBlockSize + " numBlocks: " + numBlocks + " seqList size: " + seqList.size());
 			
 
 			totalDocList = new ArrayList<DocBean>();
