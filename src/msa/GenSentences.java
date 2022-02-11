@@ -201,7 +201,7 @@ public class GenSentences
 					System.out.println("No sequences: " + docID);
 				}
 				
-				int lastSentIndex = 0;
+				int lastSentIndex = -1;
 
 				for (AnnotationSequence seq : docSeqList) {
 					
@@ -217,7 +217,8 @@ public class GenSentences
 					String key = seq.getDocID() + "|" + seq.getStart();
 					seqMap.put(key, seq);
 					
-					
+					if (lastSentIndex == -1)
+						lastSentIndex = seq.getStart();
 
 					List<Annotation> annotList = db.getSentAnnots(docNamespace, docTable, docID, lastSentIndex, seq.getEnd(), punct);
 					if (annotList.size() == 0)
