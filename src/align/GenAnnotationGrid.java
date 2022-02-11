@@ -197,7 +197,7 @@ public class GenAnnotationGrid
 					seqGrid.add(col);
 				}
 				else {
-					//System.out.println("docid: " + annot.getDocID() + ", annot start: " + annot.getStart() + ", annot end: " + annot.getEnd() + ", annot label: " + annot.getLabel());
+					System.out.println("docid: " + annot.getDocID() + ", annot start: " + annot.getStart() + ", annot end: " + annot.getEnd() + ", annot label: " + annot.getLabel());
 					indexes = getIndexes(annot, tokAnnotList);
 					startIndex = indexes[0];
 					endIndex = indexes[1];
