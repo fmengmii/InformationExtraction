@@ -90,7 +90,7 @@ public class MySQLDBInterface implements MSADBInterface
 
 			}
 
-			pstmtSents = conn.prepareStatement("select a.start, a." + rq + "end" + rq + ", a.id from " + schema + "annotation a, " + schema + "annotation b "
+			pstmtSents = conn.prepareStatement("select distinct a.start, a." + rq + "end" + rq + ", a.id from " + schema + "annotation a, " + schema + "annotation b "
 				+ "where a.document_namespace = ? and a.document_table = ? "
 				+ "and a.document_id = ? and a.annotation_type = ? and b.document_namespace = a.document_namespace and b.document_table = a.document_table "
 				+ "and b.annotation_type = ? and a.document_id = b.document_id "
