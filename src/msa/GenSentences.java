@@ -197,8 +197,6 @@ public class GenSentences
 				System.out.println("\n\n");
 				List<AnnotationSequence> docSeqList = db.getSentsInDoc(docNamespace, docTable, docID, targetType);
 				
-				docSeqList = splitSents(docSeqList);
-				
 				if (docSeqList.size() == 0) {
 					System.out.println("No sequences: " + docID);
 				}
@@ -414,6 +412,10 @@ public class GenSentences
 			}
 			
 		}
+		
+		posSeqList = splitSents(posSeqList);
+		negSeqList = splitSents(negSeqList);
+		
 
 		System.out.println("posSeqList:" + posSeqList.size() + " negSeqList: " + negSeqList.size());
 	}
