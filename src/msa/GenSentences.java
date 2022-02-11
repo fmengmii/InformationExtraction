@@ -520,8 +520,8 @@ public class GenSentences
 		List<AnnotationSequence> seqList2 = new ArrayList<AnnotationSequence>();
 		
 		for (AnnotationSequence seq : seqList) {
-			if (seq.maxSize() > 20) {
-				for (int i=0; i<seq.maxSize(); i+=10) {
+			if (seq.getToks().size() > 20) {
+				for (int i=0; i<seq.getToks().size(); i+=10) {
 					AnnotationSequence seq2 = seq.subSequence(i, 20);
 					seqList2.add(seq2);
 				}

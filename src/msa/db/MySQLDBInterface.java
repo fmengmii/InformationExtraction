@@ -175,6 +175,8 @@ public class MySQLDBInterface implements MSADBInterface
 				int end = rs.getInt(2);
 				int sentID = rs.getInt(3);
 				
+				System.out.println("sent start: " + start + " end: " + end);
+				
 				AnnotationSequence seq = new AnnotationSequence();
 				seq.setDocID(docID);
 				seq.setSentID(sentID);
