@@ -521,9 +521,9 @@ public class GenSentences
 		List<AnnotationSequence> seqList2 = new ArrayList<AnnotationSequence>();
 		
 		for (AnnotationSequence seq : seqList) {
-			if (seq.getToks().size() > 20) {
-				for (int i=0; i<seq.getToks().size(); i+=10) {
-					AnnotationSequence seq2 = seq.subSequence(i, 20);
+			if (seq.getToks().size() > 50) {
+				for (int i=0; i<seq.getToks().size(); i+=25) {
+					AnnotationSequence seq2 = seq.subSequence(i, 50);
 					seqList2.add(seq2);
 				}
 			}
