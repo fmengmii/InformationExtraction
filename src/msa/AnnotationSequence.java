@@ -233,7 +233,7 @@ public class AnnotationSequence
 		AnnotationSequence seq = new AnnotationSequence();
 		seq.annotFilterList = this.annotFilterList;
 		
-		for (int i=start; i<start+len; i++) {
+		for (int i=start; i<this.toks.size() && i<start+len; i++) {
 			seq.toks.add(this.toks.get(i));
 		}
 		
