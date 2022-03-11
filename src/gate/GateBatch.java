@@ -333,13 +333,16 @@ public class GateBatch
 				if (rs.next())
 					reportText = rs.getString(1);
 				
-				if (reportText != null && reportText.length() > 0 && reportText.matches("[a-zA-Z0-9]+")) {
+				if (reportText != null && reportText.length() > 0) {
 					  reportText = reportText.trim();
 					  reportText = reportText.replaceAll("\\r", "");
-					  PrintWriter pw = new PrintWriter(new FileWriter(docFile));
-					  pw.println(reportText);
-					  pw.close();
-					  hasText = true;
+					  
+					  if (reportText.matches("[a-zA-Z0-9]+")) {
+						  PrintWriter pw = new PrintWriter(new FileWriter(docFile));
+						  pw.println(reportText);
+						  pw.close();
+						  hasText = true;
+					  }
 				  }
 				
 				if (!hasText) {
