@@ -555,7 +555,7 @@ public class GateBatch
 	  String valueStr = docContent.getContent(start, end).toString();
 	  
 	  if (valueStr.length() > 500)
-		  valueStr = valueStr.substring(500);
+		  valueStr = valueStr.substring(0, 500);
 	  
 	  if (verbose)
 		  System.out.println("docNamespace: " + docNamespace + " docTable: " + docTable + " docID: " + docID2 + " type: " + annotType 
@@ -563,7 +563,7 @@ public class GateBatch
 	  
 	  String featureStr = getFeatureString(annot);
 	  if (featureStr.length() > 1000)
-		  featureStr = featureStr.substring(1000);
+		  featureStr = featureStr.substring(0, 1000);
 	  
 	  insertIntoRelational(id, docID2, annotType, (int) start, (int) end, valueStr, featureStr);
   }
