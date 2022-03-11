@@ -324,6 +324,8 @@ public class GateBatch
 		  
 			for (long docID : docIDList) {
 				
+				System.out.println("Processing document " + docID + "...");
+				
 				String reportText = "";
 				hasText = false;
 				pstmtGetText.setLong(1, docID);
@@ -340,10 +342,12 @@ public class GateBatch
 					  hasText = true;
 				  }
 				
-				if (!hasText)
+				if (!hasText) {
+					System.out.println("No text! " + reportText);					
 					continue;
+				}
 			  
-				System.out.println("Processing document " + docID + "...");
+				
 				Document doc = Factory.newDocument(docFile.toURI().toURL(), encoding);
 				DocumentContent docContent = doc.getContent();
 		  
