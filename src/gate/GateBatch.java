@@ -265,6 +265,8 @@ public class GateBatch
 				}
 			}
 			
+			System.out.println("Finished getting docIDs");
+			
 			
 			String queryStr = "insert into " + schema + annotOutputTable
 					+ " (id, document_namespace, document_table, document_id, document_name, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance) "
@@ -285,6 +287,8 @@ public class GateBatch
 		  
 			// initialize GATE - this must be done before calling any GATE APIs
 			Gate.init();
+			
+			System.out.println("Initialized GATE");
 		
 			// load the saved application
 			CorpusController application =
