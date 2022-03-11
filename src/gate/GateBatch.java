@@ -28,6 +28,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ArrayList;
@@ -321,6 +323,8 @@ public class GateBatch
 		  
 			int count = 0;
 			currDoc = -1;
+			
+			Pattern p = Pattern.compile("^.*[a-zA-Z0-9]+.*$", Pattern.DOTALL);
 		  
 			for (long docID : docIDList) {
 				
@@ -337,7 +341,9 @@ public class GateBatch
 					  reportText = reportText.trim();
 					  reportText = reportText.replaceAll("\\r", "");
 					  
-					  if (reportText.matches("^.*[a-zA-Z0-9]+.*$")) {
+					  Matcher m = p.matcher(reportText);
+					  
+					  if (m.matches()) {
 						  PrintWriter pw = new PrintWriter(new FileWriter(docFile));
 						  pw.println(reportText);
 						  pw.close();
@@ -346,7 +352,7 @@ public class GateBatch
 				  }
 				
 				if (!hasText) {
-					System.out.println("No text! " + reportText.matches("^.*[a-zA-Z0-9]+.*$"));					
+					System.out.println("No text! ");					
 					continue;
 				}
 			  
