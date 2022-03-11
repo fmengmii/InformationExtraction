@@ -293,6 +293,8 @@ public class GateBatch
 			// load the saved application
 			CorpusController application =
 					(CorpusController)PersistenceManager.loadObjectFromFile(gappFile);
+			
+			System.out.println("Loaded GATE Application");
 		
 			// Create a Corpus to use.  We recycle the same Corpus object for each
 			// iteration.  The string parameter to newCorpus() is simply the
@@ -314,6 +316,8 @@ public class GateBatch
 					}
 				});
 			}
+			
+			System.out.println("Initialized text file");
 		  
 			int count = 0;
 			currDoc = -1;
