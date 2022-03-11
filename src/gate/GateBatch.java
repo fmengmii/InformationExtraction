@@ -323,7 +323,7 @@ public class GateBatch
 				if (rs.next())
 					reportText = rs.getString(1);
 				
-				if (reportText != null && reportText.length() > 0) {
+				if (reportText != null && reportText.length() > 0 && reportText.matches("^[a-zA-Z0-9]*$")) {
 					  reportText = reportText.trim();
 					  reportText = reportText.replaceAll("\\r", "");
 					  PrintWriter pw = new PrintWriter(new FileWriter(docFile));
@@ -533,11 +533,17 @@ public class GateBatch
 	  int id = annot.getId();
 	  String valueStr = docContent.getContent(start, end).toString();
 	  
+	  if (valueStr.length() > 500)
+		  valueStr = valueStr.substring(500);
+	  
 	  if (verbose)
 		  System.out.println("docNamespace: " + docNamespace + " docTable: " + docTable + " docID: " + docID2 + " type: " + annotType 
 			+ " start: " + start + " end: " + end + " id: " + id);
 	  
 	  String featureStr = getFeatureString(annot);
+	  if (featureStr.length() > 1000)
+		  featureStr = featureStr.substring(1000);
+	  
 	  insertIntoRelational(id, docID2, annotType, (int) start, (int) end, valueStr, featureStr);
   }
   
