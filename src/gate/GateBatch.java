@@ -337,7 +337,7 @@ public class GateBatch
 					  reportText = reportText.trim();
 					  reportText = reportText.replaceAll("\\r", "");
 					  
-					  if (reportText.matches("[a-zA-Z0-9]+")) {
+					  if (reportText.matches(".*[a-zA-Z0-9]+.*")) {
 						  PrintWriter pw = new PrintWriter(new FileWriter(docFile));
 						  pw.println(reportText);
 						  pw.close();
@@ -346,7 +346,7 @@ public class GateBatch
 				  }
 				
 				if (!hasText) {
-					System.out.println("No text! " + reportText.matches("[a-zA-Z0-9]+"));					
+					System.out.println("No text! " + reportText.matches(".*[a-zA-Z0-9]+.*"));					
 					continue;
 				}
 			  
