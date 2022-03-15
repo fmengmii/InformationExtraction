@@ -32,6 +32,8 @@ public class DuplicateSentences
 	
 	private boolean write;
 	
+	private String annotTable;
+	
 	
 	public DuplicateSentences()
 	{
@@ -59,6 +61,8 @@ public class DuplicateSentences
 			
 			write = Boolean.parseBoolean(props.getProperty("write"));
 			
+			annotTable = props.getProperty("annotTable");
+			
 			finalToksList = new ArrayList<List<String>>();
 			
 			
@@ -73,18 +77,18 @@ public class DuplicateSentences
 			if (dbType.startsWith("sqlserver") && !dbName.equals(docDBName))
 				docNamespace = docDBName + "." + docSchema;
 			
-			pstmtSent = conn.prepareStatement("select id, start, " + rq + "end" + rq + " from " + schema + "annotation where "
+			pstmtSent = conn.prepareStatement("select id, start, " + rq + "end" + rq + " from " + schema + annotTable + " where "
 				+ "document_namespace = '" + docSchema + "' and document_table = '" + docTable + "' and document_id = ? and annotation_type = 'Sentence' order by start");
-			pstmtSentAnnots = conn.prepareStatement("select start, " + rq + "end" + rq + ", annotation_type, value from " + schema + "annotation where "
+			pstmtSentAnnots = conn.prepareStatement("select start, " + rq + "end" + rq + ", annotation_type, value from " + schema + annotTable + " where "
 				+ "document_namespace = '" + docSchema + "' and document_table = '" + docTable + "' and " + "document_id = ? "
 				+ "and start >= ? and " + rq  + "end" + rq + " <= ? "
 				+ "and (annotation_type = 'Token' or annotation_type = '" + targetType + "') order by start");
 			//pstmtAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance, score) "
 			//	+ "values (?,'" + docNamespace + "','" + docTable + "',?,'SentenceDuplicate',?,?,'','','duplicate-sentences-util',1.0)");
-			pstmtAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance, score) "
+			pstmtAnnot = conn2.prepareStatement("insert into " + schema + annotTable + " (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance, score) "
 					+ "values (?,'" + docNamespace + "','" + docTable + "',?,?,?,?,'','','duplicate-sentences-util',1.0)");
 
-			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + "annotation where document_namespace = '" + docSchema 
+			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + annotTable + " where document_namespace = '" + docSchema 
 				+ "' and document_table = '" + docTable + "' and document_id = ?");
 			
 			Statement stmt = conn.createStatement();
@@ -98,7 +102,7 @@ public class DuplicateSentences
 			
 			String docQuery = props.getProperty("docQuery");
 			if (docQuery == null) {
-				ResultSet rs = stmt.executeQuery("select max(a.document_id) from " + schema + "annotation a where annotation_type = 'SentenceDuplicate' and a.document_id  in"
+				ResultSet rs = stmt.executeQuery("select max(a.document_id) from " + schema + annotTable + " a where annotation_type = 'SentenceDuplicate' and a.document_id  in"
 						+ "(select c.document_id from " + schema + "frame_instance_document c, " + schema + "project_frame_instance d where c.frame_instance_id = d.frame_instance_id and "
 						+ "d.project_id = " + projID + ") ");
 			
