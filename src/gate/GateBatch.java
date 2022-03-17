@@ -271,8 +271,8 @@ public class GateBatch
 			
 			
 			String queryStr = "insert into " + schema + annotOutputTable
-					+ " (id, document_namespace, document_table, document_id, document_name, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance) "
-					+ "	values (?,?,?,?,?,?,?,?,?,?,?)";
+					+ " (id, document_namespace, document_table, document_id, document_name, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance, score) "
+					+ "	values (?,?,?,?,?,?,?,?,?,?,?,1)";
 			
 			pstmtGetText = docConn.prepareStatement("select " + docTextCol + " from " + docSchema + docTable + " where " + docIDCol + " = ?");
 
