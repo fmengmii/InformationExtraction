@@ -28,6 +28,7 @@ public class MySQLDBInterface implements MSADBInterface
 	private String group;
 	private String provenance;
 	private String rq;
+	private String annotTable;
 	
 	private PreparedStatement pstmtMSAInsert;
 	private PreparedStatement pstmtMSARowInsert;
@@ -63,6 +64,11 @@ public class MySQLDBInterface implements MSADBInterface
 		this.schema = schema + ".";
 	}
 	
+	public void setAnnotTable(String annotTable)
+	{
+		this.annotTable = annotTable;
+	}
+	
 	public void init(String user, String password, String host, String keyspace, String msaKeyspace) throws MSADBException
 	{
 		try {
@@ -90,7 +96,7 @@ public class MySQLDBInterface implements MSADBInterface
 
 			}
 
-			pstmtSents = conn.prepareStatement("select distinct a.start, a." + rq + "end" + rq + ", a.id from " + schema + "annotation a, " + schema + "annotation b "
+			pstmtSents = conn.prepareStatement("select distinct a.start, a." + rq + "end" + rq + ", a.id from " + schema + annotTable + " a, " + schema + annotTable + " b "
 				+ "where a.document_namespace = ? and a.document_table = ? "
 				+ "and a.document_id = ? and a.annotation_type = ? and b.document_namespace = a.document_namespace and b.document_table = a.document_table "
 				+ "and b.annotation_type = ? and a.document_id = b.document_id "
@@ -99,10 +105,10 @@ public class MySQLDBInterface implements MSADBInterface
 				+ "order by a.start");
 			
 			pstmtSentAnnots = conn.prepareStatement("select document_namespace, document_table, document_id, id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance "
-					+ "from " + schema + "annotation where document_namespace = ? and document_table = ? and "
+					+ "from " + schema + annotTable + " where document_namespace = ? and document_table = ? and "
 					+ "document_id = ? and start >= ? and start < ? order by start");
 			
-			pstmtAnnotInsert = conn.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", features, score, value, provenance) values (?,?,?,?,?,?,?,?,?,?,?)");
+			pstmtAnnotInsert = conn.prepareStatement("insert into " + schema + annotTable + " (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", features, score, value, provenance) values (?,?,?,?,?,?,?,?,?,?,?)");
 
 			
 		}
@@ -159,7 +165,7 @@ public class MySQLDBInterface implements MSADBInterface
 			pstmtSents.setString(5, targetType);
 			
 			/*
-			System.out.println("select a.start, a." + rq + "end" + rq + ", a.id from " + schema + "annotation a, " + schema + "annotation b "
+			System.out.println("select a.start, a." + rq + "end" + rq + ", a.id from " + schema + annotTable + " a, " + schema + annotTable + " b "
 				+ "where a.document_namespace = '" + docNamespace + "' and a.document_table = '" + docTable + "' "
 				+ "and a.document_id = " + docID + " and a.annotation_type = '" + sentType + "' and b.document_namespace = a.document_namespace "
 				+ "and b.document_table = a.document_table "

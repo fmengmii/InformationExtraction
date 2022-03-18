@@ -86,6 +86,7 @@ public class GenMSADriver
 	private String projName;
 	
 	private String sentType;
+	private String annotTable;
 	
 	
 	public GenMSADriver()
@@ -205,12 +206,14 @@ public class GenMSADriver
 			
 			
 			sentType = props.getProperty("sentType");
+			annotTable = props.getProperty("annotTable");
 			
 			
 			//if (dbType.equals("mysql"))
 			db = new MySQLDBInterface();
 			db.setDBType(dbType);
 			db.setSchema(schema);
+			db.setAnnotTable(annotTable);
 			
 				
 			genSent = new GenSentences();
