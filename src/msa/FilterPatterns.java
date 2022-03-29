@@ -481,7 +481,7 @@ public class FilterPatterns
 				genSent.setVerbose(verbose);
 				genSent.setPunct(punct);
 				genSent.setTokenType(tokType);
-				genSent.init(db, msaAnnotFilterList, targetProvenance);
+				genSent.init(db, msaAnnotFilterList, targetType, targetProvenance);
 			}
 			
 			genSent.setRequireTarget(false);
@@ -851,7 +851,7 @@ public class FilterPatterns
 			//gen sentences
 			genSent.setRequireTarget(requireTarget);
 			genSent.setPunct(punct);
-			genSent.init(db, msaAnnotFilterList, targetProvenance);
+			genSent.init(db, msaAnnotFilterList, targetType, targetProvenance);
 			
 			if (docIDList == null)
 				genSent.genSentences(docNamespace, docTable, null, limit);
