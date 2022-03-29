@@ -103,6 +103,7 @@ public class FilterPatterns
 	private long minDocID;
 	
 	private String schema = "";
+	private String annotTable = "";
 	
 	private PrintWriter pw;
 	
@@ -232,6 +233,7 @@ public class FilterPatterns
 			docTable = props.getProperty("docTable");
 			
 			schema = props.getProperty("schema");
+			annotTable = props.getProperty("annotTable");
 			
 			punct = Boolean.parseBoolean(props.getProperty("punctuation"));
 			write = Boolean.parseBoolean(props.getProperty("write"));
@@ -285,6 +287,7 @@ public class FilterPatterns
 			db = new MySQLDBInterface();
 			db.setDBType(dbType);
 			db.setSchema(schema);
+			db.setAnnotTable(annotTable);
 				
 			
 			msaAnnotFilterList = new ArrayList<Map<String, Object>>();
