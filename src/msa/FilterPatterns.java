@@ -59,6 +59,7 @@ public class FilterPatterns
 	private String targetType2;
 	private String targetProvenance;
 	private int profileType = 0;
+	private String keywordType;
 
 	private String indexTable;
 	private String finalTable;
@@ -249,6 +250,7 @@ public class FilterPatterns
 			group = props.getProperty("group");
 			targetGroup = props.getProperty("targetGroup");
 			clusterSize = Integer.parseInt(props.getProperty("clusterSize"));
+			keywordType = props.getProperty("keywordType");
 			
 			profileTable = props.getProperty("profileTable");
 			indexTable = props.getProperty("indexTable");
@@ -484,7 +486,7 @@ public class FilterPatterns
 				genSent.setVerbose(verbose);
 				genSent.setPunct(punct);
 				genSent.setTokenType(tokType);
-				genSent.init(db, msaAnnotFilterList, null, targetProvenance);
+				genSent.init(db, msaAnnotFilterList, keywordType, targetProvenance);
 			}
 			
 			genSent.setRequireTarget(false);
@@ -854,7 +856,7 @@ public class FilterPatterns
 			//gen sentences
 			genSent.setRequireTarget(requireTarget);
 			genSent.setPunct(punct);
-			genSent.init(db, msaAnnotFilterList, null, targetProvenance);
+			genSent.init(db, msaAnnotFilterList, keywordType, targetProvenance);
 			
 			if (docIDList == null)
 				genSent.genSentences(docNamespace, docTable, null, limit);
