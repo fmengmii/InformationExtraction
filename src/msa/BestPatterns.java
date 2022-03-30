@@ -34,6 +34,7 @@ public class BestPatterns
 	private boolean cleanTables = false;
 	private String docQuery;
 	private String group;
+	private String annotTable;
 	
 	private List<String> groupList;
 	private List<String> targetGroupList;
@@ -89,6 +90,7 @@ public class BestPatterns
 		posThreshold = Double.parseDouble(props.getProperty("posThreshold"));
 		posMinCount = Integer.parseInt(props.getProperty("posMinCount"));
 		schema = props.getProperty("schema") + ".";
+		annotTable = props.getProperty("annotTable");
 		
 		String projIDStr = props.getProperty("projID");
 		if (projIDStr != null)
@@ -1067,11 +1069,11 @@ public class BestPatterns
 			*/
 		
 		//adjust user annotations to align with Token boundaries
-		PreparedStatement pstmt = annotConn.prepareStatement("select start, " + rq + "end" + rq + " from " + schema + "annotation where annotation_type = 'Token' and "
+		PreparedStatement pstmt = annotConn.prepareStatement("select start, " + rq + "end" + rq + " from " + schema + annotTable + " where annotation_type = 'Token' and "
 			+ "start < ? and " + rq + "end" + rq + " > ? and document_id = " + docID);
 		
 		
-		ResultSet rs = stmt.executeQuery("select distinct document_id, start, " + rq + "end" + rq + ", value, provenance from " + schema + "annotation where document_id = " + docID + " and annotation_type = '" + annotType + 
+		ResultSet rs = stmt.executeQuery("select distinct document_id, start, " + rq + "end" + rq + ", value, provenance from " + schema + annotTable + " where document_id = " + docID + " and annotation_type = '" + annotType + 
 			"' and provenance like '" + provenance + "' order by document_id, start");
 		
 		while (rs.next()) {
