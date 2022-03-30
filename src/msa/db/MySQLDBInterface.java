@@ -34,6 +34,7 @@ public class MySQLDBInterface implements MSADBInterface
 	private PreparedStatement pstmtMSARowInsert;
 	private PreparedStatement pstmtProfileInsert;
 	private PreparedStatement pstmtSents;
+	private PreparedStatement pstmtSentsTarget;
 	private PreparedStatement pstmtSentAnnots;
 	private PreparedStatement pstmtAnnotText;
 	private PreparedStatement pstmtAnnotInsert;
@@ -96,13 +97,18 @@ public class MySQLDBInterface implements MSADBInterface
 
 			}
 
-			pstmtSents = conn.prepareStatement("select distinct a.start, a." + rq + "end" + rq + ", a.id from " + schema + annotTable + " a, " + schema + annotTable + " b "
-				+ "where a.document_namespace = ? and a.document_table = ? "
-				+ "and a.document_id = ? and a.annotation_type = ? and b.document_namespace = a.document_namespace and b.document_table = a.document_table "
-				+ "and b.annotation_type = ? and a.document_id = b.document_id "
-				+ "and ((a.start <= b.start and a." + rq + "end" + rq +" > b.start) or (a.start < b." + rq + "end" + rq + " and a." + rq + "end" + rq + " >= b." + rq + "end" + rq + ") "
-				+ "or (a.start >= b.start and a." + rq + "end" + rq + " <= b." + rq + "end" + rq + "))"
+			pstmtSents = conn.prepareStatement("select distinct start, " + rq + "end" + rq + ", id from " + schema + annotTable + " "
+				+ "where document_namespace = ? and document_table = ? "
+				+ "and document_id = ? and annotation_type = ? "
 				+ "order by a.start");
+			
+			pstmtSentsTarget = conn.prepareStatement("select distinct a.start, a." + rq + "end" + rq + ", a.id from " + schema + annotTable + " a, " + schema + annotTable + " b "
+					+ "where a.document_namespace = ? and a.document_table = ? "
+					+ "and a.document_id = ? and a.annotation_type = ? and b.document_namespace = a.document_namespace and b.document_table = a.document_table "
+					+ "and b.annotation_type = ? and a.document_id = b.document_id "
+					+ "and ((a.start <= b.start and a." + rq + "end" + rq +" > b.start) or (a.start < b." + rq + "end" + rq + " and a." + rq + "end" + rq + " >= b." + rq + "end" + rq + ") "
+					+ "or (a.start >= b.start and a." + rq + "end" + rq + " <= b." + rq + "end" + rq + "))"
+					+ "order by a.start");
 			
 			pstmtSentAnnots = conn.prepareStatement("select document_namespace, document_table, document_id, id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance "
 					+ "from " + schema + annotTable + " where document_namespace = ? and document_table = ? and "
@@ -158,11 +164,19 @@ public class MySQLDBInterface implements MSADBInterface
 		List<AnnotationSequence> seqList = new ArrayList<AnnotationSequence>();
 			
 		try {
-			pstmtSents.setString(1, docNamespace);
-			pstmtSents.setString(2, docTable);
-			pstmtSents.setLong(3, docID);
-			pstmtSents.setString(4, sentType);
-			pstmtSents.setString(5, targetType);
+			if (targetType == null) {
+				pstmtSents.setString(1, docNamespace);
+				pstmtSents.setString(2, docTable);
+				pstmtSents.setLong(3, docID);
+				pstmtSents.setString(4, sentType);
+			}
+			else {
+				pstmtSentsTarget.setString(1, docNamespace);
+				pstmtSentsTarget.setString(2, docTable);
+				pstmtSentsTarget.setLong(3, docID);
+				pstmtSentsTarget.setString(4, sentType);
+				pstmtSentsTarget.setString(5, targetType);
+			}
 			
 			/*
 			System.out.println("select a.start, a." + rq + "end" + rq + ", a.id from " + schema + annotTable + " a, " + schema + annotTable + " b "
