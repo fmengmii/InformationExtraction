@@ -105,7 +105,7 @@ public class MySQLDBInterface implements MSADBInterface
 			pstmtSentsTarget = conn.prepareStatement("select distinct a.start, a." + rq + "end" + rq + ", a.id from " + schema + annotTable + " a, " + schema + annotTable + " b "
 					+ "where a.document_namespace = ? and a.document_table = ? "
 					+ "and a.document_id = ? and a.annotation_type = ? and b.document_namespace = a.document_namespace and b.document_table = a.document_table "
-					+ "and b.annotation_type = ? and a.document_id = b.document_id "
+					+ "and b.annotation_type like ? and a.document_id = b.document_id "
 					+ "and ((a.start <= b.start and a." + rq + "end" + rq +" > b.start) or (a.start < b." + rq + "end" + rq + " and a." + rq + "end" + rq + " >= b." + rq + "end" + rq + ") "
 					+ "or (a.start >= b.start and a." + rq + "end" + rq + " <= b." + rq + "end" + rq + "))"
 					+ "order by a.start");
