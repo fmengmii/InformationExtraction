@@ -189,7 +189,11 @@ public class MySQLDBInterface implements MSADBInterface
 					*/
 			
 			
-			ResultSet rs = pstmtSents.executeQuery();
+			PreparedStatement pstmt = pstmtSentsTarget;
+			if (targetType == null)
+				pstmt = pstmtSents;
+			
+			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				int start = rs.getInt(1);
 				int end = rs.getInt(2);
