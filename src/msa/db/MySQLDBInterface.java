@@ -35,6 +35,7 @@ public class MySQLDBInterface implements MSADBInterface
 	private PreparedStatement pstmtProfileInsert;
 	private PreparedStatement pstmtSents;
 	private PreparedStatement pstmtSentsTarget;
+	private PreparedStatement pstmtSentsMask;
 	private PreparedStatement pstmtSentAnnots;
 	private PreparedStatement pstmtAnnotText;
 	private PreparedStatement pstmtAnnotInsert;
@@ -110,6 +111,13 @@ public class MySQLDBInterface implements MSADBInterface
 					+ "or (a.start >= b.start and a." + rq + "end" + rq + " <= b." + rq + "end" + rq + "))"
 					+ "order by a.start");
 			
+			pstmtSentsMask = conn.prepareStatement("select distinct a.start, a." + rq + "end" + rq + ", id from " + schema + annotTable + " a "
+					+ "where a.document_namespace = ? and a.document_table = ? "
+					+ "and a.document_id = ? and a.annotation_type = ? "
+					+ "and not exists (select b.* from " + schema + annotTable + " b where a.document_id = b.document_id "
+					+ "and b.annotation_type = ? and a.start = b.start and a." + rq + "end" + rq + " = b." + rq + "end" + rq + ") "
+					+ "order by a.start");
+			
 			pstmtSentAnnots = conn.prepareStatement("select document_namespace, document_table, document_id, id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance "
 					+ "from " + schema + annotTable + " where document_namespace = ? and document_table = ? and "
 					+ "document_id = ? and start >= ? and start < ? order by start");
@@ -156,26 +164,38 @@ public class MySQLDBInterface implements MSADBInterface
 		return getSentsInDoc(docNamespace, docTable, docID, "Sentence", targetType);
 	}
 	
-	
 	public List<AnnotationSequence> getSentsInDoc(String docNamespace, String docTable, long docID, String sentType, String targetType) throws MSADBException
+	{
+		return getSentsInDoc(docNamespace, docTable, docID, "Sentence", targetType, null);
+	}
+	
+	
+	public List<AnnotationSequence> getSentsInDoc(String docNamespace, String docTable, long docID, String sentType, String targetType, String maskType) throws MSADBException
 	{
 		System.out.println("Doc: " + docID);
 
 		List<AnnotationSequence> seqList = new ArrayList<AnnotationSequence>();
 			
 		try {
-			if (targetType == null) {
-				pstmtSents.setString(1, docNamespace);
-				pstmtSents.setString(2, docTable);
-				pstmtSents.setLong(3, docID);
-				pstmtSents.setString(4, sentType);
+			if (maskType != null) {
+				pstmtSentsMask.setString(1, docNamespace);
+				pstmtSentsMask.setString(2, docTable);
+				pstmtSentsMask.setLong(3, docID);
+				pstmtSentsMask.setString(4, sentType);
+				pstmtSentsMask.setString(5, maskType);
 			}
-			else {
+			else if (targetType != null) {
 				pstmtSentsTarget.setString(1, docNamespace);
 				pstmtSentsTarget.setString(2, docTable);
 				pstmtSentsTarget.setLong(3, docID);
 				pstmtSentsTarget.setString(4, sentType);
 				pstmtSentsTarget.setString(5, targetType);
+			}
+			else {
+				pstmtSents.setString(1, docNamespace);
+				pstmtSents.setString(2, docTable);
+				pstmtSents.setLong(3, docID);
+				pstmtSents.setString(4, sentType);
 			}
 			
 			/*
@@ -189,9 +209,11 @@ public class MySQLDBInterface implements MSADBInterface
 					*/
 			
 			
-			PreparedStatement pstmt = pstmtSentsTarget;
-			if (targetType == null)
-				pstmt = pstmtSents;
+			PreparedStatement pstmt = pstmtSents;
+			if (maskType != null)
+				pstmt = pstmtSentsMask;
+			else if (targetType != null)
+				pstmt = pstmtSentsTarget;
 			
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {

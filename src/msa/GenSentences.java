@@ -25,6 +25,7 @@ public class GenSentences
 	private String tokenType = "Token";
 	private String sentType = "Sentence";
 	private String targetType;
+	private String maskType;
 	
 	private Gson gson;
 	private MSADBInterface db;
@@ -138,6 +139,11 @@ public class GenSentences
 		this.combineSents = combineSents;
 	}
 	
+	public void setMaskType(String maskType)
+	{
+		this.maskType = maskType;
+	}
+	
 	public void init(MSADBInterface db, List<Map<String, Object>> annotFilterList, String targetType, String targetProvenance)
 	{
 		this.db = db;
@@ -195,7 +201,7 @@ public class GenSentences
 				System.out.println("gensentannots: " + docID);
 				
 				System.out.println("\n\n");
-				List<AnnotationSequence> docSeqList = db.getSentsInDoc(docNamespace, docTable, docID, targetType);
+				List<AnnotationSequence> docSeqList = db.getSentsInDoc(docNamespace, docTable, docID, targetType, maskType);
 				
 				if (docSeqList.size() == 0) {
 					System.out.println("No sequences: " + docID);

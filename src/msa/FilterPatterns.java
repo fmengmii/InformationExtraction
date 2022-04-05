@@ -60,6 +60,7 @@ public class FilterPatterns
 	private String targetProvenance;
 	private int profileType = 0;
 	private String keywordType;
+	private String maskType;
 
 	private String indexTable;
 	private String finalTable;
@@ -251,6 +252,7 @@ public class FilterPatterns
 			targetGroup = props.getProperty("targetGroup");
 			clusterSize = Integer.parseInt(props.getProperty("clusterSize"));
 			keywordType = props.getProperty("keywordType");
+			maskType = props.getProperty("maskType");
 			
 			profileTable = props.getProperty("profileTable");
 			indexTable = props.getProperty("indexTable");
@@ -487,6 +489,7 @@ public class FilterPatterns
 				genSent.setPunct(punct);
 				genSent.setTokenType(tokType);
 				genSent.init(db, msaAnnotFilterList, keywordType, targetProvenance);
+				genSent.setMaskType(maskType);
 			}
 			
 			genSent.setRequireTarget(false);
@@ -857,6 +860,7 @@ public class FilterPatterns
 			genSent.setRequireTarget(requireTarget);
 			genSent.setPunct(punct);
 			genSent.init(db, msaAnnotFilterList, keywordType, targetProvenance);
+			genSent.setMaskType(maskType);
 			
 			if (docIDList == null)
 				genSent.genSentences(docNamespace, docTable, null, limit);
