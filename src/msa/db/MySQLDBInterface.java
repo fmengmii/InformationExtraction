@@ -114,14 +114,14 @@ public class MySQLDBInterface implements MSADBInterface
 				+ "or (a.start >= b.start and a." + rq + "end" + rq + " <= b." + rq + "end" + rq + "))"
 					+ "order by a.start");
 			
-			pstmtSentsMask = conn.prepareStatement("select distinct a.start, a." + rq + "end" + rq + ", id from " + schema + annotTable + " a "
+			pstmtSentsMask = conn.prepareStatement("select distinct a.start, a." + rq + "end" + rq + ", a.id from " + schema + annotTable + " a "
 				+ "where a.document_namespace = ? and a.document_table = ? "
 				+ "and a.document_id = ? and a.annotation_type = ? "
 				+ "and not exists (select b.* from " + schema + annotTable + " b where a.document_id = b.document_id "
 				+ "and b.annotation_type = ? and a.start = b.start and a." + rq + "end" + rq + " = b." + rq + "end" + rq + ") "
 				+ "order by a.start");
 			
-			pstmtSentsTargetMask = conn.prepareStatement("select distinct a.start, a." + rq + "end" + rq + ", id from " + schema + annotTable + " a, "
+			pstmtSentsTargetMask = conn.prepareStatement("select distinct a.start, a." + rq + "end" + rq + ", a.id from " + schema + annotTable + " a, "
 				+ schema + annotTable + " b "
 				+ "where a.document_namespace = ? and a.document_table = ? "
 				+ "and a.document_id = ? and a.annotation_type = ? "
