@@ -233,7 +233,9 @@ public class MySQLDBInterface implements MSADBInterface
 			
 			
 			PreparedStatement pstmt = pstmtSents;
-			if (maskType != null)
+			if (maskType != null && targetType != null)
+				pstmt = pstmtSentsTargetMask;
+			else if (maskType != null)
 				pstmt = pstmtSentsMask;
 			else if (targetType != null)
 				pstmt = pstmtSentsTarget;
