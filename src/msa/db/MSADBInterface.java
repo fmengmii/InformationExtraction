@@ -12,6 +12,7 @@ public interface MSADBInterface
 	public List<Long> getDocIDList(String docQuery) throws MSADBException;
 	public List<AnnotationSequence> getSentsInDoc(String docNamespace, String docTable, long docID, String targetType) throws MSADBException;
 	public List<AnnotationSequence> getSentsInDoc(String docNamespace, String docTable, long docID, String sentType, String targetType) throws MSADBException;
+	public List<AnnotationSequence> getSentsInDoc(String docNamespace, String docTable, long docID, String sentType, String targetType, String maskType) throws MSADBException;
 	public List<Annotation> getSentAnnots(String docNamespace, String docTable, long docID, int start, int end, boolean punct) throws MSADBException;
 	public List<Annotation> getAnnotations(String docNamespace, String docTable, long docID, long start, long end, String annotType, String provenance) throws MSADBException;
 	public void writeAnnotation(Annotation annot, String docNamespace, String docTable, long docID, String provenance) throws MSADBException;
