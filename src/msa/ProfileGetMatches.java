@@ -48,7 +48,7 @@ public class ProfileGetMatches
 			pstmt = conn.prepareStatement("select document_id, start, + " + rq + "end" + rq + " from " + schema + indexTable 
 				+ " where profile_id = ? and target_id = ?");
 			pstmtProfile = conn.prepareStatement("select profile from " + schema + "profile where profile_id = ?");
-			pstmtTarget = conn.prepareStatement("select profile from " + schema + "profile where target_id = ?");
+			pstmtTarget = conn.prepareStatement("select profile from " + schema + "profile where profile_id = ?");
 			
 			
 			ResultSet rs = stmt.executeQuery(profileQuery);
