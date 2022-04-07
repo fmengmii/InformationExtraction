@@ -127,7 +127,7 @@ public class ProfileGetMatches
 				break;
 		}
 		
-		rs = stmt.executeQuery("select value, start, " + rq + "end"	+ rq 
+		rs = stmt.executeQuery("select value, start, " + rq + "end"	+ rq + " from " + schema + annotTable 
 			+ " where document_id = " + docID + " and annotation_type = 'Token' "
 			+ "and start >= " + minStart + " and " + rq + "end"	 + rq + " <= " + maxEnd
 			+ " order by start");
