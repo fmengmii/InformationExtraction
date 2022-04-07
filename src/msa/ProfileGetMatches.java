@@ -141,7 +141,7 @@ public class ProfileGetMatches
 			
 			if (start > prevStart && start <= currStart)
 				strBuf.append(" [ ");
-			else if (end > prevStart && end < currStart)
+			else if (end > prevStart && end <= currStart)
 				strBuf.append(" ] ");
 			
 			strBuf.append(val + " ");
