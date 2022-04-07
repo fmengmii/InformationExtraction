@@ -139,9 +139,9 @@ public class ProfileGetMatches
 			long currStart = rs.getLong(2);
 			long currEnd = rs.getLong(3);
 			
-			if (start >= prevStart && start <= currStart)
+			if (start > prevStart && start <= currStart)
 				strBuf.append(" [ ");
-			else if (end >= prevStart && end <= currStart)
+			else if (end > prevStart && end < currStart)
 				strBuf.append(" ] ");
 			
 			strBuf.append(val + " ");
