@@ -403,7 +403,7 @@ public class BestPatterns
 						String docKey = profileID + "|" + targetID + "|" + docID;
 						String ansProv = ansMap.get(docID + "|" + start + "|" + end);
 						
-						System.out.println(docID + "|" + start + "|" + end + "|" + ansProv);
+						System.out.println(docID + "|" + start + "|" + end + "|" + profileID + "|" + targetID);
 						
 						
 						if (profileType == 3) {
