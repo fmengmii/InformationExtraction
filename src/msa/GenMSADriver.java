@@ -273,6 +273,8 @@ public class GenMSADriver
 	
 	public void runBlocks(String user, String password, String docUser, String docPassword)
 	{
+		System.out.println("doc blocks!");
+		
 		try {
 			PreparedStatement pstmtGetDocIDs = conn.prepareStatement(docDBQuery);
 			//pstmtGetDocIDs.setString(1, targetType);
@@ -290,6 +292,9 @@ public class GenMSADriver
 				if (endIndex > totalDocIDList.size())
 					endIndex = totalDocIDList.size();
 				docIDList.addAll(docIDList.subList(i * docBlockSize, endIndex));
+				
+				System.out.println("doc block: " + (i * docBlockSize) + ", " + endIndex);
+				
 				getSentences(user, password);
 				run(user, password, docUser, docPassword);
 			}
@@ -932,8 +937,9 @@ public class GenMSADriver
 		if (args.length == 6 && args[5].equals("docblocks")) {
 			genMSA.runBlocks(args[0], args[1], args[2], args[3]);
 		}
-		
-		genMSA.getSentences(args[0], args[1]);
-		genMSA.run(args[0], args[1], args[2], args[3]);
+		else {
+			genMSA.getSentences(args[0], args[1]);
+			genMSA.run(args[0], args[1], args[2], args[3]);
+		}
 	}
 }
