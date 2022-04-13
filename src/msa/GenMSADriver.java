@@ -63,6 +63,7 @@ public class GenMSADriver
 	private int phrase;
 	private int msaMinRows;
 	private int targetMinRows;
+	private int docBlockSize;
 
 	private String host;
 	private String dbName;
@@ -270,6 +271,35 @@ public class GenMSADriver
 		}
 	}
 	
+	public void runBlocks(String user, String password, String docUser, String docPassword)
+	{
+		try {
+			PreparedStatement pstmtGetDocIDs = conn.prepareStatement(docDBQuery);
+			//pstmtGetDocIDs.setString(1, targetType);
+			
+			List<Long>	totalDocIDList = new ArrayList<Long>();
+			ResultSet rs = pstmtGetDocIDs.executeQuery();
+			while (rs.next()) {
+				totalDocIDList.add(rs.getLong(1));
+			}
+			
+			int numDocBlocks = (totalDocIDList.size() / docBlockSize) + 1;
+			for (int i=0; i<numDocBlocks; i++) {
+				docIDList = new ArrayList<Long>();
+				int endIndex = (i * docBlockSize) + docBlockSize;
+				if (endIndex > totalDocIDList.size())
+					endIndex = totalDocIDList.size();
+				docIDList.addAll(docIDList.subList(i * docBlockSize, endIndex));
+				getSentences(user, password);
+				run(user, password, docUser, docPassword);
+			}
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
 	public void getSentences(String user, String password)
 	{
 		List<String> targetTypeList = new ArrayList<String>();
@@ -296,7 +326,7 @@ public class GenMSADriver
 				}
 				
 			}
-			else {
+			else if (docIDList == null) {
 				docIDList = new ArrayList<Long>();
 				docIDList2 = new ArrayList<Long>();
 				
@@ -891,13 +921,18 @@ public class GenMSADriver
 	
 	public static void main(String[] args)
 	{
-		if (args.length != 5) {
-			System.out.println("usage: user password docUser docPassword config");
+		if (args.length != 5 && args.length != 6) {
+			System.out.println("usage: user password docUser docPassword config [docblocks]");
 			System.exit(0);
 		}
 		
 		GenMSADriver genMSA = new GenMSADriver();
 		genMSA.init(args[4]);
+		
+		if (args.length == 6 && args[5].equals("docblocks")) {
+			genMSA.runBlocks(args[0], args[1], args[2], args[3]);
+		}
+		
 		genMSA.getSentences(args[0], args[1]);
 		genMSA.run(args[0], args[1], args[2], args[3]);
 	}
