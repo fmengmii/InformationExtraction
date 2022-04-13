@@ -507,6 +507,10 @@ public class GenMSA
 					List<String> alignToks1 = sw.getAlignToks1();
 					List<String> alignToks2 = sw.getAlignToks2();
 					
+					//skip long alignments
+					if (alignToks1.size() > 10)
+						continue;
+					
 					
 					int gaps1 = MSAUtils.countGaps(align1, "|||");
 					int gaps2 = MSAUtils.countGaps(align2, "|||");

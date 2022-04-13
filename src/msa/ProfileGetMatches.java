@@ -45,7 +45,7 @@ public class ProfileGetMatches
 			rq = DBConnection.reservedQuote;
 			
 			Statement stmt = conn.createStatement();
-			pstmt = conn.prepareStatement("select document_id, start, + " + rq + "end" + rq + " from " + schema + indexTable 
+			pstmt = conn.prepareStatement("select distinct document_id, start, + " + rq + "end" + rq + " from " + schema + indexTable 
 				+ " where profile_id = ? and target_id = ?");
 			pstmtProfile = conn.prepareStatement("select profile from " + schema + "profile where profile_id = ?");
 			pstmtTarget = conn.prepareStatement("select profile from " + schema + "profile where profile_id = ?");
