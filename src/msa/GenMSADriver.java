@@ -291,9 +291,9 @@ public class GenMSADriver
 			for (int i=0; i<numDocBlocks; i++) {
 				docIDList = new ArrayList<Long>();
 				int endIndex = (i * docBlockSize) + docBlockSize;
-				if (endIndex >= totalDocIDList.size())
-					endIndex = totalDocIDList.size() - 1;
-				docIDList.addAll(docIDList.subList(i * docBlockSize, endIndex));
+				if (endIndex > totalDocIDList.size())
+					endIndex = totalDocIDList.size();
+				docIDList.addAll(totalDocIDList.subList(i * docBlockSize, endIndex));
 				
 				System.out.println("doc block: " + (i * docBlockSize) + ", " + endIndex);
 				
