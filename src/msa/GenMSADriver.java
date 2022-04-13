@@ -241,6 +241,7 @@ public class GenMSADriver
 			
 				
 			msaBlockSize = Integer.parseInt(props.getProperty("msaBlockSize"));
+			docBlockSize = Integer.parseInt(props.getProperty("docBlockSize"));
 			
 			incrementalFlag = Boolean.parseBoolean(props.getProperty("incrementalFlag"));
 			
