@@ -276,6 +276,7 @@ public class GenMSADriver
 		System.out.println("doc blocks!");
 		
 		try {
+			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);	
 			PreparedStatement pstmtGetDocIDs = conn.prepareStatement(docDBQuery);
 			//pstmtGetDocIDs.setString(1, targetType);
 			
@@ -298,6 +299,8 @@ public class GenMSADriver
 				getSentences(user, password);
 				run(user, password, docUser, docPassword);
 			}
+			
+			conn.close();
 		}
 		catch(Exception e)
 		{
