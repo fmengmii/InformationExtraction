@@ -118,6 +118,12 @@ public class AnnotationSequenceGrid
 		//size--;
 	}
 	
+	public void removeColumn(int index)
+	{
+		gridElementList.remove(index);
+	}
+	
+	
 	public AnnotationSequenceGrid clone()
 	{
 		AnnotationSequence sequence2 = sequence.clone();
