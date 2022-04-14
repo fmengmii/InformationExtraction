@@ -370,12 +370,16 @@ public class GenAnnotationGrid
 	
 	private AnnotationSequenceGrid trimGrid(AnnotationSequenceGrid grid)
 	{
-		int targetColIndex = grid.getTargetCoords()[0];
-		int start = targetColIndex - trimSize;
-		int end = targetColIndex + trimSize;
+		int[] targetCoords = grid.getTargetCoords();
+		int start = targetCoords[0] - trimSize;
+		int end = targetCoords[0] + trimSize;
 		
-		if (start < 0)
-			start = 0;
+		if (start < 0) {
+			start = 0;			
+		}
+		else {
+			targetCoords[0] = targetCoords[0] - start;
+		}
 		
 		if (end > grid.size())
 			end = grid.size();
