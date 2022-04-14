@@ -350,7 +350,7 @@ public class GenAnnotationGrid
 					}
 					
 					postProcess(seqGrid2, ":lookup");
-					trimGrid(seqGrid2, indexes[0]);
+					seqGrid2 = trimGrid(seqGrid2, indexes[0]);
 					gridList.add(seqGrid2);
 					//System.out.println("SeqGrid2: " + seqGrid2.toString());
 				}				
@@ -368,7 +368,7 @@ public class GenAnnotationGrid
 		return gridList;
 	}
 	
-	private void trimGrid(AnnotationSequenceGrid grid, int targetColIndex)
+	private AnnotationSequenceGrid trimGrid(AnnotationSequenceGrid grid, int targetColIndex)
 	{
 		int start = targetColIndex - trimSize;
 		int end = targetColIndex + trimSize;
@@ -379,7 +379,7 @@ public class GenAnnotationGrid
 		if (end > grid.size())
 			end = grid.size();
 		
-		grid = grid.subGrid(start, end);
+		return grid.subGrid(start, end);
 	}
 	
 	private int[] getIndexes(Annotation annot, List<Annotation> tokAnnotList)
