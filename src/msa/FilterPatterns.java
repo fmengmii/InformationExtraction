@@ -496,12 +496,14 @@ public class FilterPatterns
 			genSent.setCombineSents(combineSents);
 
 
+			/*
 			if (docIDList == null)
 				genSent.genSentences(docNamespace, docTable, null, limit);
 			else {
 				genSent.setDocIDList(docIDList);
 				genSent.genSentenceAnnots(docNamespace, docTable);
 			}
+			*/
 			
 			
 			
@@ -512,6 +514,8 @@ public class FilterPatterns
 			
 			GenAnnotationGrid genGrid = new GenAnnotationGrid(annotTypeNameList, tokType);
 			
+			
+			/*
 			List<AnnotationSequence> negSeqList = genSent.getNegSeqList();
 			
 			List<AnnotationSequenceGrid> gridList = new ArrayList<AnnotationSequenceGrid>();
@@ -519,6 +523,7 @@ public class FilterPatterns
 				List<AnnotationSequenceGrid> negGridList2 = genGrid.toAnnotSeqGrid(negSeq, false, false, true, true, false);
 				gridList.addAll(negGridList2);
 			}
+			*/
 			
 			
 			
@@ -666,9 +671,6 @@ public class FilterPatterns
 
 				//main loop through blocks of doc IDs
 				
-				//ResultSet docRS = pstmtGetDocIDs.executeQuery();
-				
-				/*
 				int currIndex = 0;
 				for (long docID : docIDList) {
 					List<Long> docIDListBlock = new ArrayList<Long>();
@@ -682,9 +684,9 @@ public class FilterPatterns
 					
 					if (docCount == 0)
 						break;
-					*/
 					
-					System.out.println("Doc Block: " + docIDList.get(0) + " to " + docIDList.get(docIDList.size()-1));
+					
+					System.out.println("Doc Block: " + docIDListBlock.get(0) + " to " + docIDListBlock.get(docIDListBlock.size()-1));
 					
 					//docIDMap.put(targetType, docIDList);
 					
@@ -694,8 +696,8 @@ public class FilterPatterns
 					//read answers
 					System.out.println("reading answers...");
 					ansMap = new HashMap<String, Boolean>();
-					for (long docID : docIDList)
-						readAnswers(targetType, targetProvenance, docID);
+					for (long docID2 : docIDListBlock)
+						readAnswers(targetType, targetProvenance, docID2);
 					
 					stats.setAnsMap(ansMap);
 					
@@ -703,7 +705,7 @@ public class FilterPatterns
 					
 					
 					//generate the sentences
-					//genSentences(docIDListBlock, docNamespace, docTable, requireTarget, punct, limit);
+					genSentences(docIDListBlock, docNamespace, docTable, requireTarget, punct, limit);
 					//List<AnnotationSequence> negSeqList = genSent.getNegSeqList();
 					
 					
@@ -714,6 +716,15 @@ public class FilterPatterns
 					
 					//for (int blockNum=0; blockNum<numBlocks; blockNum++) {
 										
+					
+					//get grids for this doc block
+					List<AnnotationSequence> negSeqList = genSent.getNegSeqList();
+					
+					List<AnnotationSequenceGrid> gridList = new ArrayList<AnnotationSequenceGrid>();
+					for (AnnotationSequence negSeq : negSeqList) {
+						List<AnnotationSequenceGrid> negGridList2 = genGrid.toAnnotSeqGrid(negSeq, false, false, true, true, false);
+						gridList.addAll(negGridList2);
+					}
 		
 					
 					
@@ -834,7 +845,7 @@ public class FilterPatterns
 					
 				}
 				
-			//}
+			}
 			
 			reader.close();
 			stats.close();
