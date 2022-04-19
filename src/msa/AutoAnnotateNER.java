@@ -118,6 +118,7 @@ public class AutoAnnotateNER
 	
 	private String finalTable;
 	private String profileTable;
+	private String annotTable;
 	
 	private String autoMatchTable;
 	private String runName;
@@ -297,6 +298,8 @@ public class AutoAnnotateNER
 			
 			finalTable = props.getProperty("finalTable");
 			profileTable = props.getProperty("profileTable");
+			
+			annotTable = props.getProperty("annotTable");
 
 			
 			if (targetType != null) {
@@ -396,6 +399,7 @@ public class AutoAnnotateNER
 			db.setDBType(dbType);
 			db.setSchema(schema);
 			db.init(user, password, host, dbName, dbName);
+			db.setAnnotTable(annotTable);
 			
 			schema = schema + ".";
 			
@@ -405,12 +409,12 @@ public class AutoAnnotateNER
 			
 			rq = DBConnection.reservedQuote;
 			
-			pstmt = conn.prepareStatement("select max(id) from " + schema + "annotation where document_namespace = '" + docNamespace + "' and document_table = '" + docTable + "' "
+			pstmt = conn.prepareStatement("select max(id) from " + schema + annotTable + " where document_namespace = '" + docNamespace + "' and document_table = '" + docTable + "' "
 				+ "and document_id = ?");
-			pstmt2 = conn.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance, score) "
+			pstmt2 = conn.prepareStatement("insert into " + schema + annotTable + " (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance, score) "
 				+ "values (?, '" + docNamespace + "', '" + docTable + "',?,?,?,?,?,?,?,?)");
 			
-			pstmt3 = conn.prepareStatement("select distinct a.annotation_type, a.value, a.document_id, a.start, a." + rq + "end" + rq + " from " + schema + "annotation a, " + schema + "annotation b "
+			pstmt3 = conn.prepareStatement("select distinct a.annotation_type, a.value, a.document_id, a.start, a." + rq + "end" + rq + " from " + schema + annotTable + " a, " + schema + annotTable + " b "
 				+ "where a.provenance = 'conll2003-token' and b.value = ? and a.start >= b.start and a." + rq + "end" + rq + " <= b." + rq + "end" + rq + " and a.document_id = b.document_id "
 				+ "and a.document_id in (select distinct c.document_id from ner.conll2003_document c where c.`group` = 'train')");
 			
@@ -419,7 +423,7 @@ public class AutoAnnotateNER
 			pstmtCheck = conn2.prepareStatement("select count(*) from " + autoMatchTable + " where document_id = ? and start = ? and " + rq + "end" + rq + " = ? and run_name = '" + runName + "'");
 			
 			//pstmtDeleteFrameData = conn.prepareStatement("delete from " + schema + "frame_instance_data where document_id = ? and annotation_id in (select a.id from annotation a where a.document_id = ? and a.annotation_type = ? and provenance = '" + autoProvenance + "')");
-			pstmtDeleteAnnots = conn.prepareStatement("delete from " + schema + "annotation where annotation_type = ? and document_id = ? and provenance = '" + autoProvenance + "'");
+			pstmtDeleteAnnots = conn.prepareStatement("delete from " + schema + annotTable + " where annotation_type = ? and document_id = ? and provenance = '" + autoProvenance + "'");
 			
 			rq = DBConnection.reservedQuote;
 			
@@ -534,7 +538,7 @@ public class AutoAnnotateNER
 				genSent.setVerbose(verbose);
 				genSent.setTokenType(tokType);
 				//genSent.setMaskTarget(true);
-				genSent.init(db, msaAnnotFilterList, targetProvenance);
+				genSent.init(db, msaAnnotFilterList, targetType, targetProvenance);
 			}
 			
 			System.out.println("gen sents...");
@@ -2683,7 +2687,7 @@ public class AutoAnnotateNER
 			valueStr = "cast(value as varchar(max))";
 		
 		ResultSet rs = stmt.executeQuery("select distinct start, " + rq + "end" + rq + ", annotation_type, " + valueStr
-			+ " from " + schema + "annotation where document_id = " + docID + " and annotation_type = '" + annotType
+			+ " from " + schema + annotTable + " where document_id = " + docID + " and annotation_type = '" + annotType
 			+ "' and provenance like '" + provenance + "' order by start");
 		
 		while (rs.next()) {
