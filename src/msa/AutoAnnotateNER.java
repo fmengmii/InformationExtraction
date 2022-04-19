@@ -256,7 +256,7 @@ public class AutoAnnotateNER
 			String docDBName = props.getProperty("docDBName");
 			docNamespace = props.getProperty("docNamespace");
 			docTable = props.getProperty("docTable");
-			targetType = props.getProperty("targetAnnotType");
+			//targetType = props.getProperty("targetAnnotType");
 			schema = props.getProperty("schema");
 			
 			
@@ -398,8 +398,9 @@ public class AutoAnnotateNER
 			db = new MySQLDBInterface();
 			db.setDBType(dbType);
 			db.setSchema(schema);
-			db.init(user, password, host, dbName, dbName);
 			db.setAnnotTable(annotTable);
+			db.init(user, password, host, dbName, dbName);
+
 			
 			schema = schema + ".";
 			
