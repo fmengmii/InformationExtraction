@@ -96,6 +96,7 @@ public class AutoAnnotateNER
 	private String negTargetType;
 	private String negTargetProvenance;
 	private Map<String, Boolean> requireTargetMap;
+	private String candidateType;
 	
 	private Map<String, Boolean> valMap;
 	
@@ -295,6 +296,8 @@ public class AutoAnnotateNER
 			autoProvenance = props.getProperty("autoProvenance");
 			negTargetType = props.getProperty("negTargetType");
 			negTargetProvenance = props.getProperty("negTargetProvenance");
+			
+			candidateType = props.getProperty("candidateType");
 			
 			finalTable = props.getProperty("finalTable");
 			profileTable = props.getProperty("profileTable");
@@ -539,7 +542,7 @@ public class AutoAnnotateNER
 				genSent.setVerbose(verbose);
 				genSent.setTokenType(tokType);
 				//genSent.setMaskTarget(true);
-				genSent.init(db, msaAnnotFilterList, targetType, targetProvenance);
+				genSent.init(db, msaAnnotFilterList, candidateType, targetProvenance);
 			}
 			
 			System.out.println("gen sents...");
