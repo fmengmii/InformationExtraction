@@ -811,7 +811,7 @@ public class FilterPatterns
 						//pw.println("\n\nProfiles: " + profileGridList.size());
 						for (ProfileGrid profileGridObj : profileGridList) {
 							String profileStr = gson.toJson(profileGridObj.getGrid().getSequence().getToks());
-							MSAProfile profile = msaProfileMap.get(profileGridObj);
+							MSAProfile profile = msaProfileMap.get(profileGridObj.getGrid());
 							System.out.println(profile.getProfileID() + "|"	 + profileStr);
 							//pw.println(profileStr);
 						}
