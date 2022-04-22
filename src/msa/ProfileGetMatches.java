@@ -4,6 +4,8 @@ import java.io.*;
 import java.sql.*;
 import java.util.*;
 
+import com.google.gson.Gson;
+
 import utils.db.DBConnection;
 
 public class ProfileGetMatches 
@@ -19,8 +21,11 @@ public class ProfileGetMatches
 	private PreparedStatement pstmtTarget;
 	private PreparedStatement pstmtSents;
 	
+	private Gson gson;
+	
 	public ProfileGetMatches()
 	{
+		gson = new Gson();
 	}
 	
 	public void getMatches(String user, String password, String config)
@@ -69,6 +74,8 @@ public class ProfileGetMatches
 				if (rs2.next())
 					targetStr = rs2.getString(1);
 								
+				profileStr = profileReadableString(profileStr);
+				targetStr = profileReadableString(targetStr);
 				System.out.println("\n\n" + profileID + " | " + profileStr);
 				System.out.println(targetID + " | " + targetStr);
 				
@@ -152,6 +159,46 @@ public class ProfileGetMatches
 		System.out.println(docID + "|" + start + "|" + end + "|" + minStart + "|" + maxEnd + "|" + strBuf.toString());
 		
 		return strBuf.toString();
+	}
+	
+	private String profileReadableString(String profileStr)
+	{
+		List<String> tokList = new ArrayList<String>();
+		tokList = gson.fromJson(profileStr, tokList.getClass());
+		
+		StringBuilder strBlder = new StringBuilder();
+		
+		for (String tok : tokList) {
+			String[] parts = tok.split("!");
+			
+			String word = "";
+			int score = -1;
+			for (String part : parts) {
+
+				String[] subParts = part.split("\\|");
+				if (subParts.length == 1) {
+					word = part;
+					break;
+				}
+				
+				
+				if (subParts[1].equals("string")) {
+					word = subParts[2];
+					score = 5;
+				}
+				else if (subParts[1].equals("root") && score < 4) {
+					word = subParts[2];
+					score = 4;
+				}
+				else if (score < 3) {
+					word = subParts[2];
+				}
+			}
+			
+			strBlder.append(word + " ");
+		}
+		
+		return strBlder.toString();
 	}
 	
 	

@@ -2,6 +2,9 @@ package msa;
 
 import java.sql.*;
 import java.util.*;
+
+import com.google.gson.Gson;
+
 import java.io.*;
 
 import utils.db.DBConnection;
@@ -70,7 +73,6 @@ public class ProfileDebugger
 					profileStr = rs.getString(1);
 				}
 			}
-			
 			
 			System.out.println("profile: " + profileStr);
 			
