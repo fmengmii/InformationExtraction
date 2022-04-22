@@ -739,7 +739,7 @@ public class FilterPatterns
 	
 					
 					//profile loop - read profiles in blocks
-					while (true) {
+					//while (true) {
 						System.out.println("profiles: " + readStart + " to " + (readStart + clusterSize));
 						profileGridList = new ArrayList<ProfileGrid>();
 						//targetProfileGridList = new ArrayList<AnnotationSequenceGrid>();
@@ -749,7 +749,8 @@ public class FilterPatterns
 						
 						//List<MSAProfile> profileList2 = null;
 						
-						profileList = reader.read(targetType, group, readStart, clusterSize, profileType, schema + "." + profileTable, profileSizeLimit);
+						//profileList = reader.read(targetType, group, readStart, clusterSize, profileType, schema + "." + profileTable, profileSizeLimit);
+						profileList = reader.read(targetType, group, 0, Integer.MAX_VALUE, profileType, schema + "." + profileTable, -1);
 						//profileList2 = reader.read(targetType, group, readStart, clusterSize, 3, schema + "." + profileTable);
 						
 						//profileList.addAll(profileList2);
@@ -839,7 +840,7 @@ public class FilterPatterns
 						System.out.println("prev size: " + prevProfileSize + ", filter size: " + filterProfileSize + ", size: " + profileList.size());
 						
 						readStart += clusterSize;					
-					}
+					//}
 					
 	
 					
