@@ -35,6 +35,7 @@ public class BestPatterns
 	private String docQuery;
 	private String group;
 	private String annotTable;
+	private String ansType;
 	
 	private Boolean negAnsFlag;
 	
@@ -93,6 +94,7 @@ public class BestPatterns
 		posMinCount = Integer.parseInt(props.getProperty("posMinCount"));
 		schema = props.getProperty("schema") + ".";
 		annotTable = props.getProperty("annotTable");
+		ansType = props.getProperty("ansType");
 		String negAnsFlagStr = props.getProperty("negAnsFlag");
 		if (negAnsFlagStr != null)
 			negAnsFlag = Boolean.parseBoolean(negAnsFlagStr);
@@ -272,7 +274,7 @@ public class BestPatterns
 				System.out.println("reading answers...");
 				ansMap = new HashMap<String, String>();
 				for (long docID : docIDList)
-					readAnswers(docID, annotType, provenance);
+					readAnswers(docID, ansType, provenance);
 				
 				System.out.println("ansMap size: " + ansMap.size());
 				
