@@ -36,6 +36,8 @@ public class BestPatterns
 	private String group;
 	private String annotTable;
 	
+	private Boolean negAnsFlag;
+	
 	private List<String> groupList;
 	private List<String> targetGroupList;
 	
@@ -91,6 +93,10 @@ public class BestPatterns
 		posMinCount = Integer.parseInt(props.getProperty("posMinCount"));
 		schema = props.getProperty("schema") + ".";
 		annotTable = props.getProperty("annotTable");
+		String negAnsFlagStr = props.getProperty("negAnsFlag");
+		if (negAnsFlagStr != null)
+			negAnsFlag = Boolean.parseBoolean(negAnsFlagStr);
+		
 		
 		String projIDStr = props.getProperty("projID");
 		if (projIDStr != null)
@@ -511,6 +517,10 @@ public class BestPatterns
 						negCount--;
 					
 					double prec = ((double) posCount) / ((double) (posCount + negCount));
+					
+					if (negAnsFlag)
+						prec = 1.0 - prec;
+						
 					
 						
 	
