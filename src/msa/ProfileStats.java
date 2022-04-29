@@ -245,7 +245,7 @@ public class ProfileStats
 			
 			
 			//remove known inactive pattern/target combinations
-			removeInactivePatterns(profileGridList, msaProfileMap, targetIDMap);
+			//removeInactivePatterns(profileGridList, msaProfileMap, targetIDMap);
 			
 			
 			int maxGridSize = 0;
@@ -414,7 +414,7 @@ public class ProfileStats
 			//String key = profileID + "|" + targetID;
 
 			Boolean ans = ansMap.get(docID + "|" + start + "|" + end);
-			/*
+			
 			String key = Long.toString(profileID);
 			if (ans != null) {
 				Integer count = posMap.get(key);
@@ -428,8 +428,9 @@ public class ProfileStats
 					count = 0;
 				negMap.put(key, ++count);
 			}
-			*/
 			
+			
+			/*
 			List<MSAProfile> targetList = match.getTargetList();
 			for (MSAProfile target : targetList) {
 				long targetID = target.getProfileID();
@@ -449,6 +450,7 @@ public class ProfileStats
 				}
 
 			}
+			*/
 		}
 		
 		

@@ -61,6 +61,7 @@ public class FilterPatterns
 	private int profileType = 0;
 	private String keywordType;
 	private String maskType;
+	private String ansType;
 
 	private String indexTable;
 	private String finalTable;
@@ -253,6 +254,10 @@ public class FilterPatterns
 			clusterSize = Integer.parseInt(props.getProperty("clusterSize"));
 			keywordType = props.getProperty("keywordType");
 			maskType = props.getProperty("maskType");
+			ansType = props.getProperty("ansType");
+			
+			if (keywordType == null)
+				keywordType = targetType;
 			
 			profileTable = props.getProperty("profileTable");
 			indexTable = props.getProperty("indexTable");
@@ -697,7 +702,7 @@ public class FilterPatterns
 					System.out.println("reading answers...");
 					ansMap = new HashMap<String, Boolean>();
 					for (long docID2 : docIDListBlock)
-						readAnswers(targetType, targetProvenance, docID2);
+						readAnswers(ansType, targetProvenance, docID2);
 					
 					stats.setAnsMap(ansMap);
 					
