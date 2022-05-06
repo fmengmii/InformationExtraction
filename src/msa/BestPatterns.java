@@ -1135,7 +1135,7 @@ public class BestPatterns
 				//determine overlap with other targets
 				boolean flag = true;
 				for (List<Boolean> vec2 : activeMap.keySet()) {
-					if (!activeMap.get(vec2))
+					if (activeMap.get(vec2) == null || !activeMap.get(vec2))
 						continue;
 					
 					int bits2 = countBits(vec2);
