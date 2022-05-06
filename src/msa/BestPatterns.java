@@ -308,6 +308,11 @@ public class BestPatterns
 				
 				posMap = new HashMap<String, Integer>();
 				negMap = new HashMap<String, Integer>();
+				
+				//read all profiles if negAnsFlag is set
+				if (negAnsFlag)
+					readProfiles();
+				
 
 				Map<String, Integer> docCountMap = new HashMap<String, Integer>();
 				inactiveMap = new HashMap<String, Boolean>();
@@ -1036,6 +1041,128 @@ public class BestPatterns
 		stmt.close();
 	}
 	
+	
+	private void readProfiles() throws SQLException
+	{
+		List<Integer> basicTargetIDList = getBasicTargetList();
+		
+		Statement stmt = conn.createStatement();
+		
+		ResultSet rs = stmt.executeQuery("select profile_id, profile from " + schema + "profile where annotation_type = '" + annotType + "' and profile_type = 0");
+		while (rs.next()) {
+			int profileID = rs.getInt(1);
+			String profileStr = rs.getString(2);
+			
+			List<String> tokList = new ArrayList<String>();
+			tokList = gson.fromJson(profileStr, tokList.getClass());
+			
+			int tokCount = 0;
+			for (String tok : tokList) {
+				if (tok.equals(":start") || tok.equals(":end") || tok.equals(":target"))
+					continue;
+				
+				
+				if (tok.indexOf("|string") < 0)
+					continue;
+					
+				
+				tokCount++;
+			}
+			
+			if (tokCount < minToks)
+				continue;
+			
+			for (int targetID : basicTargetIDList) {
+				posMap.put(profileID + "|" + targetID, 0);
+				negMap.put(profileID + "|" + targetID, 2);
+			}
+			
+			
+		}
+		
+		stmt.close();
+	}
+	
+	
+	private List<Integer> getBasicTargetList() throws SQLException
+	{
+		List<Integer> targetIDList = new ArrayList<Integer>();
+		
+		Map<String, Integer> codeMap = new HashMap<String, Integer>();
+		Map<Integer, Boolean> activeMap = new HashMap<Integer, Boolean>();
+		Map<Integer, Integer> targetIDMap = new HashMap<Integer, Integer>();
+		int exp = 0;
+		
+		Statement stmt = conn.createStatement();
+		ResultSet rs = stmt.executeQuery("select profile_id, profile from " + schema + "profile where annotation_type = '" + annotType
+			+ "' and profile_type = 1");
+		
+		while (rs.next()) {
+			int targetID = rs.getInt(1);
+			String profileStr = rs.getString(2);
+			
+			String[] parts = profileStr.split("!");
+			
+			int totalCode = 0;
+			for (int i=0; i<parts.length; i++) {
+				
+				Integer code = codeMap.get(parts[i]);
+				if (code == null) {
+					code = (int) Math.pow(2, exp++);
+					codeMap.put(parts[i], code);
+				}
+				
+				totalCode = totalCode & code;
+			}
+			
+			int bits = countBits(totalCode);
+			
+			//determine overlap with other targets
+			boolean flag = true;
+			for (int totalCode2 : activeMap.keySet()) {
+				int bits2 = countBits(totalCode2);
+				
+				int or = totalCode | totalCode2;
+				if (or == totalCode || or == totalCode2) {
+					if (bits < bits2) {
+						activeMap.put(totalCode2, false);
+					}
+					else {
+						flag = false;
+						break;
+					}
+				}
+			}
+			
+			activeMap.put(totalCode, flag);
+			targetIDMap.put(totalCode, targetID);
+		}
+		
+		//remove overlapped codes		
+		for (int totalCode : activeMap.keySet()) {
+			if (activeMap.get(totalCode)) {
+				int targetID = targetIDMap.get(totalCode);
+				targetIDList.add(targetID);
+			}
+		}
+		
+		
+		stmt.close();
+		
+		return targetIDList;
+	}
+	
+	
+	private int countBits(int n)
+	{
+		int count=0;
+		while(n!=0){
+		  n = n&(n-1);
+		  count++;
+		}
+		
+		return count;
+	}
 
 	
 	private void readAnswers(long docID, String annotType, String provenance) throws SQLException
