@@ -1044,6 +1044,8 @@ public class BestPatterns
 	
 	private void readProfiles() throws SQLException
 	{
+		System.out.println("read all profiles...");
+		
 		List<Integer> basicTargetIDList = getBasicTargetList();
 		
 		Statement stmt = conn.createStatement();
