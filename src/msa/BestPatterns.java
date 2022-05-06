@@ -1164,6 +1164,8 @@ public class BestPatterns
 		
 		stmt.close();
 		
+		System.out.println("target list size: " + targetIDList.size());
+		
 		return targetIDList;
 	}
 	
