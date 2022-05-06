@@ -1200,11 +1200,22 @@ public class BestPatterns
 	private List<Boolean> vecOr(List<Boolean> v1, List<Boolean> v2)
 	{
 		List<Boolean> v = new ArrayList<Boolean>();
-		for (int i=0; i<v1.size(); i++) {
+		List<Boolean> v3 = v2;
+		int size = v1.size();
+		if (size > v2.size()) {
+			size = v2.size();
+			v3 = v1;
+		}
+		
+		for (int i=0; i<size; i++) {
 			if (v1.get(i) || v2.get(i))
 				v.add(true);
 			else
 				v.add(false);
+		}	
+		
+		for (int i = size; i<v3.size(); i++) {
+			v.add(v3.get(i));
 		}
 		
 		return v;
