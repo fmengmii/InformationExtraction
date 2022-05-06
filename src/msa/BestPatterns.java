@@ -1089,25 +1089,20 @@ public class BestPatterns
 		List<Integer> targetIDList = new ArrayList<Integer>();
 		
 		Map<String, Integer> indexMap = new HashMap<String, Integer>();
-		Map<boolean[], Boolean> activeMap = new HashMap<boolean[], Boolean>();
-		Map<boolean[], Integer> targetIDMap = new HashMap<boolean[], Integer>();
+		Map<List<Boolean>, Boolean> activeMap = new HashMap<List<Boolean>, Boolean>();
+		Map<List<Boolean>, Integer> targetIDMap = new HashMap<List<Boolean>, Integer>();
 		
 		Statement stmt = conn.createStatement();
-		ResultSet rs = stmt.executeQuery("select count(*) from " + schema + "profile where annotation_type = '" + annotType
-				+ "' and profile_type = 1");
-		
-		int totalTargets = 0;
-		if (rs.next()) {
-			totalTargets = rs.getInt(1);
-		}
 		
 		int currIndex = 0;
 		
-		rs = stmt.executeQuery("select profile_id, profile from " + schema + "profile where annotation_type = '" + annotType
+		ResultSet rs = stmt.executeQuery("select profile_id, profile from " + schema + "profile where annotation_type = '" + annotType
 			+ "' and profile_type = 1");
 		
 		while (rs.next()) {
-			boolean[] vec = new boolean[totalTargets];
+			List<Boolean> vec = new ArrayList<Boolean>();
+			for (int i=0; i<currIndex; i++)
+				vec.add(false);
 			
 
 			int targetID = rs.getInt(1);
@@ -1127,25 +1122,29 @@ public class BestPatterns
 					if (index == null) {
 						index = currIndex++;
 						indexMap.put(parts[i], index);
+						vec.add(true);
 					}
-					
-					vec[index] = true;
+					else
+						vec.set(index, true);
 				}
 				
 				int bits = countBits(vec);
 				
 				//determine overlap with other targets
 				boolean flag = true;
-				for (boolean[] vec2 : activeMap.keySet()) {
+				for (List<Boolean> vec2 : activeMap.keySet()) {
 					int bits2 = countBits(vec2);
+					int targetID2 = targetIDMap.get(vec2);
 					
-					boolean[] or = vecOr(vec, vec2);
+					List<Boolean> or = vecOr(vec, vec2);
 					if (vecEqual(or, vec) || vecEqual(or, vec2)) {
 						if (bits < bits2) {
 							activeMap.put(vec2, false);
+							System.out.println(targetID2 + " overlapped by " + targetID);
 						}
 						else {
 							flag = false;
+							System.out.println(targetID + " overlapped by " + targetID2);
 							break;
 						}
 					}
@@ -1157,7 +1156,7 @@ public class BestPatterns
 		}
 		
 		//remove overlapped codes		
-		for (boolean[] vec : activeMap.keySet()) {
+		for (List<Boolean> vec : activeMap.keySet()) {
 			if (activeMap.get(vec)) {
 				int targetID = targetIDMap.get(vec);
 				targetIDList.add(targetID);
@@ -1173,11 +1172,11 @@ public class BestPatterns
 	}
 	
 	
-	private int countBits(boolean[] v)
+	private int countBits(List<Boolean> v)
 	{
 		int count=0;
-		for (int i=0; i<v.length; i++) {
-			if (v[i])
+		for (int i=0; i<v.size(); i++) {
+			if (v.get(i))
 				count++;
 		}
 		
@@ -1185,22 +1184,24 @@ public class BestPatterns
 	}
 	
 	
-	private boolean vecEqual(boolean[] v1, boolean[] v2)
+	private boolean vecEqual(List<Boolean> v1, List<Boolean> v2)
 	{
-		for (int i=0; i<v1.length; i++) {
-			if (v1[i] != v2[i])
+		for (int i=0; i<v1.size(); i++) {
+			if (v1.get(i) != v2.get(i))
 				return false;
 		}
 		
 		return true;
 	}
 	
-	private boolean[] vecOr(boolean[] v1, boolean[] v2)
+	private List<Boolean> vecOr(List<Boolean> v1, List<Boolean> v2)
 	{
-		boolean[] v = new boolean[v1.length];
-		for (int i=0; i<v1.length; i++) {
-			if (v1[i] || v2[i])
-				v[i] = true;
+		List<Boolean> v = new ArrayList<Boolean>();
+		for (int i=0; i<v1.size(); i++) {
+			if (v1.get(i) || v2.get(i))
+				v.add(true);
+			else
+				v.add(false);
 		}
 		
 		return v;
