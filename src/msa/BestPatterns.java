@@ -1112,45 +1112,48 @@ public class BestPatterns
 
 			int targetID = rs.getInt(1);
 			String profileStr = rs.getString(2);
+			List<String> toks = new ArrayList<String>();
+			toks = gson.fromJson(profileStr, toks.getClass());
 			
 			System.out.println("targetID: " + targetID + ", profile: " + profileStr);
 
-			
-			String[] parts = profileStr.split("!");
-			
-			int totalCode = 0;
-			for (int i=0; i<parts.length; i++) {
+			//TODO: this only works for single token targets now
+			for (String tok : toks) {
+				String[] parts = tok.split("!");
 				
-				Integer index = indexMap.get(parts[i]);
-				if (index == null) {
-					index = currIndex++;
-					indexMap.put(parts[i], index);
+				for (int i=0; i<parts.length; i++) {
+					
+					Integer index = indexMap.get(parts[i]);
+					if (index == null) {
+						index = currIndex++;
+						indexMap.put(parts[i], index);
+					}
+					
+					vec[index] = true;
 				}
 				
-				vec[index] = true;
-			}
-			
-			int bits = countBits(vec);
-			
-			//determine overlap with other targets
-			boolean flag = true;
-			for (boolean[] vec2 : activeMap.keySet()) {
-				int bits2 = countBits(vec2);
+				int bits = countBits(vec);
 				
-				boolean[] or = vecOr(vec, vec2);
-				if (vecEqual(or, vec) || vecEqual(or, vec2)) {
-					if (bits < bits2) {
-						activeMap.put(vec2, false);
-					}
-					else {
-						flag = false;
-						break;
+				//determine overlap with other targets
+				boolean flag = true;
+				for (boolean[] vec2 : activeMap.keySet()) {
+					int bits2 = countBits(vec2);
+					
+					boolean[] or = vecOr(vec, vec2);
+					if (vecEqual(or, vec) || vecEqual(or, vec2)) {
+						if (bits < bits2) {
+							activeMap.put(vec2, false);
+						}
+						else {
+							flag = false;
+							break;
+						}
 					}
 				}
+				
+				activeMap.put(vec, flag);
+				targetIDMap.put(vec, targetID);
 			}
-			
-			activeMap.put(vec, flag);
-			targetIDMap.put(vec, targetID);
 		}
 		
 		//remove overlapped codes		
