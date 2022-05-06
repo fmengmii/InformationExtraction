@@ -1135,6 +1135,9 @@ public class BestPatterns
 				//determine overlap with other targets
 				boolean flag = true;
 				for (List<Boolean> vec2 : activeMap.keySet()) {
+					if (!activeMap.get(vec2))
+						continue;
+					
 					int bits2 = countBits(vec2);
 					int targetID2 = targetIDMap.get(vec2);
 					
@@ -1188,11 +1191,21 @@ public class BestPatterns
 	
 	private boolean vecEqual(List<Boolean> v1, List<Boolean> v2)
 	{
-		if (v1.size() != v2.size())
-			return false;
+		int size = v1.size();
+		List<Boolean> v3 = v2;
 		
-		for (int i=0; i<v1.size(); i++) {
+		if (size > v2.size()) {
+			size = v2.size();
+			v3 = v1;
+		}
+		
+		for (int i=0; i<size; i++) {
 			if (v1.get(i) != v2.get(i))
+				return false;
+		}
+		
+		for (int i=size; i<v3.size(); i++) {
+			if (v3.get(i))
 				return false;
 		}
 		
