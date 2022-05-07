@@ -215,7 +215,7 @@ public class BestPatterns
 				System.out.println("best annot type: " + annotType);
 				
 				
-				PreparedStatement pstmt = conn.prepareStatement("insert into " + schema + finalTable + " (profile_id, target_id, total, prec, true_pos, false_pos) values (?,?,?,?,?,?)");
+				PreparedStatement pstmt = conn.prepareStatement("insert into " + schema + finalTable + " (profile_id, target_id, total, prec, true_pos, false_pos, disabled) values (?,?,?,?,?,?,?)");
 				PreparedStatement pstmtUpdateFinal = conn.prepareStatement("update " + schema + finalTable + " set true_pos = ?, false_pos = ?, total = ? where profile_id = ? and target_id = ?");
 				PreparedStatement pstmtUpdateProfile = conn.prepareStatement("update " + schema + profileTable + " set score = ? where profile_id = ?");
 				PreparedStatement pstmtUpdateProfileCounts = conn.prepareStatement("update " + schema + profileTable + " set true_pos = ?, false_pos = ? where profile_id = ?");
@@ -569,6 +569,10 @@ public class BestPatterns
 					
 					if (write) {
 						if (preloadMap.get(key) == null) {
+							int disabled = 1;
+							if (score == 1.0)
+								disabled = 0;
+							
 							pstmt.setLong(1, profileID);
 							pstmt.setLong(2, targetID);
 							pstmt.setInt(3, posCount+negCount);
@@ -576,6 +580,7 @@ public class BestPatterns
 							//pstmt.setInt(5, valence);
 							pstmt.setInt(5, posCount);
 							pstmt.setInt(6, negCount);
+							pstmt.setInt(7, disabled);
 							pstmt.addBatch();
 							
 						}
