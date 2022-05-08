@@ -386,6 +386,8 @@ public class BestPatterns
 								tokCount++;
 						}
 						
+						System.out.println("tok count: " + tokCount + " minToks: " + minToks + " maxToks: " + maxToks);
+						
 						if (tokCount < minToks || tokCount > maxToks)
 							continue;
 						
