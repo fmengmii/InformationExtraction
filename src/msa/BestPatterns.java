@@ -65,6 +65,7 @@ public class BestPatterns
 	private Map<String, Boolean> profileFilterMap;
 	
 	private int minToks;
+	private int maxToks;
 	
 	private Gson gson;
 
@@ -131,6 +132,7 @@ public class BestPatterns
 		
 		
 		minToks = Integer.parseInt(props.getProperty("minToks"));
+		maxToks = Integer.parseInt(props.getProperty("maxToks"));
 		
 		
 
@@ -387,7 +389,7 @@ public class BestPatterns
 							tokCount++;
 						}
 						
-						if (tokCount < minToks)
+						if (tokCount < minToks || tokCount > maxToks)
 							continue;
 						
 						//System.out.println("profileID: " + profileID + " targetID: " + targetID + " start:" + start + " profileType: " + profileType + " matchCount: " + matchCount);
