@@ -382,11 +382,8 @@ public class BestPatterns
 								continue;
 							
 							
-							if (tok.indexOf("|string") < 0)
-								continue;
-								
-							
-							tokCount++;
+							if (tok.indexOf("|string") > 0 || tok.indexOf("|root") > 0)
+								tokCount++;
 						}
 						
 						if (tokCount < minToks || tokCount > maxToks)
