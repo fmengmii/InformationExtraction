@@ -386,8 +386,6 @@ public class BestPatterns
 								tokCount++;
 						}
 						
-						System.out.println("tok count: " + tokCount + " minToks: " + minToks + " maxToks: " + maxToks);
-						
 						if (tokCount < minToks || tokCount > maxToks)
 							continue;
 						
@@ -1077,7 +1075,7 @@ public class BestPatterns
 				tokCount++;
 			}
 			
-			if (tokCount < minToks)
+			if (tokCount < minToks || tokCount > maxToks)
 				continue;
 			
 			for (int targetID : basicTargetIDList) {
