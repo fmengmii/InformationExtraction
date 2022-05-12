@@ -1101,7 +1101,7 @@ public class BestPatterns
 					basicList.remove(i);
 					//basicList.add(basicProfile);
 					System.out.println(basicProfile + "\nis sub to\n" + basicProfile2 + "\n");
-					break;
+					i--;
 					
 				}
 			}
