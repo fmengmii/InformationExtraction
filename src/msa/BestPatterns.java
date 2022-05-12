@@ -1093,14 +1093,14 @@ public class BestPatterns
 				String basicProfile2 = basicList.get(i);
 				
 				if (basicProfile.indexOf(basicProfile2) >= 0) {
-					System.out.println(basicProfile2 + "\nis sub to\n\n" + basicProfile);
+					System.out.println(basicProfile2 + "\nis sub to\n" + basicProfile + "\n");
 					insert = false;
 					break;
 				}
 				else if (basicProfile2.indexOf(basicProfile) >= 0) {
 					basicList.remove(i);
 					//basicList.add(basicProfile);
-					System.out.println(basicProfile + "\nis sub to\n\n" + basicProfile2);
+					System.out.println(basicProfile + "\nis sub to\n" + basicProfile2 + "\n");
 					break;
 					
 				}
