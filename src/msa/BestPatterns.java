@@ -1074,12 +1074,14 @@ public class BestPatterns
 				String basicProfile2 = basicList.get(i);
 				
 				if (basicProfile.indexOf(basicProfile2) >= 0) {
+					System.out.println(basicProfile2 + " is sub to " + basicProfile);
 					insert = false;
 					break;
 				}
 				else if (basicProfile2.indexOf(basicProfile) >= 0) {
 					basicList.remove(i);
 					//basicList.add(basicProfile);
+					System.out.println(basicProfile + " is sub to " + basicProfile2);
 					break;
 					
 				}
