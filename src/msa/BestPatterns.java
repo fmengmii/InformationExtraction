@@ -52,6 +52,7 @@ public class BestPatterns
 	private Map<String, Boolean> inactiveMap;
 	private Map<String, Boolean> preloadMap;
 	
+
 	private int projID = -1;
 	
 	private boolean write;
@@ -205,6 +206,8 @@ public class BestPatterns
 				finalTableList.add(finalTable);
 			}
 			
+			
+
 			
 			Map<String, Boolean> finalTableMap = new HashMap<String, Boolean>();
 			for (int index=0; index<annotTypeList.size(); index++) {
@@ -1051,6 +1054,7 @@ public class BestPatterns
 		System.out.println("read all profiles...");
 		
 		List<Integer> basicTargetIDList = getBasicTargetList();
+		List<String> basicList = new ArrayList<String>();
 		
 		Statement stmt = conn.createStatement();
 		
@@ -1059,8 +1063,35 @@ public class BestPatterns
 			int profileID = rs.getInt(1);
 			String profileStr = rs.getString(2);
 			
+			
 			List<String> tokList = new ArrayList<String>();
 			tokList = gson.fromJson(profileStr, tokList.getClass());
+			
+			String basicProfile = basicProfile(tokList);
+			
+			boolean insert = true;
+			for (int i=0; i<basicList.size(); i++) {
+				String basicProfile2 = basicList.get(i);
+				
+				if (basicProfile.indexOf(basicProfile2) >= 0) {
+					insert = false;
+					break;
+				}
+				else if (basicProfile2.indexOf(basicProfile) >= 0) {
+					basicList.remove(i);
+					//basicList.add(basicProfile);
+					break;
+					
+				}
+			}
+			
+			if (insert) {
+				basicList.add(basicProfile);
+			}
+			else
+				continue;
+			
+			
 			
 			int tokCount = 0;
 			for (String tok : tokList) {
@@ -1366,6 +1397,44 @@ public class BestPatterns
 		{
 			e.printStackTrace();
 		}
+	}
+	
+	private void removeSubpatterns()
+	{
+		
+	}
+	
+	private String basicProfile(List<String> toks)
+	{
+		StringBuilder strBlder = new StringBuilder();
+		
+		for (String tok : toks) {
+			String[] parts = tok.split("!");
+			
+			String tok2 = "";
+			for (int i=0; i<parts.length; i++) {
+				if (parts[i].startsWith(":")) {
+					tok2 = parts[i];
+					break;
+				}
+				else if (parts[i].indexOf("|string|") >= 0) {
+					tok2 = parts[i];
+					break;
+				}
+				else if (tok.indexOf("|root|") >= 0) {
+					tok2 = parts[i];
+					break;
+				}
+				else {
+					tok2 = parts[i];
+					break;
+				}
+			}
+			
+			strBlder.append(tok2 + " ");
+		}
+		
+		return strBlder.toString().trim();
 	}
 	
 	public static void main(String[] args)
