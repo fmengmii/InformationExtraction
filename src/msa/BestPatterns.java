@@ -1067,33 +1067,6 @@ public class BestPatterns
 			List<String> tokList = new ArrayList<String>();
 			tokList = gson.fromJson(profileStr, tokList.getClass());
 			
-			String basicProfile = basicProfile(tokList);
-			
-			boolean insert = true;
-			for (int i=0; i<basicList.size(); i++) {
-				String basicProfile2 = basicList.get(i);
-				
-				if (basicProfile.indexOf(basicProfile2) >= 0) {
-					System.out.println(basicProfile2 + " is sub to " + basicProfile);
-					insert = false;
-					break;
-				}
-				else if (basicProfile2.indexOf(basicProfile) >= 0) {
-					basicList.remove(i);
-					//basicList.add(basicProfile);
-					System.out.println(basicProfile + " is sub to " + basicProfile2);
-					break;
-					
-				}
-			}
-			
-			if (insert) {
-				basicList.add(basicProfile);
-			}
-			else
-				continue;
-			
-			
 			
 			int tokCount = 0;
 			for (String tok : tokList) {
@@ -1110,6 +1083,37 @@ public class BestPatterns
 			
 			if (tokCount < minToks || tokCount > maxToks)
 				continue;
+			
+			
+			
+			String basicProfile = basicProfile(tokList);
+			
+			boolean insert = true;
+			for (int i=0; i<basicList.size(); i++) {
+				String basicProfile2 = basicList.get(i);
+				
+				if (basicProfile.indexOf(basicProfile2) >= 0) {
+					System.out.println(basicProfile2 + "\nis sub to\n\n" + basicProfile);
+					insert = false;
+					break;
+				}
+				else if (basicProfile2.indexOf(basicProfile) >= 0) {
+					basicList.remove(i);
+					//basicList.add(basicProfile);
+					System.out.println(basicProfile + "\nis sub to\n\n" + basicProfile2);
+					break;
+					
+				}
+			}
+			
+			if (insert) {
+				basicList.add(basicProfile);
+			}
+			else
+				continue;
+			
+			
+			
 			
 			for (int targetID : basicTargetIDList) {
 				posMap.put(profileID + "|" + targetID, 0);
@@ -1411,26 +1415,36 @@ public class BestPatterns
 		StringBuilder strBlder = new StringBuilder();
 		
 		for (String tok : toks) {
+			String partName = "|category";
+			if (tok.indexOf("|string|") >= 0)
+				partName = "|string|";
+			else if (tok.indexOf("|root|") >= 0)
+				partName = "|root|";
+			else if (tok.startsWith(":"))
+				partName = ":";
+			
 			String[] parts = tok.split("!");
 			
 			String tok2 = "";
 			for (int i=0; i<parts.length; i++) {
-				if (parts[i].startsWith(":")) {
+				if (partName.equals(":") && parts[i].startsWith(":")) {
 					tok2 = parts[i];
 					break;
 				}
-				else if (parts[i].indexOf("|string|") >= 0) {
+				else if (partName.equals("|string|") && parts[i].indexOf("|string|") >= 0) {
 					tok2 = parts[i];
 					break;
 				}
-				else if (tok.indexOf("|root|") >= 0) {
+				else if (partName.equals("|root|") && parts[i].indexOf("|root|") >= 0) {
 					tok2 = parts[i];
 					break;
 				}
-				else {
+				else if (partName.equals("|category|") && parts[i].indexOf("|category|") >= 0){
 					tok2 = parts[i];
 					break;
 				}
+				else
+					tok2 = parts[i];
 			}
 			
 			strBlder.append(tok2 + " ");
