@@ -1087,6 +1087,9 @@ public class BestPatterns
 			
 			
 			String basicProfile = basicProfile(tokList);
+			System.out.println("orig: " + profileStr);
+			System.out.println("basic: " + basicProfile);
+
 			
 			boolean insert = true;
 			for (int i=0; i<basicList.size(); i++) {
