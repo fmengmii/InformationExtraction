@@ -160,6 +160,7 @@ public class AutoAnnotateNER
 	private String rq;
 	
 	private int profileType = 0;
+	private int trimSize = 5;
 	
 	
 	public AutoAnnotateNER()
@@ -303,6 +304,8 @@ public class AutoAnnotateNER
 			profileTable = props.getProperty("profileTable");
 			
 			annotTable = props.getProperty("annotTable");
+			
+			trimSize = Integer.parseInt(props.getProperty("trimSize"));
 
 			
 			if (targetType != null) {
@@ -600,6 +603,7 @@ public class AutoAnnotateNER
 			}
 			
 			genGrid = new GenAnnotationGrid(annotTypeNameList, tokType);
+			genGrid.setTrimSize(trimSize);
 			List<AnnotationSequenceGrid> negGridList = new ArrayList<AnnotationSequenceGrid>();
 			
 			

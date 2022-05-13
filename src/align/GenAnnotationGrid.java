@@ -29,6 +29,11 @@ public class GenAnnotationGrid
 		this.tokType = tokType;
 	}
 	
+	public void setTrimSize(int trimSize)
+	{
+		this.trimSize = trimSize;
+	}
+	
 	public AnnotationSequenceGrid toAnnotSeqGrid(List<String> toks, boolean startEnd)
 	{
 		AnnotationSequence seq = new AnnotationSequence();
