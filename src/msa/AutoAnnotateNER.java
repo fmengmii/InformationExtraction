@@ -351,7 +351,7 @@ public class AutoAnnotateNER
 			
 			if (requireTarget) {
 				Map<String, Object> targetMap = new HashMap<String, Object>();
-				targetMap.put("annotType", targetType);
+				targetMap.put("annotType", candidateType);
 				targetMap.put("provenance", targetProvenance);
 				targetMap.put("targetStr", ":target");
 				msaAnnotFilterList.add(targetMap);
@@ -560,14 +560,18 @@ public class AutoAnnotateNER
 			
 			
 			//get sequences
-			//posSeqList = genSent.getPosSeqList();
+			posSeqList = genSent.getPosSeqList();
 			negSeqList = genSent.getNegSeqList();
 			seqMap = genSent.getSeqMap();
 			
+			List<AnnotationSequence> sentSeqList = negSeqList;
+			if (requireTarget)
+				sentSeqList = posSeqList;
+			
 			//filter all caps sentences because all words get tagged as NNP
 			if (filterAllCaps) {
-				for (int i=0; i<negSeqList.size(); i++) {
-					AnnotationSequence seq = negSeqList.get(i);
+				for (int i=0; i<sentSeqList.size(); i++) {
+					AnnotationSequence seq = sentSeqList.get(i);
 					List<Annotation> orthList = seq.getAnnotList(":token|orth");
 					
 					if (orthList == null)
@@ -604,13 +608,13 @@ public class AutoAnnotateNER
 			
 			genGrid = new GenAnnotationGrid(annotTypeNameList, tokType);
 			genGrid.setTrimSize(trimSize);
-			List<AnnotationSequenceGrid> negGridList = new ArrayList<AnnotationSequenceGrid>();
+			List<AnnotationSequenceGrid> sentGridList = new ArrayList<AnnotationSequenceGrid>();
 			
 			
 			
-			for (AnnotationSequence seq : negSeqList) {
-				List<AnnotationSequenceGrid> gridList = genGrid.toAnnotSeqGrid(seq, false, false, false, true, false);
-				negGridList.addAll(gridList);
+			for (AnnotationSequence seq : sentSeqList) {
+				List<AnnotationSequenceGrid> gridList = genGrid.toAnnotSeqGrid(seq, requireTarget, false, false, true, false);
+				sentGridList.addAll(gridList);
 			}
 			
 			
@@ -786,7 +790,7 @@ public class AutoAnnotateNER
 				invertedIndex.setTargetFlag(true);
 				invertedIndex.genIndex(profileGridList, targetGridList, profileIDMap, targetIDMap);
 	
-				List<ProfileMatch> matchList = profileMatcher.matchProfile(negGridList, profileGridList, null, targetType, extraction, maxGaps, syntax, phrase, false, msaProfileMap, msaTargetProfileMap, invertedIndex);
+				List<ProfileMatch> matchList = profileMatcher.matchProfile(sentGridList, profileGridList, null, targetType, extraction, maxGaps, syntax, phrase, false, msaProfileMap, msaTargetProfileMap, invertedIndex);
 				
 				noMatchList = profileMatcher.getNoMatchList();
 				
@@ -809,7 +813,7 @@ public class AutoAnnotateNER
 					*/
 					
 					
-					AnnotationSequenceGrid grid = negGridList.get(match.getGridIndex());					
+					AnnotationSequenceGrid grid = sentGridList.get(match.getGridIndex());					
 					long docID = grid.getSequence().getDocID();
 					int[] targetCoords = match.getTargetIndexes();
 					

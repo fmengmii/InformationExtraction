@@ -363,7 +363,6 @@ public class GenAnnotationGrid
 		}
 		else {
 			postProcess(seqGrid, ":lookup");
-			seqGrid = trimGrid(seqGrid);
 			gridList.add(seqGrid);
 			//System.out.println("SeqGrid: " + seqGrid.toString());
 		}
