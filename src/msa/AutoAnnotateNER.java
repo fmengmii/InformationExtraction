@@ -310,8 +310,8 @@ public class AutoAnnotateNER
 			
 			if (targetType != null) {
 				annotTypeList = new ArrayList<String>();
-				annotTypeList.add(targetType);
-				
+				//annotTypeList.add(targetType);
+				annotTypeList.add(candidateType);			
 				profileTableList = new ArrayList<String>();
 				profileTableList.add(profileTable);
 				
@@ -321,7 +321,8 @@ public class AutoAnnotateNER
 			
 			if (requireTarget != null) {
 				requireTargetMap = new HashMap<String, Boolean>();
-				requireTargetMap.put(targetType, requireTarget);
+				//requireTargetMap.put(targetType, requireTarget);
+				requireTargetMap.put(candidateType, requireTarget);
 			}
 			
 			profileMinTotal = Integer.parseInt(props.getProperty("profileMinTotal"));
