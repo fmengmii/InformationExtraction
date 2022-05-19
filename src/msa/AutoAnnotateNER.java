@@ -624,7 +624,7 @@ public class AutoAnnotateNER
 				finalAnnotList = new ArrayList<Annotation>();
 				finalMatchList = new ArrayList<ProfileMatch>();
 
-				targetType = annotTypeList.get(index);
+				String targetType = annotTypeList.get(index);
 				profileTable = profileTableList.get(index);
 				finalTable = finalTableList.get(index);
 				
