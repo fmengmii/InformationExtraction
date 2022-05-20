@@ -624,19 +624,19 @@ public class AutoAnnotateNER
 				finalAnnotList = new ArrayList<Annotation>();
 				finalMatchList = new ArrayList<ProfileMatch>();
 
-				String targetType = annotTypeList.get(index);
+				String currMatchType = annotTypeList.get(index);
 				profileTable = profileTableList.get(index);
 				finalTable = finalTableList.get(index);
 				
-				System.out.println("targetType: " + targetType);
+				System.out.println("match type: " + currMatchType);
 				
-				if (targetType.length() == 0 || profileTable.length() == 0 || finalTable.length() == 0)
+				if (currMatchType.length() == 0 || profileTable.length() == 0 || finalTable.length() == 0)
 					continue;
 				
 				if (requireTarget) {
 					msaAnnotFilterList.remove(msaAnnotFilterList.size()-1);
 					Map<String, Object> targetMap = new HashMap<String, Object>();
-					targetMap.put("annotType", targetType);
+					targetMap.put("annotType", currMatchType);
 					targetMap.put("provenance", targetProvenance);
 					targetMap.put("targetStr", ":target");
 					msaAnnotFilterList.add(targetMap);
@@ -689,7 +689,7 @@ public class AutoAnnotateNER
 				
 				System.out.println("reading answers...");
 				for (long docID : docIDList)
-					readAnswers(targetType, targetProvenance, docID);
+					readAnswers(currMatchType, targetProvenance, docID);
 	
 	
 				
@@ -791,7 +791,7 @@ public class AutoAnnotateNER
 				invertedIndex.setTargetFlag(true);
 				invertedIndex.genIndex(profileGridList, targetGridList, profileIDMap, targetIDMap);
 	
-				List<ProfileMatch> matchList = profileMatcher.matchProfile(sentGridList, profileGridList, null, targetType, extraction, maxGaps, syntax, phrase, false, msaProfileMap, msaTargetProfileMap, invertedIndex);
+				List<ProfileMatch> matchList = profileMatcher.matchProfile(sentGridList, profileGridList, null, currMatchType, extraction, maxGaps, syntax, phrase, false, msaProfileMap, msaTargetProfileMap, invertedIndex);
 				
 				noMatchList = profileMatcher.getNoMatchList();
 				
@@ -877,12 +877,12 @@ public class AutoAnnotateNER
 							valDocProfileList.add(match.getProfile().getProfileID());
 						}
 						
-						System.out.println(" ans: " + targetType + ", profileID: " + match.getProfile().getProfileID() + ", profile: " + match.getProfile().getProfileStr() + ", target: " + match.getTargetStr() + ", docID: " + match.getSequence().getDocID() + ", sent: " + match.getGridStr());
-						pw.println(" ans: " + targetType + ", profile: " + match.getProfile().getProfileStr() + ", target: " + match.getTargetStr() + ", docID: " + match.getSequence().getDocID() + ", sent: " + match.getGridStr());
+						System.out.println(" ans: " + currMatchType + ", profileID: " + match.getProfile().getProfileID() + ", profile: " + match.getProfile().getProfileStr() + ", target: " + match.getTargetStr() + ", docID: " + match.getSequence().getDocID() + ", sent: " + match.getGridStr());
+						pw.println(" ans: " + currMatchType + ", profile: " + match.getProfile().getProfileStr() + ", target: " + match.getTargetStr() + ", docID: " + match.getSequence().getDocID() + ", sent: " + match.getGridStr());
 					}
 					
 					
-					Annotation annot = new Annotation(docID, docNamespace, docTable, -1, targetType, 
+					Annotation annot = new Annotation(docID, docNamespace, docTable, -1, currMatchType, 
 						start, end, match.getTargetStr(), null);
 					annot.setProvenance(autoProvenance);
 					Map<String, Object> featureMap = new HashMap<String, Object>();
@@ -924,7 +924,7 @@ public class AutoAnnotateNER
 				reader.close();
 				
 				if (writeAnnots)
-					writeAnnotations(targetType);
+					writeAnnotations(currMatchType);
 			}
 		}
 		catch(Exception e)
