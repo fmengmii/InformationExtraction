@@ -561,6 +561,7 @@ public class AutoAnnotateNER
 			
 			
 			//get sequences
+			genSent.addTargets(candidateType);
 			posSeqList = genSent.getPosSeqList();
 			negSeqList = genSent.getNegSeqList();
 			seqMap = genSent.getSeqMap();
