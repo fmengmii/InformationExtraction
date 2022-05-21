@@ -883,7 +883,7 @@ public class AutoAnnotateNER
 					}
 					
 					
-					Annotation annot = new Annotation(docID, docNamespace, docTable, -1, currType, 
+					Annotation annot = new Annotation(docID, docNamespace, docTable, -1, targetType, 
 						start, end, match.getTargetStr(), null);
 					annot.setProvenance(autoProvenance);
 					Map<String, Object> featureMap = new HashMap<String, Object>();
@@ -925,7 +925,7 @@ public class AutoAnnotateNER
 				reader.close();
 				
 				if (writeAnnots)
-					writeAnnotations(currType);
+					writeAnnotations(targetType);
 			}
 		}
 		catch(Exception e)
