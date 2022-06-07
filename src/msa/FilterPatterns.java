@@ -62,6 +62,7 @@ public class FilterPatterns
 	private String keywordType;
 	private String maskType;
 	private String ansType;
+	private int trimSize;
 
 	private String indexTable;
 	private String finalTable;
@@ -87,6 +88,9 @@ public class FilterPatterns
 	private List<String> profileTableList;
 	private List<String> indexTableList;
 	private Map<String, Boolean> requireTargetMap;
+	
+	private int minToks = -1;
+	private int maxToks = -1;
 
 	
 	private Map<String, Object> targetMap;
@@ -285,6 +289,9 @@ public class FilterPatterns
 			if (combineSentsStr != null)
 				combineSents = Boolean.parseBoolean(combineSentsStr);
 			
+			minToks = Integer.parseInt(props.getProperty("minToks"));
+			maxToks = Integer.parseInt(props.getProperty("maxToks"));
+			trimSize = Integer.parseInt(props.getProperty("trimSize"));
 			
 			
 			limit = -1;
@@ -497,7 +504,7 @@ public class FilterPatterns
 				genSent.setMaskType(maskType);
 			}
 			
-			genSent.setRequireTarget(false);
+			genSent.setRequireTarget(requireTarget);
 			genSent.setCombineSents(combineSents);
 
 
@@ -518,7 +525,7 @@ public class FilterPatterns
 			//genSent.genExtractionSequences();
 			
 			GenAnnotationGrid genGrid = new GenAnnotationGrid(annotTypeNameList, tokType);
-			
+			genGrid.setTrimSize(trimSize);
 			
 			/*
 			List<AnnotationSequence> negSeqList = genSent.getNegSeqList();
@@ -617,7 +624,7 @@ public class FilterPatterns
 				reader.setMinScore(targetMinScore);
 				reader.setMaxScore(1.0);
 				
-				targetProfileList = reader.read(targetType, targetGroup, 0, Integer.MAX_VALUE, 1, schema + "." + profileTable);
+				targetProfileList = reader.read(targetType, targetGroup, 0, Integer.MAX_VALUE, 1, schema + "." + profileTable, minToks, maxToks);
 				Map<MSAProfile, Map<MSAProfile, Boolean>> targetFilterMap = reader.readTargetFilters(schema + ".filter");
 				Map<MSAProfile, AnnotationSequenceGrid> targetGridMap = new HashMap<MSAProfile, AnnotationSequenceGrid>();
 				Map<Long, AnnotationSequenceGrid> targetIDMap = new HashMap<Long, AnnotationSequenceGrid>();
@@ -723,12 +730,15 @@ public class FilterPatterns
 										
 					
 					//get grids for this doc block
-					List<AnnotationSequence> negSeqList = genSent.getNegSeqList();
+					List<AnnotationSequence> sentSeqList = genSent.getNegSeqList();
+					if (requireTarget)
+						sentSeqList = genSent.getPosSeqList();
+					
 					
 					List<AnnotationSequenceGrid> gridList = new ArrayList<AnnotationSequenceGrid>();
-					for (AnnotationSequence negSeq : negSeqList) {
-						List<AnnotationSequenceGrid> negGridList2 = genGrid.toAnnotSeqGrid(negSeq, false, false, true, true, false);
-						gridList.addAll(negGridList2);
+					for (AnnotationSequence seq : sentSeqList) {
+						List<AnnotationSequenceGrid> gridList2 = genGrid.toAnnotSeqGrid(seq, false, false, true, true, false);
+						gridList.addAll(gridList2);
 					}
 		
 					
