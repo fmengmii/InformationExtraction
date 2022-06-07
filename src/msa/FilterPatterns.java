@@ -720,6 +720,8 @@ public class FilterPatterns
 					genSentences(docIDListBlock, docNamespace, docTable, requireTarget, punct, limit);
 					//List<AnnotationSequence> negSeqList = genSent.getNegSeqList();
 					
+					genSent.addTargets(keywordType);
+					
 					
 					//loop generating blocks of grids no more than size msaBlockSize
 					
