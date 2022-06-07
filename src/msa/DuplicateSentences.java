@@ -85,7 +85,7 @@ public class DuplicateSentences
 				+ "and (annotation_type = 'Token' or annotation_type = '" + targetType + "') order by start");
 			//pstmtAnnot = conn2.prepareStatement("insert into " + schema + "annotation (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance, score) "
 			//	+ "values (?,'" + docNamespace + "','" + docTable + "',?,'SentenceDuplicate',?,?,'','','duplicate-sentences-util',1.0)");
-			pstmtAnnot = conn2.prepareStatement("insert into " + schema + annotTable + " (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance, score) "
+			pstmtAnnot = conn2.prepareStatement("insert intspstmso " + schema + annotTable + " (id, document_namespace, document_table, document_id, annotation_type, start, " + rq + "end" + rq + ", value, features, provenance, score) "
 					+ "values (?,'" + docNamespace + "','" + docTable + "',?,?,?,?,'','','duplicate-sentences-util',1.0)");
 
 			pstmtAnnotID = conn.prepareStatement("select max(id) from " + schema + annotTable + " where document_namespace = '" + docSchema 
