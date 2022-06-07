@@ -624,7 +624,7 @@ public class FilterPatterns
 				reader.setMinScore(targetMinScore);
 				reader.setMaxScore(1.0);
 				
-				targetProfileList = reader.read(targetType, targetGroup, 0, Integer.MAX_VALUE, 1, schema + "." + profileTable, minToks, maxToks);
+				targetProfileList = reader.read(targetType, targetGroup, 0, Integer.MAX_VALUE, 1, schema + "." + profileTable);
 				Map<MSAProfile, Map<MSAProfile, Boolean>> targetFilterMap = reader.readTargetFilters(schema + ".filter");
 				Map<MSAProfile, AnnotationSequenceGrid> targetGridMap = new HashMap<MSAProfile, AnnotationSequenceGrid>();
 				Map<Long, AnnotationSequenceGrid> targetIDMap = new HashMap<Long, AnnotationSequenceGrid>();
