@@ -99,7 +99,16 @@ public class ProfileReader
 		if (group != null)
 			groupList.add(group);
 		
-		return read(annotType, groupList, start, clusterSize, profileType, msaTable, -1);
+		return read(annotType, groupList, start, clusterSize, profileType, msaTable, -1, -1, -1);
+	}
+	
+	public List<MSAProfile> read(String annotType, String group, int start, int clusterSize, int profileType, String msaTable, int minToks, int maxToks) throws SQLException, ClassNotFoundException
+	{
+		List<String> groupList = new ArrayList<String>();
+		if (group != null)
+			groupList.add(group);
+		
+		return read(annotType, groupList, start, clusterSize, profileType, msaTable, -1, minToks, maxToks);		
 	}
 	
 	public List<MSAProfile> read(String annotType, String group, int start, int clusterSize, int profileType, String msaTable, int sizeLimit) throws SQLException, ClassNotFoundException
@@ -108,15 +117,15 @@ public class ProfileReader
 		if (group != null)
 			groupList.add(group);
 		
-		return read(annotType, groupList, start, clusterSize, profileType, msaTable, sizeLimit);
+		return read(annotType, groupList, start, clusterSize, profileType, msaTable, sizeLimit, -1, -1);
 	}
 	
 	public List<MSAProfile> read(String annotType, List<String> groupList, int start, int clusterSize, int profileType, String msaTable) throws SQLException, ClassNotFoundException
 	{
-		return read(annotType, groupList, start, clusterSize, profileType, msaTable, -1);
+		return read(annotType, groupList, start, clusterSize, profileType, msaTable, -1, -1, -1);
 	}
 	
-	public List<MSAProfile> read(String annotType, List<String> groupList, int start, int clusterSize, int profileType, String msaTable, int sizeLimit) throws SQLException, ClassNotFoundException
+	public List<MSAProfile> read(String annotType, List<String> groupList, int start, int clusterSize, int profileType, String msaTable, int sizeLimit, int minToks, int maxToks) throws SQLException, ClassNotFoundException
 	{
 		List<MSAProfile> profileList = new ArrayList<MSAProfile>();
 		profileIDMap = new HashMap<Long, MSAProfile>();
@@ -181,6 +190,20 @@ public class ProfileReader
 						e.printStackTrace();
 						continue;
 					}
+					
+					int tokCount = 0;
+					for (String tok : toks) {
+						if (tok.equals(":start") || tok.equals(":end") || tok.equals(":target"))
+							continue;
+						
+						
+						if (tok.indexOf("|string") > 0 || tok.indexOf("|root") > 0)
+							tokCount++;
+					}
+					
+					if (minToks >= 0 && maxToks >= 0 && (tokCount < minToks || tokCount > maxToks))
+						continue;
+				
 					
 					if (sizeLimit > 0 && toks.size() > sizeLimit)
 						continue;
