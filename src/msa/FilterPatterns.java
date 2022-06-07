@@ -767,7 +767,7 @@ public class FilterPatterns
 						//List<MSAProfile> profileList2 = null;
 						
 						//profileList = reader.read(targetType, group, readStart, clusterSize, profileType, schema + "." + profileTable, profileSizeLimit);
-						profileList = reader.read(targetType, group, 0, Integer.MAX_VALUE, profileType, schema + "." + profileTable, -1);
+						profileList = reader.read(targetType, group, 0, Integer.MAX_VALUE, profileType, schema + "." + profileTable, -1, minToks, maxToks);
 						//profileList2 = reader.read(targetType, group, readStart, clusterSize, 3, schema + "." + profileTable);
 						
 						//profileList.addAll(profileList2);
