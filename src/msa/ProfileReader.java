@@ -120,6 +120,15 @@ public class ProfileReader
 		return read(annotType, groupList, start, clusterSize, profileType, msaTable, sizeLimit, -1, -1);
 	}
 	
+	public List<MSAProfile> read(String annotType, String group, int start, int clusterSize, int profileType, String msaTable, int sizeLimit, int minToks, int maxToks) throws SQLException, ClassNotFoundException
+	{
+		List<String> groupList = new ArrayList<String>();
+		if (group != null)
+			groupList.add(group);
+		
+		return read(annotType, groupList, start, clusterSize, profileType, msaTable, sizeLimit, minToks, maxToks);
+	}
+	
 	public List<MSAProfile> read(String annotType, List<String> groupList, int start, int clusterSize, int profileType, String msaTable) throws SQLException, ClassNotFoundException
 	{
 		return read(annotType, groupList, start, clusterSize, profileType, msaTable, -1, -1, -1);

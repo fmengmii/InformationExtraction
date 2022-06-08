@@ -271,7 +271,7 @@ public class FilterPatterns
 			
 			if (targetType != null) {
 				annotTypeList = new ArrayList<String>();
-				annotTypeList.add(targetType);
+				annotTypeList.add(keywordType);
 				
 				profileTableList = new ArrayList<String>();
 				profileTableList.add(profileTable);
@@ -282,7 +282,7 @@ public class FilterPatterns
 			
 			if (requireTarget == null) {
 				requireTargetMap = new HashMap<String, Boolean>();
-				requireTargetMap.put(targetType, requireTarget);
+				requireTargetMap.put(keywordType, requireTarget);
 			}
 			
 			String combineSentsStr = props.getProperty("combineSents");
@@ -486,7 +486,7 @@ public class FilterPatterns
 			
 			for (String targetType : annotTypeList) {
 				Map<String, Object> targetMap = new HashMap<String, Object>();
-				targetMap.put("annotType", targetType);
+				targetMap.put("annotType", keywordType);
 				targetMap.put("target", true);
 				targetMap.put("provenance", targetProvenance);
 				targetMap.put("targetStr", ":target");
@@ -553,7 +553,7 @@ public class FilterPatterns
 				
 				
 				targetMap = new HashMap<String, Object>();
-				targetMap.put("annotType", targetType);
+				targetMap.put("annotType", keywordType);
 				targetMap.put("target", true);
 				targetMap.put("provenance", targetProvenance);
 				//targetMap.put("targetStr", ":" + targetType.toLowerCase());
@@ -571,11 +571,11 @@ public class FilterPatterns
 					profileType = 2;
 				}
 				
-				System.out.println("filter targetType: :" + targetType);
+				System.out.println("filter targetType: :" + targetType + ", keywordType: " + keywordType);
 				
 				
 				List<String> annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType, scoreList);
-				annotTypeNameList.add(annotTypeNameList.size()-1, ":" + targetType.toLowerCase());
+				annotTypeNameList.add(annotTypeNameList.size()-1, ":" + keywordType.toLowerCase());
 				scoreList.add(100.0);
 				
 				
