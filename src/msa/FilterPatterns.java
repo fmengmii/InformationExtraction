@@ -271,7 +271,7 @@ public class FilterPatterns
 			
 			if (targetType != null) {
 				annotTypeList = new ArrayList<String>();
-				annotTypeList.add(keywordType);
+				annotTypeList.add(targetType);
 				
 				profileTableList = new ArrayList<String>();
 				profileTableList.add(profileTable);
@@ -320,6 +320,14 @@ public class FilterPatterns
 			posFilterThreshold = Double.parseDouble(props.getProperty("posFilterThreshold"));
 			posFilterMinCount = Integer.parseInt(props.getProperty("posFilterMinCount"));
 			
+			
+			if (requireTarget) {
+				Map<String, Object> targetMap = new HashMap<String, Object>();
+				targetMap.put("annotType", keywordType);
+				targetMap.put("provenance", targetProvenance);
+				targetMap.put("targetStr", ":target");
+				msaAnnotFilterList.add(targetMap);
+			}
 			
 			
 			targetMap = new HashMap<String, Object>();
@@ -551,7 +559,7 @@ public class FilterPatterns
 					continue;
 				
 				
-				
+				/*
 				targetMap = new HashMap<String, Object>();
 				targetMap.put("annotType", currType);
 				targetMap.put("target", true);
@@ -560,6 +568,7 @@ public class FilterPatterns
 				msaAnnotFilterList.remove(msaAnnotFilterList.size()-1);
 				msaAnnotFilterList.add(targetMap);
 				scoreList.add(100.0);
+				*/
 				
 				if (targetType2 != null) {
 					targetMap2 = new HashMap<String, Object>();
