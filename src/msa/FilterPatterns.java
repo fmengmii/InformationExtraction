@@ -739,7 +739,7 @@ public class FilterPatterns
 					
 					List<AnnotationSequenceGrid> gridList = new ArrayList<AnnotationSequenceGrid>();
 					for (AnnotationSequence seq : sentSeqList) {
-						List<AnnotationSequenceGrid> gridList2 = genGrid.toAnnotSeqGrid(seq, requireTarget, false, true, true, false);
+						List<AnnotationSequenceGrid> gridList2 = genGrid.toAnnotSeqGrid(seq, requireTarget, false, false, true, false);
 						gridList.addAll(gridList2);
 					}
 		
