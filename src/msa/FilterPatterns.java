@@ -486,7 +486,7 @@ public class FilterPatterns
 			
 			for (String targetType : annotTypeList) {
 				Map<String, Object> targetMap = new HashMap<String, Object>();
-				targetMap.put("annotType", keywordType);
+				targetMap.put("annotType", targetType);
 				targetMap.put("target", true);
 				targetMap.put("provenance", targetProvenance);
 				targetMap.put("targetStr", ":target");
@@ -542,7 +542,7 @@ public class FilterPatterns
 			
 			for (int index=0; index<annotTypeList.size(); index++) {
 				
-				targetType = annotTypeList.get(index);
+				String currType = annotTypeList.get(index);
 				profileTable = profileTableList.get(index);
 				indexTable = indexTableList.get(index);
 
@@ -553,10 +553,10 @@ public class FilterPatterns
 				
 				
 				targetMap = new HashMap<String, Object>();
-				targetMap.put("annotType", keywordType);
+				targetMap.put("annotType", currType);
 				targetMap.put("target", true);
 				targetMap.put("provenance", targetProvenance);
-				//targetMap.put("targetStr", ":" + targetType.toLowerCase());
+				targetMap.put("targetStr", ":target");
 				msaAnnotFilterList.remove(msaAnnotFilterList.size()-1);
 				msaAnnotFilterList.add(targetMap);
 				scoreList.add(100.0);
@@ -571,11 +571,11 @@ public class FilterPatterns
 					profileType = 2;
 				}
 				
-				System.out.println("filter targetType: :" + targetType + ", keywordType: " + keywordType);
+				System.out.println("filter currType: :" + currType);
 				
 				
 				List<String> annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType, scoreList);
-				annotTypeNameList.add(annotTypeNameList.size()-1, ":" + keywordType.toLowerCase());
+				annotTypeNameList.add(annotTypeNameList.size()-1, ":" + currType.toLowerCase());
 				scoreList.add(100.0);
 				
 				
