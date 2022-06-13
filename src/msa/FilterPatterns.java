@@ -269,16 +269,19 @@ public class FilterPatterns
 			requireTarget = Boolean.parseBoolean(props.getProperty("requireTarget"));
 
 			
-			if (targetType != null) {
-				annotTypeList = new ArrayList<String>();
+			annotTypeList = new ArrayList<String>();
+			
+			if (!keywordType.equals(targetType))
+				annotTypeList.add(keywordType);
+			else
 				annotTypeList.add(targetType);
 				
-				profileTableList = new ArrayList<String>();
-				profileTableList.add(profileTable);
-				
-				indexTableList = new ArrayList<String>();
-				indexTableList.add(indexTable);
-			}
+			profileTableList = new ArrayList<String>();
+			profileTableList.add(profileTable);
+			
+			indexTableList = new ArrayList<String>();
+			indexTableList.add(indexTable);
+			
 			
 			if (requireTarget == null) {
 				requireTargetMap = new HashMap<String, Boolean>();
