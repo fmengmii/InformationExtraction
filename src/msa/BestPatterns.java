@@ -87,7 +87,11 @@ public class BestPatterns
 		annotType = props.getProperty("annotType");
 		//annotKeyspace = props.getProperty("annotKeyspace");
 		finalTable = props.getProperty("finalTable");
-		indexTable = props.getProperty("indexTable");
+		
+		indexTableList = new ArrayList<String>();
+		String indexTableListStr = props.getProperty("indexTableList");
+		indexTableList = gson.fromJson(indexTableListStr, indexTableList.getClass());
+		
 		profileTable = props.getProperty("profileTable");
 		provenance = props.getProperty("provenance");
 		negThreshold = Double.parseDouble(props.getProperty("negThreshold"));
@@ -192,6 +196,7 @@ public class BestPatterns
 			rq = DBConnection.reservedQuote;
 			
 			
+			/*
 			if (annotType != null) {
 				annotTypeList = new ArrayList<String>();
 				annotTypeList.add(annotType);
@@ -205,16 +210,18 @@ public class BestPatterns
 				finalTableList = new ArrayList<String>();
 				finalTableList.add(finalTable);
 			}
+			*/
 			
 			
 
 			
 			Map<String, Boolean> finalTableMap = new HashMap<String, Boolean>();
-			for (int index=0; index<annotTypeList.size(); index++) {
-				String annotType = annotTypeList.get(index);
-				profileTable = profileTableList.get(index);
+			//for (int index=0; index<annotTypeList.size(); index++) {
+			for (int index=0; index<indexTableList.size(); index++) {
+				//String annotType = annotTypeList.get(index);
+				//profileTable = profileTableList.get(index);
 				indexTable = indexTableList.get(index);
-				finalTable = finalTableList.get(index);
+				//finalTable = finalTableList.get(index);
 				
 				
 				System.out.println("best annot type: " + annotType);
