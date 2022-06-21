@@ -31,6 +31,7 @@ public class PatternExtractor
 			String finalTable = props.getProperty("finalTable");
 			String annotType = props.getProperty("annotType");
 			annotTable = props.getProperty("annotTable");
+			String profileTable = props.getProperty("profileTable");
 			
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			String rq = DBConnection.reservedQuote;
@@ -46,8 +47,9 @@ public class PatternExtractor
 			ResultSet rs = stmt.executeQuery("select a.profile_id, a.document_id, a.start, a." + rq + "end" + rq
 				+ " from " + schema + indexTable + " a "
 				+ "where a.profile_id in "
-				+ "(select b.profile_id from " + schema + finalTable + " b "
-				+ "where b.annotation_type = '" + annotType + "' and disabled = 0)");
+				+ "(select b.profile_id from " + schema + finalTable + " b, " + schema + profileTable + " c "
+				+ "where c.annotation_type = '" + annotType + "' and b.disabled = 0 "
+				+ "and b.profile_id = c.profile_id)");
 			
 			while (rs.next()) {
 				int profileID = rs.getInt(1);
