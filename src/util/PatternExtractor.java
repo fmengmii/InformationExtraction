@@ -26,7 +26,7 @@ public class PatternExtractor
 			String host = props.getProperty("host");
 			String dbName = props.getProperty("dbName");
 			String dbType = props.getProperty("dbType");
-			schema = props.getProperty("schema");
+			schema = props.getProperty("schema") + ".";
 			String indexTable = props.getProperty("indexTable");
 			String finalTable = props.getProperty("finalTable");
 			String annotType = props.getProperty("annotType");
