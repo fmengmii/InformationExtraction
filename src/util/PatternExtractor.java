@@ -4,6 +4,8 @@ import java.io.*;
 import java.sql.*;
 import java.util.*;
 
+import com.google.gson.Gson;
+
 import utils.db.DBConnection;
 
 public class PatternExtractor 
@@ -12,9 +14,15 @@ public class PatternExtractor
 	private String annotTable;
 	private String schema;
 	private PreparedStatement pstmt;
+	private PreparedStatement pstmt2;
+	private PreparedStatement pstmt3;
+	
+	private Map<Integer, int[]> pattRangeMap;
+	private Gson gson;
 
 	public PatternExtractor()
 	{
+		gson = new Gson();
 	}
 	
 	public void extract(String user, String password, String config)
@@ -39,12 +47,16 @@ public class PatternExtractor
 			pstmt = conn.prepareStatement("select value from " + schema + annotTable + " where document_id = ? "
 				+ "and start >= ? and " + rq + "end" + rq + " <= ? and annotation_type = 'Token' "
 				+ "order by start");
+			
+			pstmt2 = conn.prepareStatement("select top(?) value from " + schema + annotTable + " where start < ? and annotation_type = 'Token' order by start desc");
+			pstmt3 = conn.prepareStatement("select top(?) value from " + schema + annotTable + " where start > ? and annotation_type = 'Token' order by start");
 
 			Statement stmt = conn.createStatement();
 			
 			Map<String, Integer> countMap = new HashMap<String, Integer>();
+			pattRangeMap = new HashMap<Integer, int[]>();
 			
-			ResultSet rs = stmt.executeQuery("select a.profile_id, a.document_id, a.start, a." + rq + "end" + rq
+			ResultSet rs = stmt.executeQuery("select a.profile_id, a.document_id, a.start, a." + rq + "end" + rq + ", a.profile "
 				+ " from " + schema + indexTable + " a "
 				+ "where a.profile_id in "
 				+ "(select b.profile_id from " + schema + finalTable + " b, " + schema + profileTable + " c "
@@ -56,8 +68,12 @@ public class PatternExtractor
 				long docID = rs.getLong(2);
 				long start = rs.getLong(3);
 				long end = rs.getLong(4);
+				String profileStr = rs.getString(5);
 				
-				String pattern = getPatternStr(docID, start, end);
+				if (pattRangeMap.get(profileID) == null)
+					setPatternRange(profileID, profileStr);
+				
+				String pattern = getPatternStr(docID, start, end, profileID);
 				Integer count = countMap.get(pattern);
 				
 				if (count == null) {
@@ -102,15 +118,27 @@ public class PatternExtractor
 		}
 	}
 	
-	private String getPatternStr(long docID, long start, long end) throws SQLException
+	private String getPatternStr(long docID, long start, long end, int profileID) throws SQLException
 	{
 		StringBuilder strBlder = new StringBuilder();
 		Statement stmt = conn.createStatement();
 		
+		int[] ranges = pattRangeMap.get(profileID);
+		
+		//tokens before target
+		pstmt2.setInt(1, ranges[0]);
+		pstmt2.setLong(2, start);
+		ResultSet rs = pstmt2.executeQuery();
+		while (rs.next()) {
+			String val = rs.getString(1);
+			strBlder.insert(0, val + " ");
+		}
+		
+		//target
 		pstmt.setLong(1, docID);
 		pstmt.setLong(2, start);
 		pstmt.setLong(3, end);
-		ResultSet rs = pstmt.executeQuery();
+		rs = pstmt.executeQuery();
 		
 		while (rs.next()) {
 			String val = rs.getString(1);
@@ -118,9 +146,42 @@ public class PatternExtractor
 			strBlder.append(val + " ");
 		}
 		
+		//tokens after target
+		pstmt3.setInt(1, ranges[1]);
+		pstmt3.setLong(2, end);
+		rs = pstmt3.executeQuery();
+		while (rs.next()) {
+			String val = rs.getString(1);
+			strBlder.append(val + " ");
+		}
+		
+		
+		
+		
 		stmt.close();
 		
 		return strBlder.toString().trim();
+	}
+	
+	private void setPatternRange(int profileID, String profileStr)
+	{
+		int[] ranges = new int[2];
+		
+		List<String> toks = new ArrayList<String>();
+		toks = gson.fromJson(profileStr, toks.getClass());
+		
+		int tokIndex = 0;
+		for (int i=0; i<toks.size(); i++) {
+			if (toks.get(i).equals(":target")) {
+				tokIndex = i;
+				break;
+			}
+		}
+		
+		ranges[0] = tokIndex;
+		ranges[1] = toks.size() - tokIndex - 1;
+		
+		pattRangeMap.put(profileID, ranges);
 	}
 	
 	public static void main(String[] args)
