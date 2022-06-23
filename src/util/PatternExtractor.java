@@ -127,7 +127,8 @@ public class PatternExtractor
 		
 		//tokens before target
 		pstmt2.setInt(1, ranges[0]);
-		pstmt2.setLong(2, start);
+		pstmt2.setLong(2, docID);
+		pstmt2.setLong(3, start);
 		ResultSet rs = pstmt2.executeQuery();
 		while (rs.next()) {
 			String val = rs.getString(1);
@@ -148,7 +149,8 @@ public class PatternExtractor
 		
 		//tokens after target
 		pstmt3.setInt(1, ranges[1]);
-		pstmt3.setLong(2, end);
+		pstmt3.setLong(2, docID);
+		pstmt3.setLong(3, end);
 		rs = pstmt3.executeQuery();
 		while (rs.next()) {
 			String val = rs.getString(1);
