@@ -58,7 +58,7 @@ public class PatternExtractor
 			
 			ResultSet rs = stmt.executeQuery("select a.profile_id, a.document_id, a.start, a." + rq + "end" + rq + ", b.profile "
 				+ " from " + schema + indexTable + " a, " + schema + "profile b "
-				+ "where a.profile_id b.profile_id and a.profile_id in "
+				+ "where a.profile_id = b.profile_id and a.profile_id in "
 				+ "(select b.profile_id from " + schema + finalTable + " b, " + schema + profileTable + " c "
 				+ "where c.annotation_type = '" + annotType + "' and b.disabled = 0 "
 				+ "and b.profile_id = c.profile_id)");
