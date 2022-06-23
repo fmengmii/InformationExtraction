@@ -48,8 +48,8 @@ public class PatternExtractor
 				+ "and start >= ? and " + rq + "end" + rq + " <= ? and annotation_type = 'Token' "
 				+ "order by start");
 			
-			pstmt2 = conn.prepareStatement("select top(?) value from " + schema + annotTable + " where start < ? and annotation_type = 'Token' order by start desc");
-			pstmt3 = conn.prepareStatement("select top(?) value from " + schema + annotTable + " where start > ? and annotation_type = 'Token' order by start");
+			pstmt2 = conn.prepareStatement("select top(?) value from " + schema + annotTable + " where document_id = ? and start < ? and annotation_type = 'Token' order by start desc");
+			pstmt3 = conn.prepareStatement("select top(?) value from " + schema + annotTable + " where document_id = ? and start > ? and annotation_type = 'Token' order by start");
 
 			Statement stmt = conn.createStatement();
 			
