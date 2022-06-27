@@ -65,7 +65,9 @@ public class FilterPatterns
 	private int trimSize;
 
 	private String indexTable;
+	private String fullIndexTable;
 	private String finalTable;
+
 	private double negFilterThreshold;
 	private int negFilterMinCount;
 	private double posFilterThreshold;
@@ -265,6 +267,8 @@ public class FilterPatterns
 			
 			profileTable = props.getProperty("profileTable");
 			indexTable = props.getProperty("indexTable");
+			fullIndexTable = props.getProperty("fullIndexTable");
+			
 			finalTable = props.getProperty("finalTable");
 			requireTarget = Boolean.parseBoolean(props.getProperty("requireTarget"));
 
@@ -484,7 +488,7 @@ public class FilterPatterns
 			stats.setPrintWriter(pw);
 			
 			System.out.println("init filter patterns!");
-			stats.init(annotUser, annotPassword, msaUser, msaPassword, host, dbName, dbName, dbType, indexTable, finalTable,
+			stats.init(annotUser, annotPassword, msaUser, msaPassword, host, dbName, dbName, dbType, indexTable, fullIndexTable, finalTable,
 				targetType, targetProvenance);
 			
 			

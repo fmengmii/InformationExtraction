@@ -37,6 +37,8 @@ public class ProfileMatcher
 	private boolean profileMatch;
 	
 	private boolean requireTarget;
+	
+	private List<ProfileMatch> fullMatchList;
 
 	
 	public ProfileMatcher()
@@ -88,6 +90,11 @@ public class ProfileMatcher
 		this.requireTarget = requireTarget;
 	}
 	
+	public List<ProfileMatch> getFullMatchList()
+	{
+		return fullMatchList;
+	}
+	
 	public List<ProfileMatch> matchProfile(List<AnnotationSequenceGrid> gridList, List<ProfileGrid> profileGridList, List<AnnotationSequenceGrid> targetGridList, String annotType, boolean extraction, 
 		int maxGaps, int syntax, int phrase, boolean evaluation,  Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap, Map<AnnotationSequenceGrid, MSAProfile> msaTargetProfileMap, ProfileInvertedIndex invertedIndex)
 	{
@@ -99,6 +106,8 @@ public class ProfileMatcher
 		Map<AnnotationSequenceGrid, MSAProfile> msaProfileMap, Map<AnnotationSequenceGrid, MSAProfile> msaTargetProfileMap, ProfileInvertedIndex invertedIndex)
 	{
 		List<ProfileMatch> matchList = new ArrayList<ProfileMatch>();
+		fullMatchList = new ArrayList<ProfileMatch>();
+		
 		noMatchList = new ArrayList<ProfileMatch>();
 		profileTargetMap = new HashMap<String, List<String>>();
 		
@@ -311,6 +320,19 @@ public class ProfileMatcher
 					//loop through all possible target indexes
 					for (int j=0; j<indexesList.size(); j++) {
 						int[] indexes = indexesList.get(j);
+						
+						//full profile match
+						List<int[]> fullMatchCoords2 = matchCoords2List.get(0);
+						int[] profileIndexes = new int[2];
+						profileIndexes[0] = (int) grid.get(fullMatchCoords2.get(0)[0]).get(fullMatchCoords2.get(0)[1]).getAnnot().getStart();
+						int fullEndIndex = fullMatchCoords2.size()-1;
+						profileIndexes[1] = (int) grid.get(fullMatchCoords2.get(fullEndIndex)[0]).get(fullMatchCoords2.get(fullEndIndex)[1]).getAnnot().getEnd();
+
+						
+						MSAProfile matchedProfile = msaProfileMap.get(profileGrid);
+						
+						ProfileMatch fullMatch = new ProfileMatch(matchedProfile, null, i, matchCoords1List.get(j), matchCoords2List.get(j), profileIndexes, null, 
+							toksStr, grid.getSequence());
 						
 						
 						
@@ -698,6 +720,10 @@ public class ProfileMatcher
 										if (pw != null)
 											pw.println("adding match: " + match.getTargetIndexes()[0] + "|" + match.getTargetIndexes()[1]);
 										matchList.add(match);
+										
+										//add to full match
+										fullMatchList.add(fullMatch);
+										
 										matchCount++;
 									}
 									

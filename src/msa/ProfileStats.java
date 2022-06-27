@@ -62,6 +62,7 @@ public class ProfileStats
 	
 	private String annotType;
 	private MatchWriter matchWriter;
+	private MatchWriter matchWriter2;
 	
 	private String schema;
 	
@@ -170,7 +171,7 @@ public class ProfileStats
 	}
 	
 	public void init(String annotUser, String annotPassword, String msaUser, String msaPassword, String host, String keyspace, String msaKeyspace, String dbType,
-		String indexTable, String finalTable, String annotType, String provenance)
+		String indexTable, String fullIndexTable, String finalTable, String annotType, String provenance)
 	{
 		System.out.println("init profilestats!");
 		try {
@@ -191,6 +192,9 @@ public class ProfileStats
 			
 			matchWriter = new MatchWriter();
 			matchWriter.init(msaUser, msaPassword, host, msaKeyspace, dbType, indexTable, schema);
+			
+			matchWriter2 = new MatchWriter();
+			matchWriter2.init(msaUser, msaPassword, host, msaKeyspace, dbType, fullIndexTable, schema);
 			
 			profileMatcher.setAligner(sw);
 			profileMatcher.setProfileMatch(true);
@@ -277,6 +281,7 @@ public class ProfileStats
 			//Map<String, Boolean> profileAddedMap = new HashMap<String, Boolean>();
 			
 			List<ProfileMatch> currMatchList = new ArrayList<ProfileMatch>();
+			List<ProfileMatch> currFullMatchList = new ArrayList<ProfileMatch>();
 			//Map<String, Boolean> dupMap = new HashMap<String, Boolean>();
 			
 			while (start < gridList.size()) {
@@ -286,6 +291,7 @@ public class ProfileStats
 					pw.println("BLOCK: " + start + ", " + end);
 				
 				List<ProfileMatch> matchList = profileMatcher.matchProfile(gridList, profileGridList, targetGridList, annotType, false, maxGaps, syntax, phrase, true, start, end, msaProfileMap, msaTargetProfileMap, invertedIndex);
+				List<ProfileMatch> fullMatchList = profileMatcher.getFullMatchList();
 				
 				/*
 				//add to currmatchlist but remove duplicates
@@ -301,11 +307,14 @@ public class ProfileStats
 				*/
 				
 				currMatchList.addAll(matchList);
+				currFullMatchList.addAll(fullMatchList);
 
 				//write the matches
 				if ((count % blockSize == 0) && write) {
 					matchWriter.write(currMatchList);
+					matchWriter.write(currFullMatchList);
 					currMatchList = new ArrayList<ProfileMatch>();
+					currFullMatchList = new ArrayList<ProfileMatch>();
 				}
 				
 				/*
