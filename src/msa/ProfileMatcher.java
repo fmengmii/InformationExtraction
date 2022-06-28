@@ -322,7 +322,7 @@ public class ProfileMatcher
 						int[] indexes = indexesList.get(j);
 						
 						//full profile match
-						List<int[]> fullMatchCoords2 = matchCoords2List.get(0);
+						List<int[]> fullMatchCoords2 = matchCoords2List.get(j);
 						int[] profileIndexes = new int[2];
 						profileIndexes[0] = (int) grid.get(fullMatchCoords2.get(0)[0]).get(fullMatchCoords2.get(0)[1]).getAnnot().getStart();
 						int fullEndIndex = fullMatchCoords2.size()-1;
