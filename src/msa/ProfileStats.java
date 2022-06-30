@@ -216,6 +216,7 @@ public class ProfileStats
 			msaConn.close();
 
 			matchWriter.close();
+			matchWriter2.close();
 		}
 		catch(Exception e)
 		{
@@ -312,7 +313,7 @@ public class ProfileStats
 				//write the matches
 				if ((count % blockSize == 0) && write) {
 					matchWriter.write(currMatchList);
-					matchWriter.write(currFullMatchList);
+					matchWriter2.write(currFullMatchList);
 					currMatchList = new ArrayList<ProfileMatch>();
 					currFullMatchList = new ArrayList<ProfileMatch>();
 				}
@@ -373,8 +374,10 @@ public class ProfileStats
 				count++;
 			}
 			
-			if (write)
+			if (write) {
 				matchWriter.write(currMatchList);
+				matchWriter2.write(currFullMatchList);
+			}
 			
 			System.out.println("filtered: " + filtered + ", added: " + added);
 			System.out.println("profile size: " + profileList.size());

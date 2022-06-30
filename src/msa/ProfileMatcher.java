@@ -321,23 +321,21 @@ public class ProfileMatcher
 					for (int j=0; j<indexesList.size(); j++) {
 						int[] indexes = indexesList.get(j);
 						
-						//full profile match
-						List<int[]> fullMatchCoords2 = matchCoords2List.get(0);
-						int[] profileIndexes = new int[2];
-						profileIndexes[0] = (int) grid.get(fullMatchCoords2.get(0)[0]).get(fullMatchCoords2.get(0)[1]).getAnnot().getStart();
-						int fullEndIndex = fullMatchCoords2.size()-1;
-						profileIndexes[1] = (int) grid.get(fullMatchCoords2.get(fullEndIndex)[0]).get(fullMatchCoords2.get(fullEndIndex)[1]).getAnnot().getEnd();
-
-						
 						MSAProfile matchedProfile = msaProfileMap.get(profileGrid);
-						
-						ProfileMatch fullMatch = new ProfileMatch(matchedProfile, null, i, matchCoords1List.get(j), matchCoords2List.get(j), profileIndexes, null, 
-							toksStr, grid.getSequence());
-						
-						
 						
 						//check if the indexes are within the focus coords
 						if (indexes[0] >= 0 && indexes[1] >= 1 && indexes[0] < grid.size()) {
+							
+							//full profile match
+							List<int[]> fullMatchCoords2 = matchCoords2List.get(j);
+							int[] profileIndexes = new int[2];
+							profileIndexes[0] = (int) grid.get(fullMatchCoords2.get(0)[0]).get(fullMatchCoords2.get(0)[1]).getAnnot().getStart();
+							int fullEndIndex = fullMatchCoords2.size()-1;
+							profileIndexes[1] = (int) grid.get(fullMatchCoords2.get(fullEndIndex)[0]).get(fullMatchCoords2.get(fullEndIndex)[1]).getAnnot().getEnd();
+
+							ProfileMatch fullMatch = new ProfileMatch(matchedProfile, null, i, matchCoords1List.get(j), matchCoords2List.get(j), profileIndexes, null, 
+									toksStr, grid.getSequence());
+
 							
 							//String profileGridStr = gson.toJson(profileGrid.getSequence().getToks());
 							

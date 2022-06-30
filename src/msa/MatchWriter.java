@@ -48,9 +48,17 @@ public class MatchWriter
 			pstmtTarget.setInt(3, targetIndexes[0]);
 			pstmtTarget.setInt(4, targetIndexes[1]);
 			
-			for (MSAProfile target : targetList) {
-				long targetID = target.getProfileID();
-				pstmtTarget.setLong(5, targetID);
+			if (targetList != null) {
+			
+				for (MSAProfile target : targetList) {
+					long targetID = target.getProfileID();
+					pstmtTarget.setLong(5, targetID);
+					pstmtTarget.addBatch();
+					count++;
+				}
+			}
+			else {
+				pstmtTarget.setLong(5, -1);
 				pstmtTarget.addBatch();
 				count++;
 			}
