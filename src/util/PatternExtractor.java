@@ -57,7 +57,7 @@ public class PatternExtractor
 			pattRangeMap = new HashMap<Integer, int[]>();
 			
 			ResultSet rs = stmt.executeQuery("select a.profile_id, a.document_id, a.start, a." + rq + "end" + rq + ", b.profile "
-				+ " from " + schema + indexTable + " a, " + schema + profileTable + " b "
+				+ " from " + schema + indexTable + " a, " + schema + "profile b "
 				+ "where a.profile_id = b.profile_id and a.profile_id in "
 				+ "(select b.profile_id from " + schema + finalTable + " b, " + schema + profileTable + " c "
 				+ "where c.annotation_type = '" + annotType + "' and b.disabled = 0 "
