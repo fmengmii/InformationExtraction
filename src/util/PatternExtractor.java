@@ -48,8 +48,8 @@ public class PatternExtractor
 				+ "and start >= ? and " + rq + "end" + rq + " <= ? and annotation_type = 'Token' "
 				+ "order by start");
 			
-			pstmt2 = conn.prepareStatement("select top(?) value from " + schema + annotTable + " where document_id = ? and start < ? and annotation_type = 'Token' order by start desc");
-			pstmt3 = conn.prepareStatement("select top(?) value from " + schema + annotTable + " where document_id = ? and start > ? and annotation_type = 'Token' order by start");
+			pstmt2 = conn.prepareStatement("select value from " + schema + annotTable + " where document_id = ? and start >= ? and start < ? and annotation_type = 'Token' order by start desc");
+			//pstmt3 = conn.prepareStatement("select value from " + schema + annotTable + " where document_id = ? and start > ? and annotation_type = 'Token' order by start");
 
 			Statement stmt = conn.createStatement();
 			
@@ -123,42 +123,17 @@ public class PatternExtractor
 		StringBuilder strBlder = new StringBuilder();
 		Statement stmt = conn.createStatement();
 		
-		int[] ranges = pattRangeMap.get(profileID);
+		//int[] ranges = pattRangeMap.get(profileID);
 		
 		//tokens before target
-		pstmt2.setInt(1, ranges[0]);
-		pstmt2.setLong(2, docID);
-		pstmt2.setLong(3, start);
+		pstmt2.setLong(1, docID);
+		pstmt2.setLong(2, start);
+		pstmt2.setLong(3, end);
 		ResultSet rs = pstmt2.executeQuery();
 		while (rs.next()) {
 			String val = rs.getString(1);
 			strBlder.insert(0, val + " ");
 		}
-		
-		//target
-		pstmt.setLong(1, docID);
-		pstmt.setLong(2, start);
-		pstmt.setLong(3, end);
-		rs = pstmt.executeQuery();
-		
-		while (rs.next()) {
-			String val = rs.getString(1);
-			
-			strBlder.append(val + " ");
-		}
-		
-		//tokens after target
-		pstmt3.setInt(1, ranges[1]);
-		pstmt3.setLong(2, docID);
-		pstmt3.setLong(3, end);
-		rs = pstmt3.executeQuery();
-		while (rs.next()) {
-			String val = rs.getString(1);
-			strBlder.append(val + " ");
-		}
-		
-		
-		
 		
 		stmt.close();
 		
