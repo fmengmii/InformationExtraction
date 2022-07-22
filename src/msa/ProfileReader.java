@@ -165,7 +165,11 @@ public class ProfileReader
 			ResultSet rs = stmt.executeQuery("select profile_id, profile, profile_type, score, true_pos, false_pos, " + rq + "group" + rq + " from " + msaTable
 				+ " where annotation_type = '" + annotType + "' and score >= 0.0 and profile_type = " + profileType + strBlder.toString() + " order by profile_id "
 				+ limitStr.toString());
-
+			
+			System.out.println("select profile_id, profile, profile_type, score, true_pos, false_pos, " + rq + "group" + rq + " from " + msaTable
+				+ " where annotation_type = '" + annotType + "' and score >= 0.0 and profile_type = " + profileType + strBlder.toString() + " order by profile_id "
+				+ limitStr.toString());
+			
 			while (rs.next()) {
 				long profileID = rs.getLong(1);
 				

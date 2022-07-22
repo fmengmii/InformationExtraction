@@ -470,7 +470,7 @@ public class ProfileMatcher
 									List<int[]> targetMatchCoords2 = sw.getMatchCoords2();
 									
 									targetMatchCoords = targetMatchCoords2;
-		
+
 									int targetStart = targetMatchCoords2.get(0)[0];
 									int[] coords = targetMatchCoords2.get(targetMatchCoords2.size()-1);
 									int targetEnd = targetGrid.get(coords[0]).get(coords[1]).getEndIndex();
