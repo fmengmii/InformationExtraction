@@ -720,6 +720,12 @@ public class ProfileMatcher
 										matchList.add(match);
 										
 										//add to full match
+										//check if target is first or last of the profile
+										if (match.getTargetIndexes()[0] < fullMatch.getTargetIndexes()[0])
+											fullMatch.getTargetIndexes()[0] = match.getTargetIndexes()[0];
+										if (match.getTargetIndexes()[1] > fullMatch.getTargetIndexes()[1])
+											fullMatch.getTargetIndexes()[1] = match.getTargetIndexes()[1];
+										
 										fullMatchList.add(fullMatch);
 										
 										matchCount++;
