@@ -13,10 +13,13 @@ public class ProfileWriter
 	private PreparedStatement pstmtUpdate;
 	private PreparedStatement pstmtExists;
 	private String msaTable = "msa_profile";
+	
+	private Map<String, Boolean> profileMap;
 
 	
 	public ProfileWriter()
 	{
+		profileMap = new HashMap<String, Boolean>();
 	}
 	
 	public void setMsaTable(String msaTable)
@@ -24,7 +27,7 @@ public class ProfileWriter
 		this.msaTable = msaTable;
 	}
 	
-	public void init(String user, String password, String host, String dbType, String keyspace) throws SQLException, ClassNotFoundException
+	public void init(String user, String password, String host, String dbType, String keyspace, String annotType) throws SQLException, ClassNotFoundException
 	{
 		conn = DBConnection.dbConnection(user, password, host, keyspace, dbType);
 		conn2 = DBConnection.dbConnection(user, password, host, keyspace, dbType);
@@ -34,7 +37,18 @@ public class ProfileWriter
 		pstmtUpdate = conn2.prepareStatement("update " + msaTable + " set score=?,true_pos=?,false_pos=?," + rq + "rows" + rq + "=? where profile=? and annotation_type=? "
 			+ "and " + rq + "group" + rq + "=? and profile_type=?");
 		pstmtExists = conn.prepareStatement("select count(*) from " + msaTable + " where profile = ? and annotation_type = ? "
-				+ "and profile_type = ?");		
+				+ "and profile_type = ?");
+		
+		
+		Statement stmt = conn.createStatement();
+		ResultSet rs = stmt.executeQuery("select distinct profile from " + msaTable 
+			+ " where annotation_type = '" + annotType + "'");
+		while (rs.next()) {
+			String profileStr = rs.getString(1);
+			Boolean flag = profileMap.get(profileStr);
+			if (flag == null)
+				profileMap.put(profileStr, true);
+		}
 	}
 	
 	public void close() throws SQLException
@@ -52,8 +66,11 @@ public class ProfileWriter
 		conn2.setAutoCommit(false);
 		int queryCount = 0;
 		Map<String, Boolean> usedMap = new HashMap<String, Boolean>();
+		
 		for (int i=0; i<profileList.size(); i++) {
 			MSAProfile profile = profileList.get(i);
+			
+			/*
 			pstmtExists.setString(1, profile.getProfileStr());
 			pstmtExists.setString(2, profile.getAnnotType());
 			//pstmtExists.setString(3, profile.getGroup());
@@ -63,15 +80,20 @@ public class ProfileWriter
 			if (rs.next()) {
 				count = rs.getInt(1);
 			}
+			*/
 			
-			Boolean flag = usedMap.get(profile.getProfileStr());
+			Boolean flag = profileMap.get(profile.getProfileStr());
+			if (flag != null)
+				continue;
+			
+			flag = usedMap.get(profile.getProfileStr());
 			if (flag != null)
 				continue;
 			
 			usedMap.put(profile.getProfileStr(), true);
 			
 			//insert
-			if (count == 0 || duplicates) {
+			if (flag == null || duplicates) {
 				pstmtInsert.setString(1, profile.getProfileStr());
 				pstmtInsert.setString(2, profile.getAnnotType());
 				pstmtInsert.setString(3, profile.getGroup());
@@ -95,6 +117,7 @@ public class ProfileWriter
 				
 			}
 			//update
+			/*
 			else {
 				pstmtUpdate.setDouble(1, profile.getScore());
 				pstmtUpdate.setInt(2, profile.getTruePos());
@@ -118,10 +141,11 @@ public class ProfileWriter
 				profileList.remove(i);
 				i--;
 			}
+			*/
 		}
 		
 		pstmtInsert.executeBatch();
-		pstmtUpdate.executeBatch();
+		//pstmtUpdate.executeBatch();
 		conn2.commit();
 	}
 	
