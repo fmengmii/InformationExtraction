@@ -288,6 +288,8 @@ public class GenMSADriver
 			}
 			
 			int numDocBlocks = (totalDocIDList.size() / docBlockSize) + 1;
+			System.out.println("total docs: " + totalDocIDList.size() + ", docBlockSize: " + docBlockSize + ", numDocBlocks: " + numDocBlocks);
+			
 			for (int i=0; i<numDocBlocks; i++) {
 				docIDList = new ArrayList<Long>();
 				int endIndex = (i * docBlockSize) + docBlockSize;
