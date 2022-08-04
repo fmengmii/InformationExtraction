@@ -85,6 +85,8 @@ public class ProfileWriter
 			Boolean flag = profileMap.get(profile.getProfileStr());
 			if (flag != null)
 				continue;
+			else
+				profileMap.put(profile.getProfileStr(), true);
 			
 			flag = usedMap.get(profile.getProfileStr());
 			if (flag != null)
