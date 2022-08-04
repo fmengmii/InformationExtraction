@@ -89,6 +89,8 @@ public class GenMSADriver
 	private String sentType;
 	private String annotTable;
 	
+	private int trimSize;
+	
 	
 	public GenMSADriver()
 	{
@@ -198,6 +200,8 @@ public class GenMSADriver
 			String combineSentsStr = props.getProperty("combineSents");
 			if (combineSentsStr != null)
 				combineSents = Boolean.parseBoolean(combineSentsStr);
+			
+			trimSize = Integer.parseInt(props.getProperty("trimSize"));
 			
 			
 			limit = -1;
@@ -587,6 +591,7 @@ public class GenMSADriver
 				
 				
 				GenAnnotationGrid genGrid = new GenAnnotationGrid(annotTypeNameList, tokType);
+				genGrid.setTrimSize(trimSize);
 				
 				List<ProfileGrid> profileGridList = null;
 				List<AnnotationSequenceGrid> targetProfileGridList = null;
