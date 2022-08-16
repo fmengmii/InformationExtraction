@@ -184,7 +184,10 @@ public class BestPatterns
 	
 	public void getBestPatterns(String msaUser, String msaPassword, String annotUser, String annotPassword)
 	{
-		try {			
+		try {
+			
+			Map<String, Boolean> profileTargetMap = new HashMap<String, Boolean>();
+			
 			//conn = DBConnection.dbConnection(msaUser, msaPassword, host, dbName, dbType);
 			//annotConn = DBConnection.dbConnection(annotUser, annotPassword, host, dbName, dbType);
 			conn = DBConnection.dbConnection(msaUser, msaPassword, host, dbName, dbType);
@@ -570,6 +573,7 @@ public class BestPatterns
 					//pstmtUpdateProfile.execute();
 					
 					if (write) {
+						
 						if (preloadMap.get(key) == null) {
 							int disabled = 1;
 							if (score == 1.0)
@@ -1004,9 +1008,10 @@ public class BestPatterns
 			}
 			*/
 			
+			preloadMap.put(profileID + "|" + targetID, true);
+			
 			if (posCount > 0) {
 				posMap.put(profileID + "|" + targetID, posCount);
-				preloadMap.put(profileID + "|" + targetID, true);
 			}
 			
 			if (negCount > 0)
