@@ -123,8 +123,20 @@ public class ProfileMatcher
 			
 			List<String> toks = grid.getSequence().getToks();
 			
+			
+			
+			String toksStr = SequenceUtilities.getStrFromToks(toks);
+			System.out.println("\n\nsent: " + i + " annotType: " + annotType + " | " + toksStr);
+			
+			if (pw != null)
+				pw.println("\n\nsent: " + i + " annotType: " + annotType + " | " + toksStr);
+			
+			
+			
 			//get profiles from inverted index
 			List<ProfileGrid> profileGridListIndex = invertedIndex.getMatchedGridList(grid, annotType);
+			
+			System.out.println("after inverted index");
 			
 			//System.out.println(profileGridListIndex.size());
 			
@@ -167,11 +179,7 @@ public class ProfileMatcher
 			
 			int[] focusCoords = grid.getSequence().getFocusCoords();
 			
-			String toksStr = SequenceUtilities.getStrFromToks(toks);
-			System.out.println("\n\nsent: " + i + " annotType: " + annotType + " | " + toksStr);
-			
-			if (pw != null)
-				pw.println("\n\nsent: " + i + " annotType: " + annotType + " | " + toksStr);
+
 			
 			//if (verbose)
 			//System.out.println(grid.toString() + "\n\n");
@@ -290,9 +298,10 @@ public class ProfileMatcher
 					
 					//int[] indexes = MSAUtils.matchProfile(profileGrid, grid, sw, maxGaps, profileGrid.size()-1);
 					
-					
+					System.out.println("before profile match");
 					Map<String, Object> matchMap = MSAUtils.matchProfile2(profileGrid, grid, sw, maxGaps, syntax, phrase, profileGrid.size()-1-minSizeOffset);
 
+					System.out.println("after profile match");
 					
 					List<int[]> indexesList = (List<int[]>) matchMap.get("indexesList");
 					List<List<int[]>> matchCoords1List = (List<List<int[]>>) matchMap.get("matchCoords1List");
@@ -446,7 +455,10 @@ public class ProfileMatcher
 								//System.out.println("target grid: " + targetGrid.toString());
 								//System.out.println("targetProfileGrid: " + targetProfileGrid.toString());
 								
+								System.out.println("before target match");
 								targetMatch = MSAUtils.matchGrids(targetProfileGrid, targetGrid, sw, 0, targetProfileGrid.size(), syntax, phrase);
+								System.out.println("after profile match");
+								
 								targetProfileStr = gson.toJson(targetProfileGrid.getSequence().getToks());
 								//System.out.println("targetProfile: " + targetProfileStr);
 								
