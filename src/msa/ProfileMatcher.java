@@ -210,6 +210,10 @@ public class ProfileMatcher
 				
 
 				for (ProfileGrid profileGridObj : profileGridListIndex) {
+					
+					System.out.println("matching profile");
+					
+					
 					AnnotationSequenceGrid profileGrid = profileGridObj.getGrid();
 					List<String> profileToks = profileGrid.getSequence().getToks();
 					
@@ -298,10 +302,8 @@ public class ProfileMatcher
 					
 					//int[] indexes = MSAUtils.matchProfile(profileGrid, grid, sw, maxGaps, profileGrid.size()-1);
 					
-					System.out.println("before profile match");
 					Map<String, Object> matchMap = MSAUtils.matchProfile2(profileGrid, grid, sw, maxGaps, syntax, phrase, profileGrid.size()-1-minSizeOffset);
 
-					System.out.println("after profile match");
 					
 					List<int[]> indexesList = (List<int[]>) matchMap.get("indexesList");
 					List<List<int[]>> matchCoords1List = (List<List<int[]>>) matchMap.get("matchCoords1List");
@@ -455,9 +457,7 @@ public class ProfileMatcher
 								//System.out.println("target grid: " + targetGrid.toString());
 								//System.out.println("targetProfileGrid: " + targetProfileGrid.toString());
 								
-								System.out.println("before target match");
 								targetMatch = MSAUtils.matchGrids(targetProfileGrid, targetGrid, sw, 0, targetProfileGrid.size(), syntax, phrase);
-								System.out.println("after profile match");
 								
 								targetProfileStr = gson.toJson(targetProfileGrid.getSequence().getToks());
 								//System.out.println("targetProfile: " + targetProfileStr);
