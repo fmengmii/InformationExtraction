@@ -71,7 +71,7 @@ public class ProfileInvertedIndex
 					if (lastTok != null) {
 						bigram = lastTok  + "|||" + tok;
 						
-						System.out.println("profile bigram: " + bigram);
+						//System.out.println("profile bigram: " + bigram);
 
 						gridMap = bigramMap.get(bigram);
 						if (gridMap == null) {
@@ -160,7 +160,7 @@ public class ProfileInvertedIndex
 							if (bigramMatchMap.get(bigram) == null) {
 								bigramMatchMap.put(bigram, true);
 								
-								System.out.println("grid bigram: " + bigram);
+								//System.out.println("grid bigram: " + bigram);
 							}
 						}
 					}
