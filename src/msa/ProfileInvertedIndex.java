@@ -70,7 +70,6 @@ public class ProfileInvertedIndex
 					String bigram = null;
 					if (lastTok != null) {
 						bigram = lastTok  + "|||" + tok;
-						lastTok = tok;
 						
 						System.out.println("profile bigram: " + bigram);
 
@@ -87,6 +86,7 @@ public class ProfileInvertedIndex
 						gridMap.put(profileGrid, ++count);
 					}
 				//}
+					lastTok = tok;
 			}
 			
 			profileMaxMap.put(grid, grid.size()-1);
