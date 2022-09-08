@@ -226,6 +226,8 @@ public class ProfileInvertedIndex
 				
 				
 			}
+			
+			lastCol = col;
 		}
 		
 		
