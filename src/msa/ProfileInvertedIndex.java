@@ -15,6 +15,8 @@ public class ProfileInvertedIndex
 	private boolean targetFlag = false;
 	private int maxGaps = 0;
 	
+	private Map<String, Map<ProfileGrid, Integer>> bigramMap;
+	
 	public ProfileInvertedIndex()
 	{
 	}
@@ -32,6 +34,7 @@ public class ProfileInvertedIndex
 	public void genIndex(List<ProfileGrid> profileGridList, List<AnnotationSequenceGrid> targetGridList, Map<Long, ProfileGrid> profileIDMap, Map<Long, AnnotationSequenceGrid> targetIDMap) throws SQLException
 	{
 		wordMap = new HashMap<String, Map<ProfileGrid, Integer>>();
+		bigramMap = new HashMap<String, Map<ProfileGrid, Integer>>();
 		profileMaxMap = new HashMap<AnnotationSequenceGrid, Integer>();
 		targetMap = new HashMap<String, List<AnnotationSequenceGrid>>();
 		
@@ -40,6 +43,7 @@ public class ProfileInvertedIndex
 			AnnotationSequenceGrid grid = profileGrid.getGrid();
 			//System.out.println(grid.toString());
 			
+			String lastTok = null;
 			for (int i=0; i<grid.size(); i++) {
 				List<AnnotationGridElement> col = grid.get(i);
 				//for (AnnotationGridElement elem : col) {
@@ -48,6 +52,7 @@ public class ProfileInvertedIndex
 						int index = tok.lastIndexOf("|");
 						tok = tok.substring(0, index);
 					}
+					
 					
 					Map<ProfileGrid, Integer> gridMap = wordMap.get(tok);
 					if (gridMap == null) {
@@ -60,6 +65,25 @@ public class ProfileInvertedIndex
 						count = 0;
 					
 					gridMap.put(profileGrid, ++count);	
+					
+					//added support for bigrams
+					String bigram = null;
+					if (lastTok != null) {
+						bigram = lastTok  + "|||" + tok;
+						lastTok = tok;
+
+						gridMap = bigramMap.get(bigram);
+						if (gridMap == null) {
+							gridMap = new HashMap<ProfileGrid, Integer>();
+							bigramMap.put(bigram, gridMap);
+						}
+						
+						count = gridMap.get(profileGrid);
+						if (count == null)
+							count = 0;
+						
+						gridMap.put(profileGrid, ++count);
+					}
 				//}
 			}
 			
@@ -106,16 +130,36 @@ public class ProfileInvertedIndex
 	{
 		List<ProfileGrid> profileGridList = new ArrayList<ProfileGrid>();
 		Map<ProfileGrid, Integer> countMap = new HashMap<ProfileGrid, Integer>();
+		Map<ProfileGrid, Integer> bigramCountMap = new HashMap<ProfileGrid, Integer>();
 		Map<AnnotationSequenceGrid, Integer> targetCountMap = new HashMap<AnnotationSequenceGrid, Integer>();
 		Map<String, Boolean> matchMap = new HashMap<String, Boolean>();
+		Map<String, Boolean> bigramMatchMap = new HashMap<String, Boolean>();
 		
 		//System.out.println(grid.toString());
 		
 		//check tok matches for grids and targets
+		//added support for bigrams
+		
+		List<AnnotationGridElement> lastCol = null;
+		
 		for (int i=0; i<grid.size(); i++) {
 			List<AnnotationGridElement> col = grid.get(i);
 			for (AnnotationGridElement elem : col) {
 				String tok = elem.getTok();
+				
+				if (lastCol != null) {
+					//generate all possible bigrams
+					for (AnnotationGridElement gridElem : lastCol) {
+						String tok1 = gridElem.getTok();
+						
+						for (AnnotationGridElement gridElem2 : col) {
+							String tok2 = gridElem2.getTok();
+							String bigram = tok1 + "|||" + tok2;
+							if (bigramMatchMap.get(bigram) == null)
+								bigramMatchMap.put(bigram, true);
+						}
+					}
+				}
 				
 				if (tok.startsWith(":relation.")) {
 					int index = tok.lastIndexOf("|");
@@ -141,6 +185,24 @@ public class ProfileInvertedIndex
 						if (count == null)
 							count = 0;
 						countMap.put(profileGrid, gridCount + count);
+						//System.out.println("count: " + (gridCount + count));
+					}
+				}
+				
+				
+				gridMap = bigramMap.get(tok);
+				if (gridMap != null) {
+					//System.out.println("matched: " + tok);
+					
+					for (ProfileGrid profileGrid : gridMap.keySet()) {
+						if (profileGrid.getGrid().size() > grid.size())
+							continue;
+						
+						int gridCount = gridMap.get(profileGrid);
+						Integer count = bigramCountMap.get(profileGrid);
+						if (count == null)
+							count = 0;
+						bigramCountMap.put(profileGrid, gridCount + count);
 						//System.out.println("count: " + (gridCount + count));
 					}
 				}
@@ -180,6 +242,9 @@ public class ProfileInvertedIndex
 		
 		
 		//get active grids
+		//use bigrams
+
+		/*
 		for (ProfileGrid profileGrid : countMap.keySet()) {
 			int count = countMap.get(profileGrid);
 			
@@ -189,6 +254,35 @@ public class ProfileInvertedIndex
 			
 			//found a matching profile grid
 			if (count >= (count2 - maxGaps) - 2) {
+				//System.out.println("Inverted Index: " + SequenceUtilities.getStrFromToks(profileGrid.getGrid().getSequence().getToks()));
+				profileGridList.add(profileGrid);
+				
+				//set target grid map for this grid
+				Map<AnnotationSequenceGrid, Boolean> targetGridMap = profileGrid.getTargetGridMap();
+				for (AnnotationSequenceGrid targetGrid : targetGridMap.keySet()) {
+					targetGridMap.put(targetGrid, false);
+				}
+				
+				for (AnnotationSequenceGrid targetGrid : activeTargetMap.keySet()) {
+					Boolean flag = targetGridMap.get(targetGrid);
+					if (flag != null)
+						targetGridMap.put(targetGrid, true);
+				}
+			}
+		}
+		*/
+		
+		
+		for (ProfileGrid profileGrid : bigramCountMap.keySet()) {
+			int count = countMap.get(profileGrid);
+			
+			Integer count2 = profileMaxMap.get(profileGrid.getGrid());
+			
+			//System.out.println("count: " + count + " count2: " + count2);
+			
+			//found a matching profile grid
+			//total bigrams is one less than total toks
+			if (count >= (count2 - maxGaps) - 3) {
 				//System.out.println("Inverted Index: " + SequenceUtilities.getStrFromToks(profileGrid.getGrid().getSequence().getToks()));
 				profileGridList.add(profileGrid);
 				
