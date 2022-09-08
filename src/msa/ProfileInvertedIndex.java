@@ -180,6 +180,7 @@ public class ProfileInvertedIndex
 				else
 					continue;
 				
+				/*
 				Map<ProfileGrid, Integer> gridMap = wordMap.get(tok);
 				if (gridMap != null) {
 					//System.out.println("matched: " + tok);
@@ -196,9 +197,10 @@ public class ProfileInvertedIndex
 						//System.out.println("count: " + (gridCount + count));
 					}
 				}
+				*/
 				
 				for (String bigram : bigramList) {
-					gridMap = bigramMap.get(bigram);
+					Map<ProfileGrid, Integer> gridMap = bigramMap.get(bigram);
 					if (gridMap != null) {
 						//System.out.println("matched: " + tok);
 						
