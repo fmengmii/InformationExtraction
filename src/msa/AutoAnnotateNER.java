@@ -769,7 +769,7 @@ public class AutoAnnotateNER
 					Map<AnnotationSequenceGrid, Boolean> targetSeqGridMap = profileGrid.getTargetGridMap();
 					for (AnnotationSequenceGrid targetSeqGrid : targetSeqGridMap.keySet()) {
 						profileStr = gson.toJson(targetSeqGrid.getSequence().getToks());
-						System.out.println(profileStr);
+						//System.out.println(profileStr);
 						pw.println(profileStr);
 						
 						Boolean flag = targetGridMap.get(targetSeqGrid);
