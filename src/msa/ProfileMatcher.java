@@ -211,7 +211,7 @@ public class ProfileMatcher
 
 				for (ProfileGrid profileGridObj : profileGridListIndex) {
 					
-					System.out.println("matching profile");
+					//System.out.println("matching profile");
 					
 					
 					AnnotationSequenceGrid profileGrid = profileGridObj.getGrid();
