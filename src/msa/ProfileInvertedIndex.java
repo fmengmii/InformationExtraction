@@ -149,6 +149,8 @@ public class ProfileInvertedIndex
 			for (AnnotationGridElement elem : col) {
 				String tok = elem.getTok();
 				
+				List<String> bigramList = new ArrayList<String>();
+				
 				if (lastCol != null) {
 					//generate all possible bigrams
 					for (AnnotationGridElement gridElem : lastCol) {
@@ -159,6 +161,7 @@ public class ProfileInvertedIndex
 							String bigram = tok1 + "|||" + tok2;
 							if (bigramMatchMap.get(bigram) == null) {
 								bigramMatchMap.put(bigram, true);
+								bigramList.add(bigram);
 								
 								//System.out.println("grid bigram: " + bigram);
 							}
@@ -194,21 +197,22 @@ public class ProfileInvertedIndex
 					}
 				}
 				
-				
-				gridMap = bigramMap.get(tok);
-				if (gridMap != null) {
-					//System.out.println("matched: " + tok);
-					
-					for (ProfileGrid profileGrid : gridMap.keySet()) {
-						if (profileGrid.getGrid().size() > grid.size())
-							continue;
+				for (String bigram : bigramList) {
+					gridMap = bigramMap.get(bigram);
+					if (gridMap != null) {
+						//System.out.println("matched: " + tok);
 						
-						int gridCount = gridMap.get(profileGrid);
-						Integer count = bigramCountMap.get(profileGrid);
-						if (count == null)
-							count = 0;
-						bigramCountMap.put(profileGrid, gridCount + count);
-						//System.out.println("count: " + (gridCount + count));
+						for (ProfileGrid profileGrid : gridMap.keySet()) {
+							if (profileGrid.getGrid().size() > grid.size())
+								continue;
+							
+							int gridCount = gridMap.get(profileGrid);
+							Integer count = bigramCountMap.get(profileGrid);
+							if (count == null)
+								count = 0;
+							bigramCountMap.put(profileGrid, gridCount + count);
+							//System.out.println("count: " + (gridCount + count));
+						}
 					}
 				}
 
