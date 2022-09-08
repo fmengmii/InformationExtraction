@@ -761,10 +761,10 @@ public class AutoAnnotateNER
 					String profileStr = gson.toJson(profileGrid.getGrid().getSequence().getToks());
 					MSAProfile profile = msaProfileMap.get(profileGrid.getGrid());
 	
-					System.out.println(profile.getProfileID() + "|" + profileStr);
+					//System.out.println(profile.getProfileID() + "|" + profileStr);
 					pw.println(profile.getProfileID() + "|" + profileStr);
 					
-					System.out.println("Targets: ");
+					//System.out.println("Targets: ");
 					pw.println("Targets:");
 					Map<AnnotationSequenceGrid, Boolean> targetSeqGridMap = profileGrid.getTargetGridMap();
 					for (AnnotationSequenceGrid targetSeqGrid : targetSeqGridMap.keySet()) {
@@ -779,7 +779,7 @@ public class AutoAnnotateNER
 						}
 					}
 					
-					System.out.println("\n\n");
+					//System.out.println("\n\n");
 					pw.println("\n\n");
 				}
 				
