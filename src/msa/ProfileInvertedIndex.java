@@ -226,6 +226,8 @@ public class ProfileInvertedIndex
 				
 				
 			}
+			
+			lastCol = col;
 		}
 		
 		
@@ -274,7 +276,7 @@ public class ProfileInvertedIndex
 		
 		
 		for (ProfileGrid profileGrid : bigramCountMap.keySet()) {
-			int count = countMap.get(profileGrid);
+			int count = bigramCountMap.get(profileGrid);
 			
 			Integer count2 = profileMaxMap.get(profileGrid.getGrid());
 			
