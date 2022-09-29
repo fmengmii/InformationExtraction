@@ -59,9 +59,9 @@ public class PatternExtractor
 			ResultSet rs = stmt.executeQuery("select a.profile_id, a.document_id, a.start, a." + rq + "end" + rq + ", b.profile "
 				+ " from " + schema + indexTable + " a, " + schema + profileTable + " b "
 				+ "where a.profile_id = b.profile_id and a.profile_id in "
-				+ "(select b.profile_id from " + schema + finalTable + " b, " + schema + profileTable + " c "
-				+ "where c.annotation_type = '" + annotType + "' and b.disabled = 0 "
-				+ "and b.profile_id = c.profile_id)");
+				+ "(select c.profile_id from " + schema + finalTable + " c, " + schema + profileTable + " d "
+				+ "where d.annotation_type = '" + annotType + "' and c.disabled = 0 "
+				+ "and c.profile_id = d.profile_id)");
 			
 			while (rs.next()) {
 				int profileID = rs.getInt(1);
@@ -121,7 +121,7 @@ public class PatternExtractor
 	private String getPatternStr(long docID, long start, long end, int profileID) throws SQLException
 	{
 		StringBuilder strBlder = new StringBuilder();
-		Statement stmt = conn.createStatement();
+		//Statement stmt = conn.createStatement();
 		
 		//int[] ranges = pattRangeMap.get(profileID);
 		
@@ -135,7 +135,7 @@ public class PatternExtractor
 			strBlder.insert(0, val + " ");
 		}
 		
-		stmt.close();
+		//stmt.close();
 		
 		return strBlder.toString().trim();
 	}
