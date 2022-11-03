@@ -43,6 +43,9 @@ public class ProfileWriter
 		Statement stmt = conn.createStatement();
 		ResultSet rs = stmt.executeQuery("select distinct profile from " + msaTable 
 			+ " where annotation_type = '" + annotType + "'");
+		System.out.println("select distinct profile from " + msaTable 
+				+ " where annotation_type = '" + annotType + "'");
+		
 		while (rs.next()) {
 			String profileStr = rs.getString(1);
 			Boolean flag = profileMap.get(profileStr);
