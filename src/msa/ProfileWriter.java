@@ -39,12 +39,13 @@ public class ProfileWriter
 		pstmtExists = conn.prepareStatement("select count(*) from " + msaTable + " where profile = ? and annotation_type = ? "
 				+ "and profile_type = ?");
 		
-		
+
+		System.out.println("select distinct profile from " + msaTable 
+				+ " where annotation_type = '" + annotType + "'");
+
 		Statement stmt = conn.createStatement();
 		ResultSet rs = stmt.executeQuery("select distinct profile from " + msaTable 
 			+ " where annotation_type = '" + annotType + "'");
-		System.out.println("select distinct profile from " + msaTable 
-				+ " where annotation_type = '" + annotType + "'");
 		
 		while (rs.next()) {
 			String profileStr = rs.getString(1);
