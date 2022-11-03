@@ -207,8 +207,6 @@ public class GenSentences
 					System.out.println("No sequences: " + docID);
 				}
 				
-				int lastSentIndex = -1;
-
 				for (AnnotationSequence seq : docSeqList) {
 					
 					//check to see if this sentence was cached
@@ -223,15 +221,10 @@ public class GenSentences
 					String key = seq.getDocID() + "|" + seq.getStart();
 					seqMap.put(key, seq);
 					
-					if (lastSentIndex == -1)
-						lastSentIndex = seq.getStart();
 
-					List<Annotation> annotList = db.getSentAnnots(docNamespace, docTable, docID, lastSentIndex, seq.getEnd(), punct);
+					List<Annotation> annotList = db.getSentAnnots(docNamespace, docTable, docID, seq.getStart(), seq.getEnd(), punct);
 					if (annotList.size() == 0)
 						continue;
-					
-					long seqStart = seq.getStart();
-					lastSentIndex = seq.getEnd();
 					
 					long currMaxEnd = -1;
 
