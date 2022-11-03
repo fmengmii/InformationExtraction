@@ -185,8 +185,8 @@ public class GenMSADriver
 			targetType = props.getProperty("targetType");
 			targetType2 = props.getProperty("targetType2");
 			
-			if (targetType != null)
-				profileTable = props.getProperty("profileTableName");
+			//if (targetType != null)
+			profileTable = props.getProperty("profileTableName");
 
 			
 			targetProvenance = props.getProperty("targetProvenance");
