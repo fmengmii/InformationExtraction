@@ -408,6 +408,9 @@ public class AutoAnnotateNER
 			
 			combineSents = Boolean.parseBoolean(props.getProperty("combineSents"));
 			
+			if (targetType == null)
+				targetType = profileAnnotType;
+			
 			
 			//init DB connections
 			db = new MySQLDBInterface();
