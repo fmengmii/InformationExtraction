@@ -614,10 +614,12 @@ public class AutoAnnotateNER
 			System.out.println("getting grids...");
 			
  			List<String> annotTypeNameList = MSAUtils.getAnnotationTypeNameList(msaAnnotFilterList, tokType, scoreList);
-			for (String targetType : annotTypeList) {
-				annotTypeNameList.add(annotTypeNameList.size()-1, ":" + targetType.toLowerCase());
-				scoreList.add(100.0);
-			}
+ 			if (annotTypeList != null) {
+				for (String targetType : annotTypeList) {
+					annotTypeNameList.add(annotTypeNameList.size()-1, ":" + targetType.toLowerCase());
+					scoreList.add(100.0);
+				}
+ 			}
 			
 			genGrid = new GenAnnotationGrid(annotTypeNameList, tokType);
 			genGrid.setTrimSize(trimSize);
