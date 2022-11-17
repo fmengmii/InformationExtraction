@@ -142,6 +142,7 @@ public class AutoAnnotateNER
 	private boolean highProb;
 	private boolean entity;
 	private boolean prior;
+	private String sentType;
 	
 	private GenSentences genSent;
 	private boolean combineSents;
@@ -306,7 +307,8 @@ public class AutoAnnotateNER
 			annotTable = props.getProperty("annotTable");
 			
 			trimSize = Integer.parseInt(props.getProperty("trimSize"));
-
+			
+			sentType = props.getProperty("sentType");
 			
 			if (targetType != null) {
 				annotTypeList = new ArrayList<String>();
@@ -548,6 +550,9 @@ public class AutoAnnotateNER
 				//genSent.setMaskTarget(true);
 				genSent.init(db, msaAnnotFilterList, candidateType, targetProvenance);
 			}
+			
+			if (sentType != null && sentType.length() > 0)
+				genSent.setSentType(sentType);
 			
 			System.out.println("gen sents...");
 			if (docIDList == null)
