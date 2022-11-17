@@ -143,6 +143,7 @@ public class AutoAnnotateNER
 	private boolean entity;
 	private boolean prior;
 	private String sentType;
+	private String profileAnnotType;
 	
 	private GenSentences genSent;
 	private boolean combineSents;
@@ -309,6 +310,11 @@ public class AutoAnnotateNER
 			trimSize = Integer.parseInt(props.getProperty("trimSize"));
 			
 			sentType = props.getProperty("sentType");
+			
+			profileAnnotType = props.getProperty("profileAnnotType");
+			
+			if (profileAnnotType == null)
+				profileAnnotType = targetType;
 			
 			if (targetType != null) {
 				annotTypeList = new ArrayList<String>();
@@ -713,7 +719,7 @@ public class AutoAnnotateNER
 				profileIDMap = new HashMap<Long, ProfileGrid>();
 				targetIDMap = new HashMap<Long, AnnotationSequenceGrid>();
 				
-				Map<MSAProfile, List<MSAProfile>> profileMap = reader.readFinal(targetType, profileMinTotal, profileMinPrec, schema + finalTable, schema + profileTable, profileType);
+				Map<MSAProfile, List<MSAProfile>> profileMap = reader.readFinal(profileAnnotType, profileMinTotal, profileMinPrec, schema + finalTable, schema + profileTable, profileType);
 				
 				
 				for (MSAProfile profile : profileMap.keySet()) {
