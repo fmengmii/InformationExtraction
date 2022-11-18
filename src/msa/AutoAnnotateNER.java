@@ -843,7 +843,7 @@ public class AutoAnnotateNER
 					long end = -1;
 					if (targetCoords == null) {
 						//no target match
-						if (match.getMatchCoords2().size() == 0)
+						if (requireTarget && match.getMatchCoords2().size() == 0)
 							continue;
 						
 						int[] coords1 = match.getMatchCoords2().get(0);
