@@ -861,10 +861,14 @@ public class AutoAnnotateNER
 					
 					String value = match.getTargetStr();
 					if (!requireTarget)
-						value = "<null>";
+						value = "null";
 					
 					if (value != null) {
-						System.out.println(docID + "|" + match.getTargetIndexes()[0] + "|" + match.getTargetIndexes()[1]);
+						
+						if (requireTarget)
+							System.out.println(docID + "|" + match.getTargetIndexes()[0] + "|" + match.getTargetIndexes()[1]);
+						else
+							System.out.println(docID + "|" + start + "|" + end);
 						
 						
 						if (value.length() > 1 && !Character.isLetter(value.charAt(value.length()-1)))
