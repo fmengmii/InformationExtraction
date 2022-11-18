@@ -316,6 +316,10 @@ public class AutoAnnotateNER
 			if (profileAnnotType == null)
 				profileAnnotType = targetType;
 			
+			if (targetType == null)
+				targetType = profileAnnotType;
+			
+			
 			if (targetType != null) {
 				annotTypeList = new ArrayList<String>();
 				//annotTypeList.add(targetType);
