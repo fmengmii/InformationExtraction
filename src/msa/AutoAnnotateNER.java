@@ -860,6 +860,9 @@ public class AutoAnnotateNER
 
 					
 					String value = match.getTargetStr();
+					if (!requireTarget)
+						value = "<null>";
+					
 					if (value != null) {
 						System.out.println(docID + "|" + match.getTargetIndexes()[0] + "|" + match.getTargetIndexes()[1]);
 						
