@@ -728,7 +728,7 @@ public class AutoAnnotateNER
 				profileIDMap = new HashMap<Long, ProfileGrid>();
 				targetIDMap = new HashMap<Long, AnnotationSequenceGrid>();
 				
-				Map<MSAProfile, List<MSAProfile>> profileMap = reader.readFinal(profileAnnotType, profileMinTotal, profileMinPrec, schema + finalTable, schema + profileTable, profileType);
+				Map<MSAProfile, List<MSAProfile>> profileMap = reader.readFinal(profileAnnotType, profileMinTotal, profileMinPrec, schema + finalTable, schema + profileTable, profileType, requireTarget);
 				
 				
 				for (MSAProfile profile : profileMap.keySet()) {

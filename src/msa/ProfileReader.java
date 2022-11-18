@@ -239,23 +239,46 @@ public class ProfileReader
 		return profileList;
 			
 	}
-	
+
 	public Map<MSAProfile, List<MSAProfile>> readFinal(String annotType, int total, double prec, String finalProfileTable, String profileTable, int profileType) throws SQLException
+	{
+		return readFinal(annotType, total, prec, finalProfileTable, profileTable, profileType, true);
+	}
+	
+	public Map<MSAProfile, List<MSAProfile>> readFinal(String annotType, int total, double prec, String finalProfileTable, String profileTable, int profileType, boolean requireTarget) throws SQLException
 	{	
 		Map<MSAProfile, List<MSAProfile>> profileMap = new HashMap<MSAProfile, List<MSAProfile>>();
 		Map<Long, MSAProfile> targetMap = new HashMap<Long, MSAProfile>();
 		
 		Statement stmt = conn.createStatement();
 		
-		ResultSet rs = stmt.executeQuery("select a.profile_id, a.target_id, b.profile, b." + rq + "group" + rq + ", c.profile "
-			+ "from " + finalProfileTable + " a, " + profileTable + " b, " + profileTable + " c "
-			+ "where b.annotation_type = '" + annotType + "' and b.score >= 0.0 and b.profile_type = " + profileType + " and a.profile_id = b.profile_id and a.target_id = c.profile_id and "
-			+ "a.disabled = 0 and a.prec >= " + prec + " and a.total >= " + total);
+		String queryStr = "";
+			
+		if (requireTarget) {
+			queryStr = "select a.profile_id, a.target_id, b.profile, b." + rq + "group" + rq + ", c.profile "
+				+ "from " + finalProfileTable + " a, " + profileTable + " b, " + profileTable + " c "
+				+ "where b.annotation_type = '" + annotType + "' and b.score >= 0.0 and b.profile_type = " + profileType + " and a.profile_id = b.profile_id and a.target_id = c.profile_id and "
+				+ "a.disabled = 0 and a.prec >= " + prec + " and a.total >= " + total;
+			
+			System.out.println("select a.profile_id, a.target_id, b.profile, b." + rq + "group" + rq + ", c.profile "
+				+ "from " + finalProfileTable + " a, " + profileTable + " b, " + profileTable + " c "
+				+ "where b.annotation_type = '" + annotType + "' and b.score >= 0.0 and b.profile_type = " + profileType + " and a.profile_id = b.profile_id and a.target_id = c.profile_id and "
+				+ "a.disabled = 0 and a.prec >= " + prec + " and a.total >= " + total);
+		}
+		else {
+			queryStr = "select a.profile_id, a.target_id, b.profile, b." + rq + "group" + rq + ", '[]' "
+					+ "from " + finalProfileTable + " a, " + profileTable + " b "
+					+ "where b.annotation_type = '" + annotType + "' and b.score >= 0.0 and b.profile_type = " + profileType + " and a.profile_id = b.profile_id and "
+					+ "a.disabled = 0 and a.prec >= " + prec + " and a.total >= " + total;
+				
+			System.out.println("select a.profile_id, a.target_id, b.profile, b." + rq + "group" + rq + ", '[]' "
+				+ "from " + finalProfileTable + " a, " + profileTable + " b "
+				+ "where b.annotation_type = '" + annotType + "' and b.score >= 0.0 and b.profile_type = " + profileType + " and a.profile_id = b.profile_id and "
+				+ "a.disabled = 0 and a.prec >= " + prec + " and a.total >= " + total);
+ 
+		}
 		
-		System.out.println("select a.profile_id, a.target_id, b.profile, b." + rq + "group" + rq + ", c.profile "
-			+ "from " + finalProfileTable + " a, " + profileTable + " b, " + profileTable + " c "
-			+ "where b.annotation_type = '" + annotType + "' and b.score >= 0.0 and b.profile_type = " + profileType + " and a.profile_id = b.profile_id and a.target_id = c.profile_id and "
-			+ "a.disabled = 0 and a.prec >= " + prec + " and a.total >= " + total);
+		ResultSet rs = stmt.executeQuery(queryStr);
 		
 		Map<Long, MSAProfile> profileMap2 = new HashMap<Long, MSAProfile>();
 		
