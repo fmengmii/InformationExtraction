@@ -244,8 +244,8 @@ public class ProfileMatcher
 					String profileStr = gson.toJson(profileToks);
 						
 					
-					//System.out.println("profile from inverted: " + profileStr);
-					//System.out.println("profileGrid: " + profileGrid.toString());
+					System.out.println("profile from inverted: " + profileStr);
+					System.out.println("profileGrid: " + profileGrid.toString());
 					
 					
 					//if (profileStr.equals("[\":start|start\",\":target\",\":i-org\"]") || 
@@ -281,7 +281,7 @@ public class ProfileMatcher
 						minSize -= minSizeOffset;
 					
 					if (found < (profileElemToks.size() - 1 - minSizeOffset) - 3) {
-						//System.out.println("skipped!");
+						System.out.println("skipped!");
 						continue;
 					}
 					
