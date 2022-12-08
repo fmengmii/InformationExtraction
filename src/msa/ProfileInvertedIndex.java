@@ -128,7 +128,7 @@ public class ProfileInvertedIndex
 		}
 	}
 	
-	public List<ProfileGrid> getMatchedGridList(AnnotationSequenceGrid grid, String annotType)
+	public List<ProfileGrid> getMatchedGridList(AnnotationSequenceGrid grid)
 	{
 		List<ProfileGrid> profileGridList = new ArrayList<ProfileGrid>();
 		Map<ProfileGrid, Integer> countMap = new HashMap<ProfileGrid, Integer>();

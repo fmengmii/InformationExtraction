@@ -134,14 +134,16 @@ public class ProfileMatcher
 			
 			
 			//get profiles from inverted index
-			List<ProfileGrid> profileGridListIndex = invertedIndex.getMatchedGridList(grid, annotType);
+			List<ProfileGrid> profileGridListIndex = invertedIndex.getMatchedGridList(grid);
 			
 			System.out.println("after inverted index");
 			
 			//System.out.println(profileGridListIndex.size());
 			
 			Map<String, Boolean> gridMap = new HashMap<String, Boolean>();
-			gridMap.put(":" + annotType.toLowerCase(), true);
+			if (annotType != null) 
+				gridMap.put(":" + annotType.toLowerCase(), true);
+			
 			for (int j=0; j<grid.size(); j++) {
 				List<AnnotationGridElement> col = grid.get(j);
 				for (AnnotationGridElement elem : col) {
@@ -276,9 +278,11 @@ public class ProfileMatcher
 					}
 					
 					
+					/*
 					int minSize = profileElemToks.size() - 1;
 					if (minSize > 3)
 						minSize -= minSizeOffset;
+						*/
 					
 					if (found < (profileElemToks.size() - 1 - minSizeOffset) - 3) {
 						System.out.println("skipped!");
@@ -837,7 +841,7 @@ public class ProfileMatcher
 				profileGridList.addAll(profileGridList2);
 				
 				if (extraction)
-					profileGridListIndex = invertedIndex.getMatchedGridList(grid, annotType);
+					profileGridListIndex = invertedIndex.getMatchedGridList(grid);
 
 				//System.out.println("matchCount: " + matchCount  + " gridListindex: " + profileGridListIndex.size());
 			}

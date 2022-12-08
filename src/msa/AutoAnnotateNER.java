@@ -316,26 +316,26 @@ public class AutoAnnotateNER
 			if (profileAnnotType == null)
 				profileAnnotType = targetType;
 			
-			if (targetType == null)
-				targetType = profileAnnotType;
-			
-			
-			if (targetType != null) {
-				annotTypeList = new ArrayList<String>();
-				//annotTypeList.add(targetType);
-				annotTypeList.add(candidateType);			
-				profileTableList = new ArrayList<String>();
-				profileTableList.add(profileTable);
+			annotTypeList = new ArrayList<String>();
 				
-				finalTableList = new ArrayList<String>();
-				finalTableList.add(finalTable);
-			}
+			if (targetType != null)	
+				annotTypeList.add(targetType);
+			else
+				annotTypeList.add(profileAnnotType);
 			
+			profileTableList = new ArrayList<String>();
+			profileTableList.add(profileTable);
+			
+			finalTableList = new ArrayList<String>();
+			finalTableList.add(finalTable);
+			
+			/*
 			if (requireTarget != null) {
 				requireTargetMap = new HashMap<String, Boolean>();
 				//requireTargetMap.put(targetType, requireTarget);
 				requireTargetMap.put(candidateType, requireTarget);
 			}
+			*/
 			
 			profileMinTotal = Integer.parseInt(props.getProperty("profileMinTotal"));
 			profileMinPrec = Double.parseDouble(props.getProperty("profileMinPrec"));
@@ -364,7 +364,7 @@ public class AutoAnnotateNER
 			
 			if (requireTarget) {
 				Map<String, Object> targetMap = new HashMap<String, Object>();
-				targetMap.put("annotType", candidateType);
+				targetMap.put("annotType", targetType);
 				targetMap.put("provenance", targetProvenance);
 				targetMap.put("targetStr", ":target");
 				msaAnnotFilterList.add(targetMap);
@@ -561,7 +561,7 @@ public class AutoAnnotateNER
 				genSent.setVerbose(verbose);
 				genSent.setTokenType(tokType);
 				//genSent.setMaskTarget(true);
-				genSent.init(db, msaAnnotFilterList, candidateType, targetProvenance);
+				genSent.init(db, msaAnnotFilterList, targetType, targetProvenance);
 			}
 			
 			if (sentType != null && sentType.length() > 0)
@@ -579,7 +579,9 @@ public class AutoAnnotateNER
 			
 			
 			//get sequences
-			genSent.addTargets(candidateType);
+			if (targetType != null)
+				genSent.addTargets(targetType);
+			
 			posSeqList = genSent.getPosSeqList();
 			negSeqList = genSent.getNegSeqList();
 			seqMap = genSent.getSeqMap();
