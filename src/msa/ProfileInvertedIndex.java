@@ -67,6 +67,22 @@ public class ProfileInvertedIndex
 					gridMap.put(profileGrid, ++count);	
 					
 					//added support for bigrams
+					
+					//add singleton if grid has only one element
+					if (i==0) {
+						gridMap = bigramMap.get(tok);
+						if (gridMap == null) {
+							gridMap = new HashMap<ProfileGrid, Integer>();
+							bigramMap.put(tok, gridMap);
+						}
+						
+						count = gridMap.get(profileGrid);
+						if (count == null)
+							count = 0;
+						
+						gridMap.put(profileGrid, ++count);
+					}
+					
 					String bigram = null;
 					if (lastTok != null) {
 						bigram = lastTok  + "|||" + tok;
@@ -150,6 +166,9 @@ public class ProfileInvertedIndex
 				String tok = elem.getTok();
 				
 				List<String> bigramList = new ArrayList<String>();
+				
+				//add first tok if the grid only has one element
+				bigramList.add(tok);
 				
 				if (lastCol != null) {
 					//generate all possible bigrams

@@ -200,7 +200,7 @@ public class MySQLDBInterface implements MSADBInterface
 				pstmtSentsTargetMask.setString(5, targetType);
 				pstmtSentsTargetMask.setString(6, maskType);
 				
-				
+				/*
 				System.out.println("select distinct a.start, a." + rq + "end" + rq + ", a.id from " + schema + annotTable + " a, "
 					+ schema + annotTable + " b "
 					+ "where a.document_namespace = '" + docNamespace + "' and a.document_table = '" + docTable + "' "
@@ -212,7 +212,7 @@ public class MySQLDBInterface implements MSADBInterface
 					+ "and not exists (select c.* from " + schema + annotTable + " c where a.document_id = c.document_id "
 					+ "and c.annotation_type = '" + maskType + "' and a.start = c.start and a." + rq + "end" + rq + " = c." + rq + "end" + rq + ") "
 					+ "order by a.start");
-					
+				*/
 			}
 			else if (maskType != null ) {
 				pstmtSentsMask.setString(1, docNamespace);
@@ -221,14 +221,14 @@ public class MySQLDBInterface implements MSADBInterface
 				pstmtSentsMask.setString(4, sentType);
 				pstmtSentsMask.setString(5, maskType);
 				
-				
+				/*
 				System.out.println("select distinct a.start, a." + rq + "end" + rq + ", a.id from " + schema + annotTable + " a "
 					+ "where a.document_namespace = '" + docNamespace + "' and a.document_table = '" + docTable + "' "
 					+ "and a.document_id = " + docID + " and a.annotation_type = '" + sentType + "' "
 					+ "and not exists (select b.* from " + schema + annotTable + " b where a.document_id = b.document_id "
 					+ "and b.annotation_type = '" + maskType + "' and a.start = b.start and a." + rq + "end" + rq + " = b." + rq + "end" + rq + ") "
 					+ "order by a.start");
-					
+				*/	
 			}
 			else if (targetType != null) {
 				pstmtSentsTarget.setString(1, docNamespace);
@@ -237,7 +237,7 @@ public class MySQLDBInterface implements MSADBInterface
 				pstmtSentsTarget.setString(4, sentType);
 				pstmtSentsTarget.setString(5, targetType);
 				
-				
+				/*
 				System.out.println("select distinct a.start, a." + rq + "end" + rq + ", a.id from " + schema + annotTable + " a, " + schema + annotTable + " b "
 					+ "where a.document_namespace = '" + docNamespace + "' and a.document_table = '" + docTable + "' "
 					+ "and a.document_id = " + docID + " and a.annotation_type = '" + sentType + "' "
@@ -246,7 +246,7 @@ public class MySQLDBInterface implements MSADBInterface
 					+ "and ((a.start <= b.start and a." + rq + "end" + rq +" > b.start) or (a.start < b." + rq + "end" + rq + " and a." + rq + "end" + rq + " >= b." + rq + "end" + rq + ") "
 					+ "or (a.start >= b.start and a." + rq + "end" + rq + " <= b." + rq + "end" + rq + "))"
 						+ "order by a.start");
-						
+				*/		
 			}
 			else {
 				pstmtSents.setString(1, docNamespace);
@@ -254,12 +254,12 @@ public class MySQLDBInterface implements MSADBInterface
 				pstmtSents.setLong(3, docID);
 				pstmtSents.setString(4, sentType);
 				
-				
+				/*
 				System.out.println("select distinct start, " + rq + "end" + rq + ", id from " + schema + annotTable + " "
 					+ "where document_namespace = '" + docNamespace + "' and document_table = '" + docTable + "' "
 					+ "and document_id = " + docID + " and annotation_type = '" + sentType + "' "
 					+ "order by start");
-					
+				*/	
 			}
 			
 			
