@@ -845,11 +845,12 @@ public class AutoAnnotateNER
 						if (requireTarget && match.getMatchCoords2().size() == 0)
 							continue;
 						
-						int[] coords1 = match.getMatchCoords2().get(0);
 						List<int[]> matchCoords2 = match.getMatchCoords2();
+						int[] coords1 = matchCoords2.get(0);
 						int[] coords2 = matchCoords2.get(matchCoords2.size()-1);
-						start = grid.get(coords1[0]).get(0).getAnnot().getStart();
-						end = grid.get(coords2[0]).get(0).getAnnot().getEnd();	
+						
+						start = grid.get(coords1[0]).get(coords1[1]).getAnnot().getStart();
+						end = grid.get(coords2[0]).get(coords2[1]).getAnnot().getEnd();	
 					}
 					else {
 						start = targetCoords[0];
