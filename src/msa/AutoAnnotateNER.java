@@ -909,8 +909,11 @@ public class AutoAnnotateNER
 						pw.println(" ans: " + currType + ", profile: " + match.getProfile().getProfileStr() + ", target: " + match.getTargetStr() + ", docID: " + match.getSequence().getDocID() + ", sent: " + match.getGridStr());
 					}
 					
+					String annotType = targetType;
+					if (annotType == null)
+						annotType = profileAnnotType;
 					
-					Annotation annot = new Annotation(docID, docNamespace, docTable, -1, targetType, 
+					Annotation annot = new Annotation(docID, docNamespace, docTable, -1, annotType, 
 						start, end, match.getTargetStr(), null);
 					annot.setProvenance(autoProvenance);
 					Map<String, Object> featureMap = new HashMap<String, Object>();
