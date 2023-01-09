@@ -352,7 +352,7 @@ public class GenSentences
 			AnnotationSequence endSeq = new AnnotationSequence();
 			for (int j=i+1; j<seqList.size(); j++) {
 				AnnotationSequence nextSeq = seqList.get(j);
-				if (nextSeq.getStart() < maxEnd && nextSeq.getStart() >= start)
+				if (nextSeq.getDocID() == currSeq.getDocID() && nextSeq.getStart() < maxEnd && nextSeq.getStart() >= start)
 					endSeq.append(seqList.get(j));
 				else {
 					endIndex = j-1;
