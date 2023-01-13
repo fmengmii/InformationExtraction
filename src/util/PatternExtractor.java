@@ -74,6 +74,10 @@ public class PatternExtractor
 					setPatternRange(profileID, profileStr);
 				
 				String pattern = getPatternStr(docID, start, end, profileID);
+				
+				System.out.println("pattern: " + pattern);
+				
+				
 				Integer count = countMap.get(pattern);
 				
 				if (count == null) {
