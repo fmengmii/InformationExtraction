@@ -75,7 +75,7 @@ public class PatternExtractor
 				
 				String pattern = getPatternStr(docID, start, end, profileID);
 				
-				System.out.println("docID: " + docID + " start: " + start + " end: " + end + " profileStr: " + profileStr + " pattern: " + pattern);
+				System.out.println("docID: " + docID + " start: " + start + " end: " + end + " profileID : " + profileID + " profileStr: " + profileStr + " pattern: " + pattern);
 				
 				
 				Integer count = countMap.get(pattern);
