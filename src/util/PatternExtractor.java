@@ -75,6 +75,10 @@ public class PatternExtractor
 				
 				String pattern = getPatternStr(docID, start, end, profileID);
 				
+			
+				if (pattern.length() == 0)
+					continue;
+				
 				System.out.println("docID: " + docID + " start: " + start + " end: " + end + " profileID : " + profileID + " profileStr: " + profileStr + " pattern: " + pattern);
 				
 				
