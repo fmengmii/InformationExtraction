@@ -58,10 +58,7 @@ public class PatternExtractor
 			
 			ResultSet rs = stmt.executeQuery("select distinct a.profile_id, a.document_id, a.start, a." + rq + "end" + rq + ", b.profile "
 				+ " from " + schema + indexTable + " a, " + schema + profileTable + " b "
-				+ "where a.profile_id = b.profile_id and a.profile_id in "
-				+ "(select c.profile_id from " + schema + finalTable + " c, " + schema + profileTable + " d "
-				+ "where d.annotation_type = '" + annotType + "' and c.disabled = 0 "
-				+ "and c.profile_id = d.profile_id)");
+				+ "where a.profile_id = b.profile_id");
 			
 			while (rs.next()) {
 				int profileID = rs.getInt(1);
