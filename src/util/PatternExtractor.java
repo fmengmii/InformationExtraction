@@ -57,8 +57,9 @@ public class PatternExtractor
 			pattRangeMap = new HashMap<Integer, int[]>();
 			
 			ResultSet rs = stmt.executeQuery("select distinct a.profile_id, a.document_id, a.start, a." + rq + "end" + rq + ", b.profile "
-				+ " from " + schema + indexTable + " a, " + schema + profileTable + " b "
-				+ "where a.profile_id = b.profile_id");
+				+ " from " + schema + indexTable + " a, " + schema + profileTable + " b, " + schema + annotTable + " c "
+				+ "where a.profile_id = b.profile_id and a.document_id = c.document_id and a.start >= c.start and a." + rq + "end" + rq + " <= c." + rq + "end" + rq
+				+ " and c.annotation_type = '" + annotType + "'");
 			
 			while (rs.next()) {
 				int profileID = rs.getInt(1);
