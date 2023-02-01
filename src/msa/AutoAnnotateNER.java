@@ -164,6 +164,8 @@ public class AutoAnnotateNER
 	private int profileType = 0;
 	private int trimSize = 5;
 	
+	private boolean duplicates = false;
+	
 	
 	public AutoAnnotateNER()
 	{
@@ -357,6 +359,10 @@ public class AutoAnnotateNER
 			minGlobalCount = Integer.parseInt(props.getProperty("minGlobalCount"));
 			minGlobalNegPrec = Double.parseDouble(props.getProperty("minGlobalNegPrec"));
 			minGlobalNegCount = Integer.parseInt(props.getProperty("minGlobalNegCount"));
+			
+			String dupStr = props.getProperty("duplicates");
+			if (dupStr != null)
+				duplicates = Boolean.parseBoolean(dupStr);
 			
 			
 			pw = new PrintWriter(outFile);
@@ -930,7 +936,7 @@ public class AutoAnnotateNER
 					annot.setFeatures(featuresStr);
 					
 					Boolean flag = valMap.get(docID + "|" + start + "|" + end);
-					if (flag == null) {
+					if (flag == null || duplicates) {
 						valMap.put(docID + "|" + start + "|" + end, true);
 						finalAnnotList.add(annot);
 						finalMatchList.add(match);
