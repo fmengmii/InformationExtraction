@@ -136,7 +136,7 @@ public class ProfileMatcher
 			//get profiles from inverted index
 			List<ProfileGrid> profileGridListIndex = invertedIndex.getMatchedGridList(grid);
 			
-			System.out.println("after inverted index");
+			//System.out.println("after inverted index");
 			
 			//System.out.println(profileGridListIndex.size());
 			
