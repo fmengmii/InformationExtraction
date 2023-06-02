@@ -190,7 +190,7 @@ public class PatternExtractor
 		Statement stmt = conn.createStatement();
 		
 		ResultSet rs = stmt.executeQuery("select value, start, " + rq + "end" + rq + " from " + schema + annotTable + " where annotation_type = 'Token' "
-			+ "and document_id + " + docID + " and start > " + (start - 200) + " and start < " + (start + 200) + " order by start");
+			+ "and document_id = " + docID + " and start > " + (start - 200) + " and start < " + (start + 200) + " order by start");
 		
 		StringBuilder strBlder = new StringBuilder();
 		
