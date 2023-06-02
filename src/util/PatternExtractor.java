@@ -19,6 +19,8 @@ public class PatternExtractor
 	
 	private Map<Integer, int[]> pattRangeMap;
 	private Gson gson;
+	
+	private String rq;
 
 	public PatternExtractor()
 	{
@@ -42,7 +44,7 @@ public class PatternExtractor
 			String profileTable = props.getProperty("profileTable");
 			
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
-			String rq = DBConnection.reservedQuote;
+			rq = DBConnection.reservedQuote;
 			
 			pstmt = conn.prepareStatement("select value from " + schema + annotTable + " where document_id = ? "
 				+ "and start >= ? and " + rq + "end" + rq + " <= ? and annotation_type = 'Token' "
@@ -54,6 +56,7 @@ public class PatternExtractor
 			Statement stmt = conn.createStatement();
 			
 			Map<String, Integer> countMap = new HashMap<String, Integer>();
+			Map<String, List<String>> sentMap = new HashMap<String, List<String>>();
 			pattRangeMap = new HashMap<Integer, int[]>();
 			
 			ResultSet rs = stmt.executeQuery("select distinct a.profile_id, a.document_id, a.start, a." + rq + "end" + rq + ", b.profile "
@@ -87,6 +90,15 @@ public class PatternExtractor
 				}
 				
 				countMap.put(pattern, ++count);
+				
+				List<String> sentList = sentMap.get(pattern);
+				if (sentList == null) {
+					sentList = new ArrayList<String>();
+					sentMap.put(pattern, sentList);
+				}
+				
+				String sentStr = getSentStr(docID, start, end);
+				sentList.add(sentStr);
 			}
 			
 			List<String> pattList = new ArrayList<String>();
@@ -112,7 +124,13 @@ public class PatternExtractor
 			}
 			
 			for (int i=0; i<pattList.size(); i++) {
-				System.out.println(pattList.get(i) + "\ncount: " + countList.get(i) + "\n\n");
+				System.out.println(pattList.get(i) + "\ncount: " + countList.get(i) + "\n");
+				List<String> sentList = sentMap.get(pattList.get(i));
+				for (String sentStr : sentList) {
+					System.out.println(sentStr);
+				}
+				
+				System.out.println("\n\n");
 			}
 			
 			
@@ -165,6 +183,39 @@ public class PatternExtractor
 		ranges[1] = toks.size() - tokIndex - 1;
 		
 		pattRangeMap.put(profileID, ranges);
+	}
+	
+	private String getSentStr(long docID, long start, long end) throws SQLException
+	{
+		Statement stmt = conn.createStatement();
+		
+		ResultSet rs = stmt.executeQuery("select value, start, " + rq + "end" + rq + " from " + schema + annotTable + " where annotation_type = 'Token' "
+			+ "and document_id + " + docID + " and start > " + (start - 200) + " and start < " + (start + 200) + " order by start");
+		
+		StringBuilder strBlder = new StringBuilder();
+		
+		boolean inAnnot = false;
+		while (rs.next()) {
+			String tokStr = rs.getString(1);
+			long start2 = rs.getLong(2);
+			
+			if (start2 >= start && start2 < end && !inAnnot) {
+				strBlder.append("[");
+				inAnnot = true;
+			}
+			else if (start2 > end && inAnnot) {
+				strBlder.append("]");
+				inAnnot = false;
+			}
+				
+			
+			strBlder.append(tokStr + " ");
+		}
+		
+		
+		stmt.close();
+		
+		return strBlder.toString();
 	}
 	
 	public static void main(String[] args)
