@@ -12,6 +12,7 @@ public class PatternExtractor
 {
 	private Connection conn;
 	private String annotTable;
+	private String annotType;
 	private String schema;
 	private PreparedStatement pstmt;
 	private PreparedStatement pstmt2;
@@ -21,6 +22,10 @@ public class PatternExtractor
 	private Gson gson;
 	
 	private String rq;
+	
+	private String indexTable;
+	private String finalTable;
+	private String profileTable;
 
 	public PatternExtractor()
 	{
@@ -37,11 +42,11 @@ public class PatternExtractor
 			String dbName = props.getProperty("dbName");
 			String dbType = props.getProperty("dbType");
 			schema = props.getProperty("schema") + ".";
-			String indexTable = props.getProperty("indexTable");
-			String finalTable = props.getProperty("finalTable");
-			String annotType = props.getProperty("annotType");
+			indexTable = props.getProperty("indexTable");
+			finalTable = props.getProperty("finalTable");
+			annotType = props.getProperty("annotType");
 			annotTable = props.getProperty("annotTable");
-			String profileTable = props.getProperty("profileTable");
+			profileTable = props.getProperty("profileTable");
 			
 			conn = DBConnection.dbConnection(user, password, host, dbName, dbType);
 			rq = DBConnection.reservedQuote;
@@ -74,7 +79,7 @@ public class PatternExtractor
 				if (pattRangeMap.get(profileID) == null)
 					setPatternRange(profileID, profileStr);
 				
-				String pattern = getPatternStr(docID, start, end, profileID);
+				String pattern = getPatternStr(docID, start, end);
 				
 			
 				if (pattern.length() == 0)
@@ -134,6 +139,9 @@ public class PatternExtractor
 			}
 			
 			
+			System.out.println("\n\n\n\nNEGATIVES");
+			printNegatives();
+			
 			conn.close();
 		}
 		catch(Exception e)
@@ -142,7 +150,31 @@ public class PatternExtractor
 		}
 	}
 	
-	private String getPatternStr(long docID, long start, long end, int profileID) throws SQLException
+	private void printNegatives() throws SQLException
+	{
+		Statement stmt = conn.createStatement();
+		
+		ResultSet rs = stmt.executeQuery("select distinct d.document_id, d.start, d." + rq + "end" + rq 
+			+ "from " + schema + indexTable + " d where not exists ("
+			+ "select distinct a.document_id, a.start, a." + rq + "end" + rq
+			+ " where " + schema + indexTable + " a, " + schema + finalTable + " b, " + schema + profileTable + " c "
+			+ "where c.annotation_type = '" + annotType + "' and b.disabled = 0 and b.profile_id = c.profile_id and a.profile_id = b.profile_id "
+			+ "and a.document_id = d.document_id and a.start = d.start and a." + rq + "end" + rq + " = d." + rq + "end" + rq
+			+ ")");
+		
+		while (rs.next()) {
+			long docID = rs.getLong(1);
+			long start = rs.getLong(2);
+			long end = rs.getLong(3);
+			
+			String patternStr = getPatternStr(docID, start, end);
+			System.out.println("NEG: " + patternStr);
+		}
+		
+		stmt.close();
+	}
+	
+	private String getPatternStr(long docID, long start, long end) throws SQLException
 	{
 		StringBuilder strBlder = new StringBuilder();
 		//Statement stmt = conn.createStatement();
