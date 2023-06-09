@@ -157,7 +157,7 @@ public class PatternExtractor
 		ResultSet rs = stmt.executeQuery("select distinct d.document_id, d.start, d." + rq + "end" + rq 
 			+ " from " + schema + indexTable + " d where not exists ("
 			+ "select distinct a.document_id, a.start, a." + rq + "end" + rq
-			+ " where " + schema + indexTable + " a, " + schema + finalTable + " b, " + schema + profileTable + " c "
+			+ " from " + schema + indexTable + " a, " + schema + finalTable + " b, " + schema + profileTable + " c "
 			+ "where c.annotation_type = '" + annotType + "' and b.disabled = 0 and b.profile_id = c.profile_id and a.profile_id = b.profile_id "
 			+ "and a.document_id = d.document_id and a.start = d.start and a." + rq + "end" + rq + " = d." + rq + "end" + rq
 			+ ")");
