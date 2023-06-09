@@ -167,8 +167,8 @@ public class PatternExtractor
 			long start = rs.getLong(2);
 			long end = rs.getLong(3);
 			
-			String patternStr = getPatternStr(docID, start, end);
-			System.out.println("NEG: " + patternStr);
+			String sentStr = getSentStr(docID, start, end);
+			System.out.println("NEG: " + sentStr);
 		}
 		
 		stmt.close();
