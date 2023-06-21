@@ -64,6 +64,7 @@ public class PatternExtractor
 			Map<String, List<String>> sentMap = new HashMap<String, List<String>>();
 			pattRangeMap = new HashMap<Integer, int[]>();
 			
+			//TP
 			ResultSet rs = stmt.executeQuery("select distinct a.profile_id, a.document_id, a.start, a." + rq + "end" + rq + ", b.profile "
 				+ " from " + schema + indexTable + " a, " + schema + profileTable + " b, " + schema + annotTable + " c, " + schema + finalTable + " d "
 				+ "where a.profile_id = b.profile_id and a.document_id = c.document_id and a.start <= c.start and a." + rq + "end" + rq + " >= c." + rq + "end" + rq
@@ -85,7 +86,7 @@ public class PatternExtractor
 				if (pattern.length() == 0)
 					continue;
 				
-				System.out.println("docID: " + docID + " start: " + start + " end: " + end + " profileID : " + profileID + " profileStr: " + profileStr + " pattern: " + pattern);
+				System.out.println(docID + "|" + start + "|" + end + " profileID: " + profileID + " profileStr: " + profileStr + " pattern: " + pattern);
 				
 				
 				Integer count = countMap.get(pattern);
@@ -138,8 +139,10 @@ public class PatternExtractor
 				System.out.println("\n\n");
 			}
 			
+			System.out.println("\n\n\n\nFP");
+			printFPs();
 			
-			System.out.println("\n\n\n\nNEGATIVES");
+			System.out.println("\n\n\n\nFN");
 			printNegatives();
 			
 			conn.close();
@@ -148,6 +151,30 @@ public class PatternExtractor
 		{
 			e.printStackTrace();
 		}
+	}
+	
+	private void printFPs() throws SQLException
+	{
+		Statement stmt = conn.createStatement();
+		
+		ResultSet rs = stmt.executeQuery("select distinct d.document_id, d.start, d." + rq + "end" + rq 
+			+ " from " + schema + indexTable + " d where not exists ("
+			+ "select distinct a.document_id, a.start, a." + rq + "end" + rq
+			+ " from " + schema + annotTable + " a "
+			+ "where a.annotation_type = '" + annotType + "' "
+			+ "and a.document_id = d.document_id and d.start <= a.start and d." + rq + "end" + rq + " >= a." + rq + "end" + rq
+			+ ")");
+		
+		while (rs.next()) {
+			long docID = rs.getLong(1);
+			long start = rs.getLong(2);
+			long end = rs.getLong(3);
+			
+			String sentStr = getSentStr(docID, start, end);
+			System.out.println("FP: " + docID + "|" + start + "|" + end + ": " + sentStr);
+		}
+		
+		stmt.close();
 	}
 	
 	private void printNegatives() throws SQLException
@@ -169,7 +196,7 @@ public class PatternExtractor
 			long end = rs.getLong(3);
 			
 			String sentStr = getSentStr(docID, start, end);
-			System.out.println("NEG: " + sentStr);
+			System.out.println("FN: " + docID + "|" + start + "|" + end + ": " + sentStr);
 		}
 		
 		stmt.close();
