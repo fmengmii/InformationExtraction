@@ -157,12 +157,14 @@ public class PatternExtractor
 	{
 		Statement stmt = conn.createStatement();
 		
-		ResultSet rs = stmt.executeQuery("select distinct d.document_id, d.start, d." + rq + "end" + rq 
-			+ " from " + schema + indexTable + " d where not exists ("
-			+ "select distinct a.document_id, a.start, a." + rq + "end" + rq
-			+ " from " + schema + annotTable + " a "
-			+ "where a.annotation_type = '" + annotType + "' "
-			+ "and a.document_id = d.document_id and d.start <= a.start and d." + rq + "end" + rq + " >= a." + rq + "end" + rq
+		ResultSet rs = stmt.executeQuery("select distinct a.document_id, a.start, a." + rq + "end" + rq 
+			+ " from " + schema + indexTable + " a, " + schema + finalTable + " b "
+			+ "where a.profile_id = b.profile_id and b.disabled = 0 "
+			+ "and not exists ("
+			+ "select distinct c.document_id, c.start, c." + rq + "end" + rq
+			+ " from " + schema + annotTable + " c "
+			+ "where c.annotation_type = '" + annotType + "' "
+			+ "and c.document_id = a.document_id and a.start <= c.start and a." + rq + "end" + rq + " >= c." + rq + "end" + rq
 			+ ")");
 		
 		while (rs.next()) {
