@@ -81,12 +81,13 @@ public class PatternExtractor
 					setPatternRange(profileID, profileStr);
 				
 				String pattern = getPatternStr(docID, start, end);
+				String sentStr = getSentStr(docID, start, end);
 				
 			
 				if (pattern.length() == 0)
 					continue;
 				
-				System.out.println(docID + "|" + start + "|" + end + " profileID: " + profileID + " profileStr: " + profileStr + " pattern: " + pattern);
+				System.out.println(docID + "|" + start + "|" + end + " profileID: " + profileID + " profileStr: " + profileStr + " pattern: " + pattern + " sentStr: " + sentStr);
 				
 				
 				Integer count = countMap.get(pattern);
@@ -103,7 +104,6 @@ public class PatternExtractor
 					sentMap.put(pattern, sentList);
 				}
 				
-				String sentStr = getSentStr(docID, start, end);
 				sentList.add(sentStr);
 			}
 			
@@ -143,7 +143,10 @@ public class PatternExtractor
 			printFPs();
 			
 			System.out.println("\n\n\n\nFN");
-			printNegatives();
+			printFNs();
+			
+			System.out.println("\n\n\n\nRelapse TNs");
+			printRelapseTNs();
 			
 			conn.close();
 		}
@@ -179,7 +182,7 @@ public class PatternExtractor
 		stmt.close();
 	}
 	
-	private void printNegatives() throws SQLException
+	private void printFNs() throws SQLException
 	{
 		Statement stmt = conn.createStatement();
 		
@@ -199,6 +202,32 @@ public class PatternExtractor
 			
 			String sentStr = getSentStr(docID, start, end);
 			System.out.println("FN: " + docID + "|" + start + "|" + end + ": " + sentStr);
+		}
+		
+		stmt.close();
+	}
+	
+	private void printRelapseTNs() throws SQLException
+	{
+		Statement stmt = conn.createStatement();
+		
+		ResultSet rs = stmt.executeQuery("select distinct d.document_id, d.start, d." + rq + "end" + rq 
+			+ " from " + schema + annotTable + " d where d.annotation_type = 'Token' "
+			+ "and (value = 'relapse' or value = 'relapsed') and "
+			+ "not exists ("
+			+ "select distinct a.document_id, a.start, a." + rq + "end" + rq
+			+ " from " + schema + annotTable + " a "
+			+ "where a.annotation_type = 'pcori-oud-relapse-indicator-keyword' "
+			+ "and a.document_id = d.document_id and a.start <= d.start and a." + rq + "end" + rq + " >= d." + rq + "end" + rq
+			+ ")");
+		
+		while (rs.next()) {
+			long docID = rs.getLong(1);
+			long start = rs.getLong(2);
+			long end = rs.getLong(3);
+			
+			String sentStr = getSentStr(docID, start, end);
+			System.out.println("Relapse TN: " + docID + "|" + start + "|" + end + ": " + sentStr);
 		}
 		
 		stmt.close();
