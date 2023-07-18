@@ -1192,7 +1192,8 @@ public class AutoAnnotateNER
 				}
 			//}
 			
-			
+			int count = 0;
+			conn.setAutoCommit(false);
 			for (Annotation annot : finalAnnotList) {
 					
 				int id = getNextAnnotID(annot.getDocID());
@@ -1205,11 +1206,21 @@ public class AutoAnnotateNER
 				pstmt2.setString(7, annot.getFeatures());
 				pstmt2.setString(8, annot.getProvenance());
 				pstmt2.setDouble(9, 1);
-				pstmt2.execute();
-				
+				pstmt2.addBatch();				
 				//System.out.println(annot.toString());
+				if (count == 1000) {
+					pstmt2.executeBatch();
+					conn.commit();
+					count = 0;
+				}
+				
+				count++;
 					
 			}
+			
+			pstmt2.executeBatch();
+			conn.commit();
+			conn.setAutoCommit(true);
 			
 		}
 		catch(Exception e)
