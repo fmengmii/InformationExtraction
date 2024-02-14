@@ -325,17 +325,24 @@ public class GateBatch2
 			currDoc = -1;
 			
 			Pattern p = Pattern.compile("^.*[a-zA-Z0-9]+.*$", Pattern.DOTALL);
+			
+			ResultSet rs = stmt.executeQuery(docQuery);
 		  
-			for (long docID : docIDList) {
+			while (rs.next()) {
+				long docID = rs.getLong(1);
+				String reportText = rs.getString(2);
 				
 				System.out.println("Processing document " + docID + "...");
 				
-				String reportText = "";
+				//String reportText = "";
 				hasText = false;
+				
+				/*
 				pstmtGetText.setLong(1, docID);
 				rs = pstmtGetText.executeQuery();
 				if (rs.next())
 					reportText = rs.getString(1);
+					*/
 				
 				if (reportText != null && reportText.length() > 0) {
 					  reportText = reportText.trim();
