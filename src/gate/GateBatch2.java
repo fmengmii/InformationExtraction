@@ -67,7 +67,7 @@ public class GateBatch2
 	private Gson gson;
 	private List<File> fileList;
 	private ResultSet rs;
-	private com.datastax.driver.core.ResultSet cassRS;
+	//private com.datastax.driver.core.ResultSet cassRS;
 	private File docFile;
 	private boolean hasText;
 	private long currDoc;
